@@ -1,0 +1,11 @@
+# MES Recipe Validator - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core dependencies
+openpyxl>=3.1.0          # Excel file reading/writing (.xlsx)
+
+# GUI (optional - can also use built-in tkinter)
+PyQt6>=6.4.0             # Modern Qt-based GUI
+
+# Development/Testing
+pytest>=7.0.0            # Testing framework

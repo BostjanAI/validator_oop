@@ -1,0 +1,1317 @@
+{
+  "total_recipes": 0,
+  "runs": [
+    {
+      "zaporedna_stevilka": 1,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-043 DEAE\\KL SOP-122 v8 420-043 Priloga 1 DEAE-MOD 1 - 40000 260212 BK.xlsm",
+      "date": "2026-02-13T09:05:14.409361+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 2,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 260212BK.xlsm",
+      "date": "2026-02-13T09:06:21.152403+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 3,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260205BK.xlsm",
+      "date": "2026-02-13T13:53:19.027904+00:00",
+      "errors": 54,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 4,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 251125 BK.xlsm",
+      "date": "2026-02-16T08:23:57.021988+00:00",
+      "errors": 33,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 5,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 251125 BK.xlsm",
+      "date": "2026-02-16T08:50:31.358286+00:00",
+      "errors": 33,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 6,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 251125 BK.xlsm",
+      "date": "2026-02-16T08:50:46.788959+00:00",
+      "errors": 33,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 7,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 251125 BK.xlsm",
+      "date": "2026-02-16T08:51:25.158649+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 8,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:52:41.146635+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 9,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:53:32.985860+00:00",
+      "errors": 22,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 10,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:54:12.018925+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 11,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:54:58.190155+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 12,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:55:07.647535+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 13,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:56:14.154164+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 14,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T08:56:29.063165+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 15,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\Staro\\KL SOP-125 420-046 OH-MOD 1 - 8000 test.xlsm",
+      "date": "2026-02-16T09:02:10.796733+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 16,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-043 DEAE\\KL SOP-122 v8 420-043 Priloga 1 DEAE-MOD 1 - 40000 260212 BK.xlsm",
+      "date": "2026-02-16T09:03:53.412798+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 17,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 251125 BK.xlsm",
+      "date": "2026-02-16T09:04:26.700575+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 18,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 260216 BK.xlsm",
+      "date": "2026-02-16T09:06:04.161218+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 19,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 251018 KČ.xlsm",
+      "date": "2026-02-16T09:06:38.437585+00:00",
+      "errors": 44,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 20,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 251018 KČ.xlsm",
+      "date": "2026-02-16T09:57:55.714462+00:00",
+      "errors": 44,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 21,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T09:57:57.330067+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 22,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T09:58:53.258441+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 23,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T10:12:35.812021+00:00",
+      "errors": 6,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 24,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T11:09:16.551158+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 25,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 251126 KČ.xlsm",
+      "date": "2026-02-16T11:10:09.203060+00:00",
+      "errors": 42,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 26,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 251128 JJ.xlsm",
+      "date": "2026-02-16T11:11:57.493407+00:00",
+      "errors": 58,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 27,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260216BK2.xlsm",
+      "date": "2026-02-16T11:39:19.059088+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 28,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 260212BK.xlsm",
+      "date": "2026-02-16T12:36:02.245198+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 29,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 251211 KČ.xlsm",
+      "date": "2026-02-16T12:36:26.955769+00:00",
+      "errors": 52,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 30,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T12:41:46.697678+00:00",
+      "errors": 36,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 31,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260216BK.xlsm",
+      "date": "2026-02-16T13:43:00.634724+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 32,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 251014 KČ.xlsm",
+      "date": "2026-02-16T13:44:50.111297+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 33,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 251014 KČ.xlsm",
+      "date": "2026-02-16T13:57:43.608318+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 34,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260216.xlsm",
+      "date": "2026-02-19T08:42:21.133927+00:00",
+      "errors": 52,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 35,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260219BK.xlsm",
+      "date": "2026-02-19T08:59:08.384910+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 36,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\staro\\KL SOP-359 420-051 SO4-MOD 1 - 8000 251126 KČ.xlsm",
+      "date": "2026-02-19T09:00:16.229028+00:00",
+      "errors": 42,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 37,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260219BK.xlsm",
+      "date": "2026-02-19T09:03:35.183920+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 38,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260219BK.xlsm",
+      "date": "2026-02-19T09:10:29.333014+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 39,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 251209_BK.xlsm",
+      "date": "2026-02-20T07:00:47.897792+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 40,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 251209_BK.xlsm",
+      "date": "2026-02-20T07:19:05.893174+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 41,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260220_BK.xlsm",
+      "date": "2026-02-20T07:46:37.921685+00:00",
+      "errors": 179,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 42,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260220_BK.xlsm",
+      "date": "2026-02-20T07:49:00.634535+00:00",
+      "errors": 179,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 43,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260220_BK.xlsm",
+      "date": "2026-02-20T07:49:33.669737+00:00",
+      "errors": 179,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 44,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260220_BK.xlsm",
+      "date": "2026-02-20T07:50:37.814867+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 45,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260220_BK.xlsm",
+      "date": "2026-02-20T07:50:51.223327+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 46,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\3 POL\\KL SOP-101 420-016 POL 1 - 800 250929 BK.xlsm",
+      "date": "2026-02-20T13:58:11.963709+00:00",
+      "errors": 75,
+      "warnings": 40,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 47,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\3 POL\\KL SOP-109 420-028 POL 8000 250929 BK.xlsm",
+      "date": "2026-02-20T14:02:13.221109+00:00",
+      "errors": 50,
+      "warnings": 28,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 48,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-02-23T08:10:53.936057+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 49,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-02-23T08:15:59.152332+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 50,
+      "path": "\\\\srvfs01.biasep.local\\Izmenjava\\barzvo\\SOP-230 v2 422-097 SDVB 4 - 800 G 40 - 800 S\\Test KL SDVB 260203 PL.xlsm",
+      "date": "2026-02-23T12:38:44.711972+00:00",
+      "errors": 72,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 51,
+      "path": "\\\\srvfs01.biasep.local\\Izmenjava\\barzvo\\SOP-230 v2 422-097 SDVB 4 - 800 G 40 - 800 S\\Test KL SDVB 260223BK.xlsm",
+      "date": "2026-02-23T12:59:19.442464+00:00",
+      "errors": 51,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 52,
+      "path": "\\\\srvfs01.biasep.local\\Izmenjava\\barzvo\\SOP-230 v2 422-097 SDVB 4 - 800 G 40 - 800 S\\Test KL SDVB 260223BK.xlsm",
+      "date": "2026-02-23T13:43:30.548980+00:00",
+      "errors": 51,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 53,
+      "path": "\\\\srvfs01.biasep.local\\Izmenjava\\barzvo\\SOP-230 v2 422-097 SDVB 4 - 800 G 40 - 800 S\\Test KL SDVB 260223BK.xlsm",
+      "date": "2026-02-23T13:44:40.057962+00:00",
+      "errors": 45,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 54,
+      "path": "\\\\srvfs01.biasep.local\\Izmenjava\\barzvo\\SOP-230 v2 422-097 SDVB 4 - 800 G 40 - 800 S\\Test KL SDVB 260223BK.xlsm",
+      "date": "2026-02-23T13:44:50.711034+00:00",
+      "errors": 45,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 55,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-25T08:30:11.110238+00:00",
+      "errors": 56,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 56,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-25T08:45:16.585750+00:00",
+      "errors": 32,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 57,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-25T08:50:07.607780+00:00",
+      "errors": 32,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 58,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-25T08:56:11.823941+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 59,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-25T09:01:01.527520+00:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 60,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-02-25T13:28:58.320297+00:00",
+      "errors": 76,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 61,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-02-25T13:37:49.262869+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 62,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-02-25T13:39:36.943238+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 63,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260222 KČ.xlsm",
+      "date": "2026-02-25T13:39:37.327705+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 64,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260222 KČ.xlsm",
+      "date": "2026-02-25T13:40:15.164580+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 65,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260202 BK..xlsm",
+      "date": "2026-02-25T13:42:07.792676+00:00",
+      "errors": 136,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 66,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-02-25T13:58:03.974802+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 67,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:03:46.771767+00:00",
+      "errors": 32,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 68,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:05:49.116913+00:00",
+      "errors": 23,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 69,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:06:56.302135+00:00",
+      "errors": 15,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 70,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:08:20.546718+00:00",
+      "errors": 35,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 71,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:08:53.792828+00:00",
+      "errors": 35,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 72,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:09:23.484399+00:00",
+      "errors": 35,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 73,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:09:31.647527+00:00",
+      "errors": 15,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 74,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\Test\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 test.xlsm",
+      "date": "2026-02-25T14:11:35.431946+00:00",
+      "errors": 19,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 75,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\8 KO\\IPO-KO 251014 KČ.xlsm",
+      "date": "2026-02-26T07:31:29.286965+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 76,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260213_BK.xlsm",
+      "date": "2026-02-26T07:39:01.617247+00:00",
+      "errors": 2899,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 77,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\IPO OBD AK 250929 BK.xlsm",
+      "date": "2026-02-26T08:31:05.301539+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 78,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\IPO OBD AK 250929 BK.xlsm",
+      "date": "2026-02-26T08:49:13.157118+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 79,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\IPO OBD AK 250929 BK.xlsm",
+      "date": "2026-02-26T08:49:37.525932+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 80,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\IPO+SOP-70 v6 425-011 Priloga 1 OBD 1 - 800 251009 BK.xlsm",
+      "date": "2026-02-26T08:50:26.206762+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 81,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\IPO OBD AK 250929 BK.xlsm",
+      "date": "2026-02-26T09:10:18.533471+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 82,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-02-26T09:20:04.352780+00:00",
+      "errors": 76,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 83,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-26T09:30:09.154052+00:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 84,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260225BK.xlsm",
+      "date": "2026-02-26T09:47:04.929347+00:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 85,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260226BK.xlsm",
+      "date": "2026-02-26T10:24:44.237079+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 86,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-090 PrimaT 4 - 800\\Test PrimaT 4-800 260227 KČ.xlsm",
+      "date": "2026-02-27T07:56:44.203652+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 87,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260227BK.xlsm",
+      "date": "2026-02-27T11:17:37.813893+00:00",
+      "errors": 11,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 88,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-02-27T12:48:46.712446+00:00",
+      "errors": 76,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 89,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-02-27T12:50:25.759112+00:00",
+      "errors": 74,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 90,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-02-27T12:50:38.087017+00:00",
+      "errors": 74,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 91,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260202 BK..xlsm",
+      "date": "2026-02-27T13:28:54.578628+00:00",
+      "errors": 150,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 92,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260202 BK..xlsm",
+      "date": "2026-02-27T13:38:29.337527+00:00",
+      "errors": 122,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 93,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260226_BK.xlsm",
+      "date": "2026-02-27T13:40:35.555259+00:00",
+      "errors": 176,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 94,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260226_BK.xlsm",
+      "date": "2026-02-27T13:42:03.246837+00:00",
+      "errors": 52,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 95,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260226_BK.xlsm",
+      "date": "2026-02-27T13:48:44.201636+00:00",
+      "errors": 49,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 96,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260227BK.xlsm",
+      "date": "2026-02-27T13:50:40.934581+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 97,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260227BK.xlsm",
+      "date": "2026-02-27T14:18:06.595945+00:00",
+      "errors": 18,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 98,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-03-02T07:25:09.161915+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 99,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-03-02T07:26:06.118409+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 100,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-090 PrimaT 4 - 800\\Test PrimaT 4-800 260227 KČ.xlsm",
+      "date": "2026-03-02T07:27:35.012953+00:00",
+      "errors": 7,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 101,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 250926 BK.xlsm",
+      "date": "2026-03-02T07:31:43.227877+00:00",
+      "errors": 187,
+      "warnings": 12,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 102,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-8000 SDVB 250930 BK.xlsm",
+      "date": "2026-03-02T08:07:55.373462+00:00",
+      "errors": 99,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 103,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260202 BK..xlsm",
+      "date": "2026-03-02T09:58:17.027179+00:00",
+      "errors": 122,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 104,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\2 MM\\KL SOP-90 420-001 MM 251211 KČ.xlsm",
+      "date": "2026-03-02T13:21:34.816553+00:00",
+      "errors": 37,
+      "warnings": 13,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 105,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-043 DEAE\\KL SOP-122 v8 420-043 Priloga 1 DEAE-MOD 1 - 40000 260222 KČ.xlsm",
+      "date": "2026-03-03T06:56:48.656187+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 106,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260222 KČ.xlsm",
+      "date": "2026-03-03T08:30:40.547294+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 107,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260303_BK.xlsm",
+      "date": "2026-03-03T08:45:00.657445+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 108,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260303_BK.xlsm",
+      "date": "2026-03-03T09:09:27.484790+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 109,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260216BK2.xlsm",
+      "date": "2026-03-03T10:51:36.029839+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 110,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260216BK.xlsm",
+      "date": "2026-03-04T09:38:33.500161+00:00",
+      "errors": 64,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 111,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260216BK.xlsm",
+      "date": "2026-03-04T09:49:02.192113+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 112,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260216BK.xlsm",
+      "date": "2026-03-04T09:49:40.811387+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 113,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260304_BK.xlsm",
+      "date": "2026-03-04T10:05:09.764521+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 114,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260304 KČ.xlsm",
+      "date": "2026-03-05T07:00:30.521519+00:00",
+      "errors": 18,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 115,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260305_BK.xlsm",
+      "date": "2026-03-05T07:43:39.112737+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 116,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260305_BK.xlsm",
+      "date": "2026-03-05T08:25:22.063461+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 117,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260305_BK.xlsm",
+      "date": "2026-03-05T08:33:01.176588+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 118,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-043 DEAE\\KL SOP-122 v8 420-043 Priloga 1 DEAE-MOD 1 - 40000 260222 KČ.xlsm",
+      "date": "2026-03-05T08:34:52.581482+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 119,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-03-05T08:35:46.091908+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 120,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260108 az.xlsm",
+      "date": "2026-03-05T13:54:02.305577+00:00",
+      "errors": 76,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 121,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260305_BK.xlsm",
+      "date": "2026-03-10T07:29:22.277696+00:00",
+      "errors": 78,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 122,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260310_BK.xlsm",
+      "date": "2026-03-10T11:18:02.303283+00:00",
+      "errors": 143,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 123,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260310_BK.xlsm",
+      "date": "2026-03-10T11:25:12.913758+00:00",
+      "errors": 136,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 124,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260310_BK.xlsm",
+      "date": "2026-03-10T11:58:57.722514+00:00",
+      "errors": 111,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 125,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260310_BK.xlsm",
+      "date": "2026-03-10T13:34:00.309150+00:00",
+      "errors": 85,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 126,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260205BK.xlsm",
+      "date": "2026-03-10T13:46:06.529698+00:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 127,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260305_BK.xlsm",
+      "date": "2026-03-11T08:58:58.701781+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 128,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 260222 KČ.xlsm",
+      "date": "2026-03-11T08:59:42.075798+00:00",
+      "errors": 0,
+      "warnings": 0,
+      "valid": true
+    },
+    {
+      "zaporedna_stevilka": 129,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260310_BK.xlsm",
+      "date": "2026-03-11T09:26:45.188501+00:00",
+      "errors": 85,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 130,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Vzorčne raztopine 260302 KČ.xlsm",
+      "date": "2026-03-11T14:10:09.678409+00:00",
+      "errors": 18,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 131,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260302 KČ.xlsm",
+      "date": "2026-03-11T14:12:44.524382+00:00",
+      "errors": 629,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 132,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260311 KČ.xlsm",
+      "date": "2026-03-12T07:36:31.692323+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 133,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260205BK.xlsm",
+      "date": "2026-03-12T07:47:55.291694+00:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 134,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260304_BK..xlsm",
+      "date": "2026-03-12T09:54:31.031679+00:00",
+      "errors": 264,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 135,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260312 KČ.xlsm",
+      "date": "2026-03-12T10:04:27.240535+00:00",
+      "errors": 241,
+      "warnings": 12,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 136,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260312 KČ.xlsm",
+      "date": "2026-03-12T10:55:03.952065+00:00",
+      "errors": 115,
+      "warnings": 12,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 137,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260312 KČ.xlsm",
+      "date": "2026-03-12T10:55:45.294816+00:00",
+      "errors": 100,
+      "warnings": 12,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 138,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260312 KČ.xlsm",
+      "date": "2026-03-12T12:20:48.496268+00:00",
+      "errors": 100,
+      "warnings": 12,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 139,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260312 KČ.xlsm",
+      "date": "2026-03-12T14:15:21.347298+00:00",
+      "errors": 180,
+      "warnings": 11,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 140,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T10:07:53.060741+00:00",
+      "errors": 34,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 141,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T10:24:06.006309+00:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 142,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T11:32:03.431171+00:00",
+      "errors": 11,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 143,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T12:04:45.019946+00:00",
+      "errors": 9,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 144,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T12:13:00.492237+00:00",
+      "errors": 9,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 145,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T12:27:08.860915+00:00",
+      "errors": 9,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 146,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T12:39:20.476197+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 147,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260313_BK.xlsm",
+      "date": "2026-03-13T12:39:25.579857+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 148,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260313_BK.xlsm",
+      "date": "2026-03-13T13:50:07.529778+00:00",
+      "errors": 79,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 149,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260315 KČ.xlsm",
+      "date": "2026-03-16T07:13:29.611939+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 150,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260314 KČ.xlsm",
+      "date": "2026-03-16T07:18:34.013630+00:00",
+      "errors": 3,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 151,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260316bk.xlsm",
+      "date": "2026-03-16T10:56:46.282958+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 152,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260316 KČ.xlsm",
+      "date": "2026-03-16T14:20:59.152890+00:00",
+      "errors": 4,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 153,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260316_BK.xlsm",
+      "date": "2026-03-17T06:45:56.689735+00:00",
+      "errors": 5033,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 154,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260316_BK.xlsm",
+      "date": "2026-03-17T07:28:59.077917+00:00",
+      "errors": 5033,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 155,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260316_BK.xlsm",
+      "date": "2026-03-17T07:31:12.579351+00:00",
+      "errors": 3870,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 156,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK.xlsm",
+      "date": "2026-03-17T08:04:44.631862+00:00",
+      "errors": 3823,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 157,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK.xlsm",
+      "date": "2026-03-17T08:20:13.293980+00:00",
+      "errors": 3606,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 158,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK2.xlsm",
+      "date": "2026-03-17T10:44:09.649866+00:00",
+      "errors": 3592,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 159,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK2.xlsm",
+      "date": "2026-03-17T11:16:08.238243+00:00",
+      "errors": 3590,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 160,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK2.xlsm",
+      "date": "2026-03-17T11:17:06.068998+00:00",
+      "errors": 3590,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 161,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK.xlsm",
+      "date": "2026-03-17T11:17:12.698319+00:00",
+      "errors": 3600,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 162,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK2.xlsm",
+      "date": "2026-03-17T11:21:01.629587+00:00",
+      "errors": 3590,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 163,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260317_BK2.xlsm",
+      "date": "2026-03-18T07:57:42.222937+00:00",
+      "errors": 3568,
+      "warnings": 571,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 164,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje 260318_BK.xlsm",
+      "date": "2026-03-18T08:12:55.033461+00:00",
+      "errors": 3566,
+      "warnings": 571,
+      "valid": false
+    }
+  ]
+}

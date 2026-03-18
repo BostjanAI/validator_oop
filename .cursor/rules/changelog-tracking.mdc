@@ -1,0 +1,68 @@
+---
+description: Avtomatsko beleženje sprememb v CHANGELOG.md
+alwaysApply: true
+---
+
+# Beleženje sprememb v CHANGELOG.md
+
+Pri VSAKI spremembi kode (nova funkcionalnost, popravek, sprememba pravila) MORAŠ posodobiti `CHANGELOG.md`.
+
+## Postopek
+
+1. Po končani spremembi kode odpri `CHANGELOG.md`
+2. Pod razdelek `## [Unreleased]` **DODAJ** nov vnos v ustrezno kategorijo (na začetek seznama v tej kategoriji).
+3. Format vnosa: `- **modul/** \`ime_pravila\` - Kratek opis spremembe` + na koncu **datum** in **ocena celotnega časa** (od analize do končanega fixa; glej razdelek Porabljen čas), npr. `*(12. 3. 2026, ~15 min)*` ali `*(12. 3. 2026, ~1 h)*`.
+
+## Moduli
+
+Uporabi ustrezno predpono glede na lokacijo spremembe:
+- **control/** - `rules/builtin/control.py` (kontrole: kontrolaInterval, kontrolaMase, zaklenipolja, itd.)
+- **relational/** - `rules/builtin/relational.py` (relacijska pravila: duplicate_key_rule, time_pair_rule, itd.)
+- **core/** - `core/` mapa (jedro sistema, error handling, constants)
+- **utils/** - `utils/` mapa (pomožne funkcije)
+- **excel/** - `excel/` mapa (nalaganje Excel datotek)
+- **rules/** - splošne spremembe pravil ali `.cursor/rules/`
+
+**KRITIČNO:** Vedno samo DODAJ nov vnos. **NIKOLI** ne briši in ne zamenjuj obstoječih vnosov v `[Unreleased]`. Vsi prejšnji zapisi morajo ostati; vsaka sprememba doda še en vnos na seznam. Če v celoti zamenjaš vsebino kategorije, se izgubijo prejšnje spremembe – to je napaka.
+
+## Kategorije
+
+- **Added** - nove funkcionalnosti
+- **Changed** - spremembe obstoječih funkcionalnosti
+- **Fixed** - popravki napak
+- **Removed** - odstranjene funkcionalnosti
+
+## Porabljen čas
+
+Pri vsakem vnosu navedi **oceno celotnega časa** (od ugotovitve/analize do končane implementacije in testiranja), ki bi ga za to spremembo porabil človek programer. Vključi: razumevanje zahteve ali buga, branje kode, načrtovanje, pisanje/sprememba kode, testiranje in posodobitev dokumentacije. Uporabi format na koncu vrstice, npr.:
+- `*(~15–20 min)*` – majhna sprememba (npr. popravek sporočila, dodatek konstante)
+- `*(~45 min)*` – zmerna sprememba (npr. popravek ene funkcije z analizo edge caseov)
+- `*(~1 h)*` – večja sprememba (npr. nova pravilo, refaktoriranje, edge-case fix v kompleksni logiki)
+- `*(~2 h)*` ali več – obsežna sprememba (npr. nov modul, več datotek, integracije)
+
+Čas navedi v oklepaju z tildo, npr. `*(~20 min)*`.
+
+## Datum
+
+Pri vsakem vnosu navedi **datum** spremembe v obliki *(dan. mesec. leto)*, npr. *(12. 3. 2026)*. Skupaj s časom: *(12. 3. 2026, ~20 min)*. Opcijsko lahko dodaš tudi uro: *(12. 3. 2026, 14:30, ~20 min)*. **Datum mora biti delovni dan (ponedeljek–petek); sobota in nedelja nista dovoljeni.**
+
+## Primer
+
+```markdown
+## [Unreleased]
+
+### Changed
+- **control/** `kontrolacasa` - Ne zahteva se več pri datumcaskonec brez časovnega intervala *(12. 3. 2026, ~15 min)*
+
+### Fixed
+- **relational/** `mass_owner_rule` - Popravljen izračun decimalnih mest *(12. 3. 2026, ~30 min)*
+```
+
+## Pomembno
+
+- Vedno uporabi slovenščino
+- Bodi kratek in jasen
+- Navedi modul v **krepkem** tisku, ime pravila v \`backticks\`
+- **Ob vsakem vnosu navedi datum in oceno celotnega časa** (od ugotovitve/analize do končane spremembe) na koncu vrstice, npr. `*(12. 3. 2026, ~20 min)*`.
+- NE pozabi posodobiti CHANGELOG.md - to je obvezno za daily activity report
+- **Ohrani vse prejšnje vnose:** pri posodobitvi samo vstavi nov vnos (npr. z search_replace ali z dodajanjem vrstice), nikoli ne prepiši celotne kategorije ali razdelka – da se beležijo VSE spremembe, ne samo zadnja
