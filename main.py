@@ -16,6 +16,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any, Mapping
 
 # Add project root to Python path for direct execution (when running as script, not as module)
 # This allows running main.py directly with "Run" button in VS Code, just like MES_validator.py
@@ -121,7 +122,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def format_report_text(report: dict) -> str:
+def format_report_text(report: Mapping[str, Any]) -> str:
     """Format a report as human-readable text.
 
     Args:
@@ -170,7 +171,7 @@ def format_report_text(report: dict) -> str:
     return "\n".join(lines)
 
 
-def format_report_summary(report: dict) -> str:
+def format_report_summary(report: Mapping[str, Any]) -> str:
     """Format a report as a brief summary.
 
     Args:
