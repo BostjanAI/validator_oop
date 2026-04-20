@@ -62,7 +62,7 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KEY_DUP_KEM" in error_codes
+        assert "KEY_DUP_CHEM" in error_codes
 
     def test_duplicate_raztopina_key(self, rule: DuplicateKeyRule) -> None:
         """Test that duplicate raztopina keys raise errors."""
@@ -79,7 +79,7 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KEY_DUP_RAZT" in error_codes
+        assert "KEY_DUP_SOL" in error_codes
 
     def test_duplicate_masa_key(self, rule: DuplicateKeyRule) -> None:
         """Test that duplicate masa keys raise errors."""
@@ -96,7 +96,7 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_MASA" in error_codes
+        assert "KEY_DUP_MASS" in error_codes
 
     def test_duplicate_masa_water_keys_allowed(self, rule: DuplicateKeyRule) -> None:
         """Multiple masa with water base (dH2O_1, dH2O_2) without kemikalija/raztopina are allowed."""
@@ -113,7 +113,7 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_MASA" not in error_codes
+        assert "KEY_DUP_MASS" not in error_codes
 
     def test_masa_same_key_in_different_sections_raises(self, rule: DuplicateKeyRule) -> None:
         """Same masa key in more than one section raises KEY_DUP_MASA_SECTIONS."""
@@ -131,7 +131,7 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_MASA_RAZD" in error_codes
+        assert "KEY_DUP_MASS_SECTION" in error_codes
 
     def test_masa_same_key_same_section_allowed(self, rule: DuplicateKeyRule) -> None:
         """Same masa key multiple times in the same section is allowed (no KEY_DUP_MASA_SECTIONS)."""
@@ -149,8 +149,8 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_MASA_RAZD" not in error_codes
-        assert "KLJUC_PODVOJEN_MASA" not in error_codes
+        assert "KEY_DUP_MASS_SECTION" not in error_codes
+        assert "KEY_DUP_MASS" not in error_codes
 
     def test_same_key_different_types(self, rule: DuplicateKeyRule) -> None:
         """Test that same key in different types doesn't raise duplicate error."""
@@ -186,8 +186,8 @@ class TestDuplicateKeyRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_CAS_ZAC" not in error_codes
-        assert "KLJUC_PODVOJEN_CAS_KONEC" not in error_codes
+        assert "KEY_DUP_TIME_START" not in error_codes
+        assert "KEY_DUP_TIME_END" not in error_codes
 
 
 class TestMassOwnerRule:
@@ -213,7 +213,7 @@ class TestMassOwnerRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        no_owner_errors = [e for e in errors if e.code == "PAR_MASA_BREZ_LASTNIKA"]
+        no_owner_errors = [e for e in errors if e.code == "PAIR_MASS_WITHOUT_OWNER"]
         assert len(no_owner_errors) == 0
 
     def test_masa_without_owner(self, rule: MassOwnerRule) -> None:
@@ -230,7 +230,7 @@ class TestMassOwnerRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "PAR_MASA_BREZ_LASTNIKA" in error_codes
+        assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
 
 
 class TestTimePairRule:
@@ -255,7 +255,7 @@ class TestTimePairRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        time_errors = [e for e in errors if "PAR_CAS" in e.code]
+        time_errors = [e for e in errors if "PAIR_TIME" in e.code]
         assert len(time_errors) == 0
 
     def test_time_start_without_end(self, rule: TimePairRule) -> None:
@@ -273,7 +273,7 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "PAR_CAS_BREZ_KONCA" in error_codes
+        assert "PAIR_TIME_WITHOUT_END" in error_codes
 
     def test_time_end_without_start(self, rule: TimePairRule) -> None:
         """Test that time end without start raises an error."""
@@ -290,7 +290,7 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "PAR_CAS_BREZ_ZACETKA" in error_codes
+        assert "PAIR_TIME_WITHOUT_START" in error_codes
 
     def test_duplicate_key_same_tab_raises_error(self, rule: TimePairRule) -> None:
         """Same exact time key repeated on the same tab raises duplicate error."""
@@ -310,7 +310,7 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_CAS_PAR" in error_codes
+        assert "KEY_DUP_TIME_PAIR" in error_codes
 
     def test_duplicate_start_key_without_end_still_raises_duplicate_error(self, rule: TimePairRule) -> None:
         """Repeated start key should be duplicate even when matching end is missing."""
@@ -327,8 +327,8 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_CAS_PAR" in error_codes
-        assert "PAR_CAS_BREZ_KONCA" in error_codes
+        assert "KEY_DUP_TIME_PAIR" in error_codes
+        assert "PAIR_TIME_WITHOUT_END" in error_codes
 
     def test_distinct_numbered_time_keys_are_not_treated_as_duplicates(self, rule: TimePairRule) -> None:
         """crpanje and crpanje1 must be treated as different exact keys."""
@@ -347,9 +347,9 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_CAS_PAR" not in error_codes
-        assert "PAR_CAS_BREZ_KONCA" not in error_codes
-        assert "PAR_CAS_BREZ_ZACETKA" not in error_codes
+        assert "KEY_DUP_TIME_PAIR" not in error_codes
+        assert "PAIR_TIME_WITHOUT_END" not in error_codes
+        assert "PAIR_TIME_WITHOUT_START" not in error_codes
 
     def test_same_key_different_tabs_no_error(self, rule: TimePairRule) -> None:
         """Test that same time pair key on different tabs does NOT raise an error."""
@@ -370,7 +370,7 @@ class TestTimePairRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_PODVOJEN_CAS_PAR" not in error_codes
+        assert "KEY_DUP_TIME_PAIR" not in error_codes
 
 
 class TestKeyNumberingRule:
@@ -414,7 +414,7 @@ class TestKeyNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_NUM_NE_1" in error_codes
+        assert "KEY_NUM_NOT_FROM_ONE" in error_codes
 
     def test_key_numbering_gap(self, rule: KeyNumberingRule) -> None:
         """Test that gaps in key numbering raise errors."""
@@ -432,7 +432,7 @@ class TestKeyNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_NUM_PRESLEDEK" in error_codes
+        assert "KEY_NUM_GAP" in error_codes
 
     def test_bare_key_and_numbered_key(self, rule: KeyNumberingRule) -> None:
         """Test that using both bare key and numbered key raises warning."""
@@ -452,7 +452,7 @@ class TestKeyNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_NUM_PODVOJEN_BASE" in error_codes
+        assert "KEY_NUM_DUPLICATE_BASE" in error_codes
 
 
 class TestTehtnicaMasaPairRule:
@@ -476,7 +476,7 @@ class TestTehtnicaMasaPairRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert [e for e in errors if e.code == "KONTROLA_TEHTNICA_BREZ_MASE"] == []
+        assert [e for e in errors if e.code == "CONTROL_SCALE_WITHOUT_MASS"] == []
 
     def test_tehtnica_without_masa_forbids_control(self, rule: TehtnicaMasaPairRule) -> None:
         """If no masa exists for key, kontrolaustreznostiopreme must not be present."""
@@ -490,7 +490,7 @@ class TestTehtnicaMasaPairRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert "KONTROLA_TEHTNICA_BREZ_MASE" in [e.code for e in errors]
+        assert "CONTROL_SCALE_WITHOUT_MASS" in [e.code for e in errors]
 
 
 class TestTehtnicaVrednostFromFormulaRule:
@@ -514,7 +514,7 @@ class TestTehtnicaVrednostFromFormulaRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert "TEHTNICA_VREDNOST_PREVISOKA" in [e.code for e in errors]
+        assert "SCALE_VALUE_TOO_HIGH" in [e.code for e in errors]
 
     def test_masa_high_allows_teh_kla_and_ana_combo(self, rule: TehtnicaVrednostFromFormulaRule) -> None:
         """When masa >= 10, allowed values are TEH-KLA or 'TEH-KLA, TEH-ANA'."""
@@ -544,7 +544,7 @@ class TestTehtnicaVrednostFromFormulaRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert "TEHTNICA_VREDNOST_PRENIZKA" in [e.code for e in errors]
+        assert "SCALE_VALUE_TOO_LOW" in [e.code for e in errors]
 
     def test_masa_low_in_kg_does_not_raise_error(self, rule: TehtnicaVrednostFromFormulaRule) -> None:
         """When masa < 10 in kg, low-mass tehtnica restriction should not apply."""
@@ -559,7 +559,7 @@ class TestTehtnicaVrednostFromFormulaRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert "TEHTNICA_VREDNOST_PRENIZKA" not in [e.code for e in errors]
+        assert "SCALE_VALUE_TOO_LOW" not in [e.code for e in errors]
 
     def test_valid_values_pass(self, rule: TehtnicaVrednostFromFormulaRule) -> None:
         """Valid combinations should pass."""

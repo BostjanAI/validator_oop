@@ -20,7 +20,7 @@ class RequiredColumnsRule(SheetRule):
     """Ensure required columns are present on every sheet."""
 
     name = "required_columns"
-    code = "MANJKA_STOLPEC"
+    code = "MISSING_COLUMN"
     description = "Preveri prisotnost vseh obveznih stolpcev."
 
     def evaluate_sheet(
@@ -81,7 +81,7 @@ class StepNumberingRule(SheetRule):
                             message=f"'št. Koraka' mora biti celo število, najdeno: {raw_value!r}",
                             context=context.with_row(excel_row),
                             column="št. Koraka",
-                            code="KORAK_NI_CELO",
+                            code="STEP_NOT_INTEGER",
                         )
                     )
             else:
@@ -91,7 +91,7 @@ class StepNumberingRule(SheetRule):
                             message="Manjka 'št. Koraka' v vrstici z vsebino.",
                             context=context.with_row(excel_row),
                             column="št. Koraka",
-                            code="KORAK_MANJKA",
+                            code="STEP_MISSING",
                         )
                     )
 
@@ -134,7 +134,7 @@ class StepNumberingRule(SheetRule):
                 self.build_error(
                     message=message,
                     context=context,
-                    code="KORAK_PODVOJEN",
+                    code="STEP_DUPLICATE",
                     severity=Severity.ERROR,
                     payload={"rows": rows},
                 )
@@ -174,7 +174,7 @@ class StepNumberingRule(SheetRule):
                 self.build_error(
                     message=message,
                     context=context,
-                    code="KORAKI_ZAVIH_NE_1",
+                    code="STEP_TAB_NOT_FROM_ONE",
                     payload={"rows": rows},
                 )
             )
@@ -203,7 +203,7 @@ class StepNumberingRule(SheetRule):
             self.build_error(
                 message=f"Manjkajo koraki: {missing}",
                 context=context,
-                code="KORAK_PRESLEDKI",
+                code="STEP_GAPS",
             )
         ]
 

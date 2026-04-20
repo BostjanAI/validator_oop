@@ -5,6 +5,7 @@ This module handles writing validation reports to Excel and text files.
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
 from pathlib import Path
 from typing import Any, Mapping, Sequence
@@ -98,6 +99,7 @@ class ReportWriter:
 
         resolved_path = Path(report_path)
         self._logger.info("Writing Excel report to %s", resolved_path)
+        report_date = datetime.now().strftime("%d. %m. %Y")
 
         wb = Workbook()
 
@@ -107,21 +109,23 @@ class ReportWriter:
         # Verzija aplikacije na vrhu poročila
         ws.cell(row=1, column=1, value="Validator IPO Receptur")
         ws.cell(row=1, column=2, value=VERSION_REPORT)
-        headers = ["List", "Vrstica", "Stolpec", "Napaka", "Opis napake"]
+        headers = ["Datum", "List", "Vrstica", "Stolpec", "Napaka", "Opis napake"]
         for j, h in enumerate(headers, start=1):
             ws.cell(row=2, column=j, value=h)
 
         if not issues:
-            ws.cell(row=3, column=4, value="OK")
-            ws.cell(row=3, column=5, value="Ni najdenih strukturnih napak.")
+            ws.cell(row=3, column=1, value=report_date)
+            ws.cell(row=3, column=5, value="OK")
+            ws.cell(row=3, column=6, value="Ni najdenih strukturnih napak.")
         else:
             r = 3
             for issue in issues:
-                ws.cell(row=r, column=1, value=issue.get("sheet", ""))
-                ws.cell(row=r, column=2, value=issue.get("row", ""))
-                ws.cell(row=r, column=3, value=issue.get("col", ""))
-                ws.cell(row=r, column=4, value=translate_code(issue.get("code", "")))
-                ws.cell(row=r, column=5, value=issue.get("message", ""))
+                ws.cell(row=r, column=1, value=report_date)
+                ws.cell(row=r, column=2, value=issue.get("sheet", ""))
+                ws.cell(row=r, column=3, value=issue.get("row", ""))
+                ws.cell(row=r, column=4, value=issue.get("col", ""))
+                ws.cell(row=r, column=5, value=translate_code(issue.get("code", "")))
+                ws.cell(row=r, column=6, value=issue.get("message", ""))
                 r += 1
 
         _auto_fit_columns(ws)

@@ -276,7 +276,7 @@ def bypass_config() -> ValidatorConfig:
     """Configuration with some rules bypassed."""
     return ValidatorConfig(
         bypass_rules=frozenset(["RequiredColumnsRule", "StepNumberingRule"]),
-        bypass_codes=frozenset(["MANJKA_STOLPEC", "KORAK_PRESLEDKI"]),
+        bypass_codes=frozenset(["MISSING_COLUMN", "STEP_GAPS"]),
     )
 
 

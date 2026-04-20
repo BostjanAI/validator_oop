@@ -596,7 +596,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"IPO šifra '{podatki_ipo}' iz stolpca '{col_name}' v zavihku 'Podatki' se ne ujema z IPO šifro iz SOP-a.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=col_name,
-                        code="SOP_IPO_NE_USREZA",
+                        code="SOP_IPO_MISMATCH",
                     )
                 )
             else:
@@ -621,7 +621,7 @@ class SOPComplianceRule(WorkbookRule):
                             self.build_error(
                                 f"Manjka zahtevana IPO šifra '{req.ipo_code}' (baza: '{req_base}') iz SOP-a v zavihku 'Podatki'.",
                                 context=context.with_sheet("Podatki"),
-                                code="SOP_IPO_MANJKA",
+                                code="SOP_IPO_MISSING",
                             )
                         )
         else:
@@ -703,7 +703,7 @@ class SOPComplianceRule(WorkbookRule):
                                         f"Volumen {vol_min} {vol_unit} iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.volume_min} {req.volume_unit or ''} iz SOP-a (za volumen kolone {col_vol or '?'} mL).",
                                         context=context.with_sheet(sheet_name).with_row(row_idx),
                                         column=col_name,
-                                        code="SOP_VOLUMEN_PRENIZEK",
+                                        code="SOP_VOLUME_TOO_LOW",
                                     )
                                 )
                             
@@ -713,7 +713,7 @@ class SOPComplianceRule(WorkbookRule):
                                         f"Volumen {vol_max} {vol_unit} iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.volume_max} {req.volume_unit or ''} iz SOP-a (za volumen kolone {col_vol or '?'} mL).",
                                         context=context.with_sheet(sheet_name).with_row(row_idx),
                                         column=col_name,
-                                        code="SOP_VOLUMEN_PREVISOK",
+                                        code="SOP_VOLUME_TOO_HIGH",
                                     )
                                 )
         
@@ -824,7 +824,7 @@ class SOPComplianceRule(WorkbookRule):
                                         f"Pretok {flow_min} {flow_unit} iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.flow_min} {req.flow_unit or ''} iz SOP-a (za volumen kolone {col_vol or '?'} mL).",
                                         context=context.with_sheet(sheet_name).with_row(row_idx),
                                         column=col_name,
-                                        code="SOP_PRETOK_PRENIZEK",
+                                        code="SOP_FLOW_TOO_LOW",
                                     )
                                 )
                             
@@ -834,7 +834,7 @@ class SOPComplianceRule(WorkbookRule):
                                         f"Pretok {flow_max} {flow_unit} iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.flow_max} {req.flow_unit or ''} iz SOP-a (za volumen kolone {col_vol or '?'} mL).",
                                         context=context.with_sheet(sheet_name).with_row(row_idx),
                                         column=col_name,
-                                        code="SOP_PRETOK_PREVISOK",
+                                        code="SOP_FLOW_TOO_HIGH",
                                     )
                                 )
         
@@ -914,7 +914,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Min. pretok ({min_pretok_val}) se ne ujema z obsegom Pretok spiranje ({range_low}–{range_high}): pričakovana vrednost je {expected_min} (spodnja meja − 1).",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=min_pretok_col or "Min. pretok",
-                        code="PODATKI_PRETOK_MIN_NE_USREZA",
+                        code="DATA_FLOW_MIN_MISMATCH",
                     )
                 )
             if abs(max_pretok_val - expected_max) > tolerance:
@@ -923,7 +923,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Max. pretok ({max_pretok_val}) se ne ujema z obsegom Pretok spiranje ({range_low}–{range_high}): pričakovana vrednost je {expected_max} (zgornja meja + 1).",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=max_pretok_col or "Max. pretok",
-                        code="PODATKI_PRETOK_MAX_NE_USREZA",
+                        code="DATA_FLOW_MAX_MISMATCH",
                     )
                 )
         
@@ -948,7 +948,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Vrsta raztopine '{sol_type}' iz stolpca '{col_name}' ni dovoljena v SOP-u.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=col_name,
-                        code="SOP_VRSTA_NEDOVOLJENA",
+                        code="SOP_TYPE_NOT_ALLOWED",
                     )
                 )
         
@@ -973,7 +973,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Vrsta raztopine '{sol_type}' ni dovoljena v SOP-u.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column="Navodilo",
-                        code="SOP_VRSTA_NEDOVOLJENA",
+                        code="SOP_TYPE_NOT_ALLOWED",
                     )
                 )
         
@@ -1009,7 +1009,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Volumen {vol_min} {volume.get('unit', '')} je pod minimalno zahtevano vrednostjo {req.volume_min} {req.volume_unit or ''} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column="Navodilo",
-                                code="SOP_VOLUMEN_PRENIZEK",
+                                code="SOP_VOLUME_TOO_LOW",
                             )
                         )
                     
@@ -1019,7 +1019,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Volumen {vol_max} {volume.get('unit', '')} presega maksimalno dovoljeno vrednost {req.volume_max} {req.volume_unit or ''} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column="Navodilo",
-                                code="SOP_VOLUMEN_PREVISOK",
+                                code="SOP_VOLUME_TOO_HIGH",
                             )
                         )
         
@@ -1054,7 +1054,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Pretok {flow_min} {flow.get('unit', '')} je pod minimalno zahtevano vrednostjo {req.flow_min} {req.flow_unit or ''} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column="Navodilo",
-                                code="SOP_PRETOK_PRENIZEK",
+                                code="SOP_FLOW_TOO_LOW",
                             )
                         )
                     
@@ -1064,7 +1064,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Pretok {flow_max} {flow.get('unit', '')} presega maksimalno dovoljeno vrednost {req.flow_max} {req.flow_unit or ''} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column="Navodilo",
-                                code="SOP_PRETOK_PREVISOK",
+                                code="SOP_FLOW_TOO_HIGH",
                             )
                         )
         
@@ -1104,7 +1104,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Vzorec '{sample}' za 1. PM iz stolpca '{col_name}' ni dovoljen v SOP-u. Dovoljeni vzorci: {', '.join(allowed_pm1)}.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=col_name,
-                        code="SOP_VZOREC_NEDOVOLJEN",
+                        code="SOP_SAMPLE_NOT_ALLOWED",
                     )
                 )
         
@@ -1116,7 +1116,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Vzorec '{sample}' za 2./3. PM iz stolpca '{col_name}' ni dovoljen v SOP-u. Dovoljeni vzorci: {', '.join(allowed_pm23)}.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=col_name,
-                        code="SOP_VZOREC_NEDOVOLJEN",
+                        code="SOP_SAMPLE_NOT_ALLOWED",
                     )
                 )
         
@@ -1128,7 +1128,7 @@ class SOPComplianceRule(WorkbookRule):
                         f"Vzorec '{sample}' za testni kromatogram iz stolpca '{col_name}' ni dovoljen v SOP-u. Dovoljeni vzorci: {', '.join(allowed_tk)}.",
                         context=context.with_sheet(sheet_name).with_row(row_idx),
                         column=col_name,
-                        code="SOP_VZOREC_NEDOVOLJEN",
+                        code="SOP_SAMPLE_NOT_ALLOWED",
                     )
                 )
         
@@ -1158,7 +1158,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"tSST {tsst_min} min iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.tsst_min} min iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_TSST_PRENIZEK",
+                                code="SOP_TSST_TOO_LOW",
                             )
                         )
                     if tsst_max is not None and req.tsst_max is not None and tsst_max > req.tsst_max:
@@ -1167,7 +1167,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"tSST {tsst_max} min iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.tsst_max} min iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_TSST_PREVISOK",
+                                code="SOP_TSST_TOO_HIGH",
                             )
                         )
         
@@ -1197,7 +1197,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Vr {vr_min} mL iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.vr_min} mL iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_VR_PRENIZEK",
+                                code="SOP_VR_TOO_LOW",
                             )
                         )
                     if vr_max is not None and req.vr_max is not None and vr_max > req.vr_max:
@@ -1206,7 +1206,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Vr {vr_max} mL iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.vr_max} mL iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_VR_PREVISOK",
+                                code="SOP_VR_TOO_HIGH",
                             )
                         )
         
@@ -1232,7 +1232,7 @@ class SOPComplianceRule(WorkbookRule):
                             f"N > {n_value} iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.n_min} iz SOP-a.",
                             context=context.with_sheet(sheet_name).with_row(row_idx),
                             column=col_name,
-                            code="SOP_N_PRENIZEK",
+                            code="SOP_N_TOO_LOW",
                         )
                     )
         
@@ -1262,7 +1262,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Tlak {pressure_min} bar iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.pressure_min} bar iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_TLAK_PRENIZEK",
+                                code="SOP_PRESSURE_TOO_LOW",
                             )
                         )
                     if pressure_max is not None and req.pressure_max is not None and pressure_max > req.pressure_max:
@@ -1271,7 +1271,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Tlak {pressure_max} bar iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.pressure_max} bar iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_TLAK_PREVISOK",
+                                code="SOP_PRESSURE_TOO_HIGH",
                             )
                         )
         
@@ -1301,7 +1301,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Distribucijski koeficient D {d_min} iz stolpca '{col_name}' je pod minimalno zahtevano vrednostjo {req.d_min} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_D_PRENIZEK",
+                                code="SOP_D_TOO_LOW",
                             )
                         )
                     if d_max is not None and req.d_max is not None and d_max > req.d_max:
@@ -1310,7 +1310,7 @@ class SOPComplianceRule(WorkbookRule):
                                 f"Distribucijski koeficient D {d_max} iz stolpca '{col_name}' presega maksimalno dovoljeno vrednost {req.d_max} iz SOP-a.",
                                 context=context.with_sheet(sheet_name).with_row(row_idx),
                                 column=col_name,
-                                code="SOP_D_PREVISOK",
+                                code="SOP_D_TOO_HIGH",
                             )
                         )
         
@@ -1486,7 +1486,7 @@ class SOPComplianceRule(WorkbookRule):
                             f"Medij '{medium_info.get('medium') or medium_info.get('medium_text')}' za fazo '{phase}' se ne ujema z medijem iz SOP-a (zahtevan: '{sop_medium}').",
                             context=context.with_sheet(sheet_name).with_row(row_idx),
                             column="Navodilo",
-                            code="SOP_MEDIJ_NE_USREZA",
+                            code="SOP_MEDIUM_MISMATCH",
                         )
                     )
                 
@@ -1504,7 +1504,7 @@ class SOPComplianceRule(WorkbookRule):
                                         f"Medij z IPO šifro '{recipe_ipo}' za fazo '{phase}' se ne ujema z medijem iz SOP-a (zahtevan: '{sop_medium}').",
                                         context=context.with_sheet(sheet_name).with_row(row_idx),
                                         column="Ključ preverjanja",
-                                        code="SOP_MEDIJ_NE_USREZA",
+                                        code="SOP_MEDIUM_MISMATCH",
                                     )
                                 )
                             matched = True

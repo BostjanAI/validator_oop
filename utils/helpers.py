@@ -456,7 +456,7 @@ def parse_numeric_value(text: str) -> float | None:
     Returns:
         Parsed float, or None if not found.
     """
-    s = coerce_str(text)
+    s = _normalize_spaced_decimal_separator(coerce_str(text))
     if not s:
         return None
 
@@ -471,6 +471,13 @@ def parse_numeric_value(text: str) -> float | None:
         return None
 
 
+def _normalize_spaced_decimal_separator(text: str) -> str:
+    """Normalize spaced decimal separators like ``2 .0`` to ``2.0``."""
+    if not text:
+        return text
+    return re.sub(r"(?<=\d)\s*([.,])\s*(?=\d)", r"\1", text)
+
+
 def decimal_places_of_first_number(text: str) -> int | None:
     """Get decimal places of first number in text.
 
@@ -480,7 +487,7 @@ def decimal_places_of_first_number(text: str) -> int | None:
     Returns:
         Number of decimal places, or None if no number found.
     """
-    s = coerce_str(text)
+    s = _normalize_spaced_decimal_separator(coerce_str(text))
     if not s:
         return None
 
@@ -511,7 +518,8 @@ def derive_decimal_step_from_text(text: str) -> float:
     Returns:
         Smallest step (e.g., 0.01 for 2 decimal places).
     """
-    nums = [m.group(0) for m in NUMERIC_TOKEN_RE.finditer(coerce_str(text))]
+    normalized = _normalize_spaced_decimal_separator(coerce_str(text))
+    nums = [m.group(0) for m in NUMERIC_TOKEN_RE.finditer(normalized)]
     if not nums:
         return 1.0
 
@@ -710,7 +718,7 @@ def parse_navodilo_interval(
     Returns:
         Tuple of (a, b, unit, step) or (None, None, None, None).
     """
-    text = coerce_str(navodilo)
+    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
     match = _choose_best_match(text, RANGE_RE)
     if not match:
         return (None, None, None, None)
@@ -742,7 +750,7 @@ def parse_navodilo_pm(
     Returns:
         Tuple of (center, tolerance, unit, step) or (None, None, None, None).
     """
-    text = coerce_str(navodilo)
+    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
     match = PM_RE.search(text)
     if not match:
         return (None, None, None, None)
@@ -774,7 +782,7 @@ def parse_navodilo_inequality(
     Returns:
         Tuple of (operator, value, unit, step) or (None, None, None, None).
     """
-    text = coerce_str(navodilo)
+    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
     match = _choose_best_match(text, INEQ_RE)
     if not match:
         return (None, None, None, None)
@@ -815,7 +823,7 @@ def parse_navodilo_single(
     Returns:
         Tuple of (value, unit, step) or (None, None, None).
     """
-    text = coerce_str(navodilo)
+    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
 
     # Don't match if range/±/inequality is present
     if RANGE_RE.search(text) or PM_RE.search(text) or INEQ_RE.search(text):

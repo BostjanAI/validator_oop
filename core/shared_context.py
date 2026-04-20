@@ -10,6 +10,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
+from validator_oop.core.constants import VALIDATION_EXCLUDED_COLUMNS
 from validator_oop.utils.helpers import (
     coerce_str,
     has_only_comma_separated_ints,
@@ -59,6 +60,7 @@ class SharedContext:
 
     # Keys grouped by data type
     keys_by_type: dict[str, dict[str, list[int]]] = field(default_factory=dict)
+    keys_with_value_by_type: dict[str, set[str]] = field(default_factory=dict)
 
     # Section and tab tracking
     section_by_row: dict[int, int] = field(default_factory=dict)
@@ -66,6 +68,7 @@ class SharedContext:
 
     # Control column metadata
     control_columns: list[str] = field(default_factory=list)
+    control_numbers: dict[str, int | None] = field(default_factory=dict)
     param1_columns: dict[int, str] = field(default_factory=dict)
     param2_columns: dict[int, str] = field(default_factory=dict)
 
@@ -91,6 +94,10 @@ class SharedContext:
     def get_keys_for_type(self, data_type: str) -> dict[str, list[int]]:
         """Get all keys and their row indices for a specific data type."""
         return self.keys_by_type.get(data_type, {})
+
+    def get_keys_with_value_for_type(self, data_type: str) -> set[str]:
+        """Get keys for a specific type where column 'Vrednost' is non-empty."""
+        return self.keys_with_value_by_type.get(data_type, set())
 
     def has_step(self, step: int) -> bool:
         """Check if a step number exists."""
@@ -126,18 +133,15 @@ class SharedContextBuilder:
             Populated SharedContext instance.
         """
         ctx = SharedContext()
-        ctx.columns = list(columns)
+        effective_columns = [c for c in columns if c not in VALIDATION_EXCLUDED_COLUMNS]
+        ctx.columns = list(effective_columns)
 
         # Build column metadata
-        self._build_control_columns(ctx, columns)
-        self._build_param_columns(ctx, columns)
+        self._build_control_columns(ctx, effective_columns)
+        self._build_param_columns(ctx, effective_columns)
 
         # Build row-level data
-        self._build_step_data(ctx, rows)
-        self._build_checkbox_states(ctx, rows)
-        self._build_keys_by_type(ctx, rows)
-        self._build_section_and_tab(ctx, rows)
-        self._build_zakleni_data(ctx, rows)
+        self._build_row_level_data(ctx, rows)
 
         return ctx
 
@@ -156,6 +160,7 @@ class SharedContextBuilder:
             return int(m[0]) if m else 0
 
         ctx.control_columns.sort(key=extract_num)
+        ctx.control_numbers = {col: extract_num(col) for col in ctx.control_columns}
 
     def _build_param_columns(self, ctx: SharedContext, columns: Sequence[str]) -> None:
         """Extract Param1 and Param2 column mappings."""
@@ -195,50 +200,8 @@ class SharedContextBuilder:
                         pass
                     break
 
-    def _build_step_data(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
-        """Build step number mappings and allowed formula reference targets."""
-        for idx, row in enumerate(rows):
-            excel_row = idx + self._row_offset
-            step_val = coerce_str(row.get("št. Koraka", ""))
-            if not step_val:
-                continue
-            try:
-                step_num = int(step_val)
-                ctx.existing_steps.add(step_num)
-                ctx.step_to_row_indices.setdefault(step_num, []).append(excel_row)
-                # Formula fields may reference edit and other formula-type objects.
-                tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
-                if tip_obj in {"edit", "formula", "formula0", "formula1"}:
-                    ctx.step_allowed_for_formula_ref.add(step_num)
-            except ValueError:
-                pass
-
-    def _build_checkbox_states(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
-        """Build checkbox state mapping."""
-        for row in rows:
-            tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
-            if tip_obj != "checkbox":
-                continue
-            key = coerce_str(row.get("Ključ preverjanja", ""))
-            if not key:
-                continue
-            value = coerce_str(row.get("Vrednost", ""))
-            ctx.checkbox_states[key] = parse_checkbox_state(value)
-
-    def _build_keys_by_type(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
-        """Build keys grouped by data type."""
-        for idx, row in enumerate(rows):
-            excel_row = idx + self._row_offset
-            tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
-            key = coerce_str(row.get("Ključ preverjanja", ""))
-            if not tip_data or not key:
-                continue
-            ctx.keys_by_type.setdefault(tip_data, {}).setdefault(key, []).append(excel_row)
-            if is_equipment_tip(row.get("Tip podatka", "")):
-                ctx.equipment_keys.add(key)
-
-    def _build_section_and_tab(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
-        """Build section and tab mappings."""
+    def _build_row_level_data(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
+        """Build all row-derived indexes in a single pass."""
         current_section = 0
         current_tab = ""
 
@@ -246,6 +209,25 @@ class SharedContextBuilder:
             excel_row = idx + self._row_offset
             tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
             tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+            key = coerce_str(row.get("Ključ preverjanja", ""))
+            value = coerce_str(row.get("Vrednost", ""))
+
+            step_num = self._parse_step_number(row)
+            if step_num is not None:
+                ctx.existing_steps.add(step_num)
+                ctx.step_to_row_indices.setdefault(step_num, []).append(excel_row)
+                if tip_obj in {"edit", "formula", "formula0", "formula1"}:
+                    ctx.step_allowed_for_formula_ref.add(step_num)
+
+            if tip_obj == "checkbox" and key:
+                ctx.checkbox_states[key] = parse_checkbox_state(value)
+
+            if tip_data and key:
+                ctx.keys_by_type.setdefault(tip_data, {}).setdefault(key, []).append(excel_row)
+                if value.strip():
+                    ctx.keys_with_value_by_type.setdefault(tip_data, set()).add(key)
+                if is_equipment_tip(row.get("Tip podatka", "")):
+                    ctx.equipment_keys.add(key)
 
             # New section on 'naslov'
             if tip_obj == "naslov" or tip_data == "naslov":
@@ -258,82 +240,103 @@ class SharedContextBuilder:
             if tab_val:
                 current_tab = tab_val
             ctx.tab_by_row[excel_row] = current_tab
+            self._scan_row_controls(ctx, row, excel_row, current_tab, step_num, key)
 
-    def _build_zakleni_data(self, ctx: SharedContext, rows: Sequence[Mapping[str, Any]]) -> None:
-        """Build zaklenipolja-specific data."""
-        for idx, row in enumerate(rows):
-            excel_row = idx + self._row_offset
-            tab = ctx.tab_by_row.get(excel_row, "")
+    def _scan_row_controls(
+        self,
+        ctx: SharedContext,
+        row: Mapping[str, Any],
+        excel_row: int,
+        tab: str,
+        step_num: int | None,
+        key_here: str,
+    ) -> None:
+        for ctrl_col in ctx.control_columns:
+            ctrl_name_raw = coerce_str(row.get(ctrl_col, ""))
+            if not ctrl_name_raw:
+                continue
 
-            # Get step number for this row
-            step_val = coerce_str(row.get("št. Koraka", ""))
+            ctrl_name_ns = norm_control_name(ctrl_name_raw)
+            if step_num is not None:
+                ctx.step_to_controls.setdefault(step_num, set()).add(ctrl_name_ns)
+
+            ctrl_num = ctx.control_numbers.get(ctrl_col, 0) or 0
+
+            if ctrl_name_ns == "zaklenipolja":
+                self._scan_zakleni_control(ctx, row, tab, ctrl_num, key_here)
+            elif ctrl_name_ns == "aliobstajapogoj" and step_num is not None:
+                self._scan_aliobstajapogoj_control(ctx, row, excel_row, tab, step_num, ctrl_col, ctrl_num)
+
+    def _scan_zakleni_control(
+        self,
+        ctx: SharedContext,
+        row: Mapping[str, Any],
+        tab: str,
+        ctrl_num: int,
+        key_here: str,
+    ) -> None:
+        p1_col = ctx.param1_columns.get(ctrl_num)
+        if not p1_col:
+            return
+
+        p1_val = coerce_str(row.get(p1_col, ""))
+        if key_here:
+            ctx.all_zakleni_keys.add(key_here)
+
+        if not p1_val or not has_only_comma_separated_ints(p1_val):
+            return
+
+        for tok in p1_val.split(","):
+            tok = tok.strip()
+            if not tok:
+                continue
             try:
-                step_num = int(step_val) if step_val else None
+                ref_step = int(tok)
             except ValueError:
-                step_num = None
+                continue
+            ctx.zakleni_param1_steps.add(ref_step)
+            ctx.zakleni_param1_steps_by_tab.setdefault(tab, set()).add(ref_step)
+            if key_here:
+                ctx.keys_by_zakleni_step.setdefault(ref_step, set()).add(key_here)
 
-            # Scan control columns
-            for ctrl_col in ctx.control_columns:
-                ctrl_name_raw = coerce_str(row.get(ctrl_col, ""))
-                if not ctrl_name_raw:
-                    continue
+    def _scan_aliobstajapogoj_control(
+        self,
+        ctx: SharedContext,
+        row: Mapping[str, Any],
+        excel_row: int,
+        tab: str,
+        step_num: int,
+        ctrl_col: str,
+        ctrl_num: int,
+    ) -> None:
+        if step_num not in ctx.ali_pogoj_step_locations:
+            ctx.ali_pogoj_step_locations[step_num] = (excel_row, ctrl_col)
 
-                ctrl_name_ns = norm_control_name(ctrl_name_raw)
+        ctx.ali_pogoj_step_locations_by_tab.setdefault(tab, {}).setdefault(step_num, []).append(
+            (excel_row, ctrl_col)
+        )
 
-                # Track controls at each step
-                if step_num is not None:
-                    ctx.step_to_controls.setdefault(step_num, set()).add(ctrl_name_ns)
+        p1_col = ctx.param1_columns.get(ctrl_num)
+        p2_col = ctx.param2_columns.get(ctrl_num)
+        if not p1_col or not p2_col:
+            return
 
-                # Extract control number
-                ctrl_num_match = re.findall(r"\d+", ctrl_col.lower())
-                ctrl_num = int(ctrl_num_match[0]) if ctrl_num_match else 0
+        p1_val = coerce_str(row.get(p1_col, ""))
+        p2_val = coerce_str(row.get(p2_col, ""))
+        try:
+            parsed_p2 = int(float(p2_val.replace(",", ".")))
+        except Exception:
+            parsed_p2 = None
+        if p1_val and parsed_p2 is not None:
+            for key in [k.strip() for k in p1_val.split(",") if k.strip()]:
+                ctx.step_key_param2[(step_num, key)] = parsed_p2
 
-                if ctrl_name_ns == "zaklenipolja":
-                    p1_col = ctx.param1_columns.get(ctrl_num)
-                    if p1_col:
-                        p1_val = coerce_str(row.get(p1_col, ""))
-                        key_here = coerce_str(row.get("Ključ preverjanja", ""))
-                        if key_here:
-                            ctx.all_zakleni_keys.add(key_here)
-
-                        # Parse Param1 as comma-separated integers
-                        if p1_val and has_only_comma_separated_ints(p1_val):
-                            for tok in p1_val.split(","):
-                                tok = tok.strip()
-                                if tok:
-                                    try:
-                                        ref_step = int(tok)
-                                        ctx.zakleni_param1_steps.add(ref_step)
-                                        ctx.zakleni_param1_steps_by_tab.setdefault(tab, set()).add(ref_step)
-                                        if key_here:
-                                            ctx.keys_by_zakleni_step.setdefault(ref_step, set()).add(key_here)
-                                    except ValueError:
-                                        pass
-
-                elif ctrl_name_ns == "aliobstajapogoj":
-                    if step_num is None:
-                        continue
-
-                    # Backward compatible: keep the first location globally
-                    if step_num not in ctx.ali_pogoj_step_locations:
-                        ctx.ali_pogoj_step_locations[step_num] = (excel_row, ctrl_col)
-
-                    # Tab-aware: keep all occurrences per tab
-                    ctx.ali_pogoj_step_locations_by_tab.setdefault(tab, {}).setdefault(step_num, []).append(
-                        (excel_row, ctrl_col)
-                    )
-
-                    # Store (step, key) -> Param2 for odvečni koraki check
-                    p1_col = ctx.param1_columns.get(ctrl_num)
-                    p2_col = ctx.param2_columns.get(ctrl_num)
-                    if p1_col and p2_col:
-                        p1_val = coerce_str(row.get(p1_col, ""))
-                        p2_val = coerce_str(row.get(p2_col, ""))
-                        try:
-                            parsed_p2 = int(float(p2_val.replace(",", ".")))
-                        except Exception:
-                            parsed_p2 = None
-                        if p1_val and parsed_p2 is not None:
-                            for key in [k.strip() for k in p1_val.split(",") if k.strip()]:
-                                ctx.step_key_param2[(step_num, key)] = parsed_p2
+    def _parse_step_number(self, row: Mapping[str, Any]) -> int | None:
+        step_val = coerce_str(row.get("št. Koraka", ""))
+        if not step_val:
+            return None
+        try:
+            return int(step_val)
+        except ValueError:
+            return None
 

@@ -1,3 +1,5 @@
+"""Validator OOP package."""
+
 """MES Excel Validator - Object-Oriented Python Implementation.
 
 This package provides a modular, extensible framework for validating

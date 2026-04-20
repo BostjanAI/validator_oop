@@ -342,6 +342,33 @@ class TestRuleEngine:
         assert "Sheet1" in sheets_processed
         assert "Sheet2" not in sheets_processed
 
+    def test_reuses_first_sheet_shared_context_for_workbook_rules(self) -> None:
+        """Workbook rules should reuse already-built shared context for the first sheet."""
+
+        class NoOpRowRule(RowRule):
+            name = "noop_row"
+
+            def evaluate(self, row, context):
+                return []
+
+        class NoOpWorkbookRule(WorkbookRule):
+            name = "noop_workbook"
+
+            def evaluate_workbook(self, workbook_data, context, *, row_offset=2):
+                return []
+
+        registry = RuleRegistry()
+        registry.register(NoOpRowRule)
+        registry.register(NoOpWorkbookRule)
+
+        engine = RuleEngine(registry)
+        workbook_data = {"Sheet1": [{"št. Koraka": "1", "Tip objekta": "edit"}]}
+
+        with patch.object(engine, "_build_shared_context", wraps=engine._build_shared_context) as build_ctx:
+            engine.run(workbook_data, sheet_headers={"Sheet1": ["št. Koraka", "Tip objekta"]})
+
+        assert build_ctx.call_count == 1
+
 
 class TestValidatorEngine:
     """Tests for ValidatorEngine."""

@@ -195,7 +195,7 @@ validator_oop/
 
 ---
 
-## 🔧 Kako dodati novo funkcionalnost
+## 🔧 Kako dodati pravilo varno
 
 ### 1. Dodaj novo pravilo
 
@@ -272,6 +272,14 @@ def test_my_new_rule():
     assert errors[0].code == "MY_NEW_RULE"
 ```
 
+### 5. Obvezni checklist pred merge
+
+- Posodobi ali dodaj ciljane teste v `tests/`
+- Za produkcijski bug dodaj regresijski primer ali fixture
+- Posodobi `CHANGELOG.md` pod `## [Unreleased]`
+- Preveri pričakovano poročilo oziroma kodo napake
+- Zaženi `python scripts/check_clean_workspace.py`
+
 ---
 
 ## 🧭 Navigacija po kodi
@@ -344,9 +352,22 @@ pytest tests/test_rules.py
 # Zaženi z verbose
 pytest -v
 
-# Zaženi z coverage
-pytest --cov=validator_oop
+# Hitri PR nabor za control pravila
+pytest tests/test_control_rules.py tests/test_control_rule_matrix.py
+
+# Regresijski nabor za prej opažene edge-case scenarije
+pytest -m regression
 ```
+
+### Clean workspace check
+
+Pred merge zaženi:
+
+```bash
+python scripts/check_clean_workspace.py
+```
+
+Skripta opozori na generated artefakte, kot so `__pycache__/`, `.pytest_cache/`, `analytics_out/` in `*.pyc`, da v commitih ostane manj šuma.
 
 ---
 

@@ -82,6 +82,7 @@ class RuleEngine:
             List of all validation errors found.
         """
         errors: list[ValidationError] = []
+        shared_contexts: dict[str, SharedContext] = {}
 
         # Instantiate all rules (sorted by priority)
         all_rules = self._registry.instantiate(
@@ -129,6 +130,7 @@ class RuleEngine:
             else:
                 columns = list(rows[0].keys()) if rows else []
             shared_context = self._build_shared_context(rows, columns)
+            shared_contexts[sheet_name] = shared_context
             
             # Add workbook objects to extra for rules that need them
             if workbook_values is not None:
@@ -187,12 +189,14 @@ class RuleEngine:
             # Use first sheet's context as base, but with all workbook data
             if workbook_data:
                 first_sheet = next(iter(workbook_data.keys()))
-                first_rows = workbook_data[first_sheet]
-                first_columns = (
-                    list(sheet_headers[first_sheet]) if sheet_headers and first_sheet in sheet_headers
-                    else list(first_rows[0].keys()) if first_rows else []
-                )
-                workbook_shared_context = self._build_shared_context(first_rows, first_columns)
+                workbook_shared_context = shared_contexts.get(first_sheet)
+                if workbook_shared_context is None:
+                    first_rows = workbook_data[first_sheet]
+                    first_columns = (
+                        list(sheet_headers[first_sheet]) if sheet_headers and first_sheet in sheet_headers
+                        else list(first_rows[0].keys()) if first_rows else []
+                    )
+                    workbook_shared_context = self._build_shared_context(first_rows, first_columns)
                 
                 # Add all workbook data to extra
                 if all_workbook_data is not None:

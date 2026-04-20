@@ -61,7 +61,7 @@ class TestRequiredColumnsRule:
         # Should have errors for missing required columns
         assert len(errors) > 0
         error_codes = [e.code for e in errors]
-        assert "MANJKA_STOLPEC" in error_codes
+        assert "MISSING_COLUMN" in error_codes
 
     def test_error_contains_column_name(self, rule: RequiredColumnsRule) -> None:
         """Test that the error message contains the missing column name."""
@@ -121,7 +121,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KORAK_NI_CELO" in error_codes
+        assert "STEP_NOT_INTEGER" in error_codes
 
     def test_missing_step(self, rule: StepNumberingRule) -> None:
         """Test that an error is raised for rows with missing step numbers."""
@@ -139,7 +139,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KORAK_MANJKA" in error_codes
+        assert "STEP_MISSING" in error_codes
 
     def test_duplicate_step(self, rule: StepNumberingRule) -> None:
         """Test that an error is raised for duplicate step numbers."""
@@ -157,7 +157,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KORAK_PODVOJEN" in error_codes
+        assert "STEP_DUPLICATE" in error_codes
 
     def test_step_gaps(self, rule: StepNumberingRule) -> None:
         """Test that an error is raised for gaps in step numbering."""
@@ -175,7 +175,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KORAK_PRESLEDKI" in error_codes
+        assert "STEP_GAPS" in error_codes
 
     def test_tab_start_not_one(self, rule: StepNumberingRule) -> None:
         """Test that an error is raised when a new tab doesn't start at step 1."""
@@ -193,7 +193,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KORAKI_ZAVIH_NE_1" in error_codes
+        assert "STEP_TAB_NOT_FROM_ONE" in error_codes
 
     def test_row_index_in_error(self, rule: StepNumberingRule) -> None:
         """Test that errors contain the correct Excel row index."""
@@ -210,7 +210,7 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         # The error for "abc" should be at Excel row 3 (offset 2 + index 1)
-        step_not_int_errors = [e for e in errors if e.code == "KORAK_NI_CELO"]
+        step_not_int_errors = [e for e in errors if e.code == "STEP_NOT_INTEGER"]
         assert len(step_not_int_errors) == 1
         assert step_not_int_errors[0].row_index == 3
 
@@ -231,6 +231,6 @@ class TestStepNumberingRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         # No STEP_MISSING error for empty row
-        step_missing_errors = [e for e in errors if e.code == "KORAK_MANJKA"]
+        step_missing_errors = [e for e in errors if e.code == "STEP_MISSING"]
         assert len(step_missing_errors) == 0
 

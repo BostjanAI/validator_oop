@@ -19,6 +19,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **docs/** `NAV-157_Navodila_IPO_receptura.md` – Navodila za pripravo recepture za IPO sistem prestrukturirana po predlogi NAV-157 (namen, definicije, postopek, odgovornosti, dokumentacija, zapisi o spremembah, priloge). *(19. 3. 2026, ~30 min)*
 
 ### Changed
+- **excel/** `report_writer.py` - Na list `Povzetek` v Excel poročilu dodan stolpec `Datum`, ki v vsaki vrstici izpiše datum generiranja poročila. *(16. 4. 2026, ~20 min)*
 - **core/** `shared_context.py`, `rule_engine.py` - Gradnja `SharedContext` je združena v en prehod čez vrstice, številke kontrolnih stolpcev so predizračunane v kontekstu, `RuleEngine` pa pri workbook pravilih ponovno uporabi že zgrajen kontekst prvega lista; dodani ciljani testi za cache/reuse. *(9. 4. 2026, ~1 h)*
 - **control/** `ExpectedControlsRule` - Priporočene kontrole za kemikalije, mase, opremo, monolite in raztopine so razdeljene v manjše helperje; dodani testi za `masa` izjeme in bolj natančno sporočilo za opremo. *(9. 4. 2026, ~45 min)*
 - **control/** `ControlContextRule` - Monolitna validacija konteksta kontrol je razbita v manjše helper metode za opremo, kemikalije, raztopine, `aliIsto` in `kontrolaCasa`; dodani ciljani testi za manj pokrite veje. *(9. 4. 2026, ~1 h)*
@@ -48,6 +49,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **rules/** `changelog-tracking` - Pri vsakem vnosu v CHANGELOG se zdaj zahteva tudi ocena porabljenega časa (kot za človeškega programerja), npr. *(datum, ~15 min)*; v pravilo dodan razdelek z navodili za ocenjevanje. *(12. 3. 2025, ~15 min)*
 
 ### Fixed
+- **control/** `ExpectedControlsRule` - Oprema zdaj zahteva `kontrolaveljavnostiopreme` samo pri `Tip objekta = spustniseznam` ali kadar je `Labela = koda`; dodani regresijski testi za oba dovoljena konteksta in izjemo. *(16. 4. 2026, ~30 min)*
 - **utils/** `parse_navodilo_inequality`, `derive_decimal_step_from_text` - Normaliziran zapis decimal s presledkom (npr. `2 .0`), zato `kontrolaInterval` pri navodilih `<=` pravilno izračuna Param2 (npr. `≤ 2 .0` → `2.1`, ne `3.0`). *(26. 3. 2026, ~30 min)*
 - **control/** `kontrolaInterval` – Pri `±` toleranci `eps` zdaj temelji na decimalkah tolerance `t` (ne na decimalkah sredine `x`). Primer: `8 ± 0.4` pravilno zahteva `Param1=7.5` in `Param2=8.5`. *(25. 3. 2026, ~45 min)*
 - **control/** `aliobstajapogoj_combo_rule`, novo `zaklenipolja_param1_odvecni_koraki_rule` – Napaka pri napačnih korakih v Param1 zaklenipolja se zdaj poroča na vrstici zaklenipolja z opozorilom „Pri zaklenipolja v Param1 so odvečni koraki: …“ namesto na vrstici z aliObstajaPogoj. *(17. 3. 2026, ~45 min)*

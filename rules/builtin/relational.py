@@ -23,8 +23,8 @@ class DuplicateKeyRule(SheetRule):
     description = "Ključi morajo biti unikatni v zavihku/razdelku."
 
     DATA_TYPES = {
-        "kemikalija": "KEY_DUP_KEM",
-        "raztopina": "KEY_DUP_RAZT",
+        "kemikalija": "KEY_DUP_CHEM",
+        "raztopina": "KEY_DUP_SOL",
     }
 
     def evaluate_sheet(
@@ -93,7 +93,7 @@ class DuplicateKeyRule(SheetRule):
                         self.build_error(
                             f"Isti ključ mase '{key}' nastopa v več razdelkih{tab_suffix}.",
                             context=context,
-                            code="KLJUC_PODVOJEN_MASA_RAZD",
+                            code="KEY_DUP_MASS_SECTION",
                             payload={"rows": tab_to_rows[tab]},
                         )
                     )
@@ -178,7 +178,7 @@ class DuplicateKeyRule(SheetRule):
                         self.build_error(
                             f"Podvojen ključ '{base}' za tip 'masa'{tab_suffix}.",
                             context=context,
-                            code="KLJUC_PODVOJEN_MASA",
+                            code="KEY_DUP_MASS",
                             payload={"rows": mass_rows},
                         )
                     )
@@ -236,7 +236,7 @@ class DuplicateKeyRule(SheetRule):
                         self.build_error(
                             f"Podvojen ključ '{base}' za tip 'masa'{tab_suffix}.",
                             context=context,
-                            code="KLJUC_PODVOJEN_MASA",
+                            code="KEY_DUP_MASS",
                             payload={"rows": all_rows},
                         )
                     )
@@ -341,7 +341,7 @@ class MassOwnerRule(SheetRule):
                         f"Za maso s ključem '{masa_key}' ne obstaja ustrezna 'kemikalija' ali 'raztopina' pred tem korakom.",
                         context=context.with_row(row_idx),
                         column="Ključ preverjanja",
-                        code="PAR_MASA_BREZ_LASTNIKA",
+                        code="PAIR_MASS_WITHOUT_OWNER",
                     )
                 )
             elif masa_key != first_owner_key:
@@ -351,7 +351,7 @@ class MassOwnerRule(SheetRule):
                         f"Vrstica {row_idx} mora imeti ključ preverjanja '{first_owner_key}' (kot vrstica {first_owner_row}, {first_owner_type}).",
                         context=context.with_row(row_idx),
                         column="Ključ preverjanja",
-                        code="PAR_MASA_NAPACEN_RAZD",
+                        code="PAIR_MASS_SECTION_MISMATCH",
                     )
                 )
         return errors
@@ -389,7 +389,7 @@ class TimePairRule(SheetRule):
                 self.build_error(
                     f"Za 'datumcaszacetek' ključ '{missing}' manjka ustrezen 'datumcaskonec'.",
                     context=context,
-                    code="PAR_CAS_BREZ_KONCA",
+                    code="PAIR_TIME_WITHOUT_END",
                     payload={"rows": rows_missing},
                 )
             )
@@ -400,7 +400,7 @@ class TimePairRule(SheetRule):
                 self.build_error(
                     f"Za 'datumcaskonec' ključ '{missing}' manjka ustrezen 'datumcaszacetek'.",
                     context=context,
-                    code="PAR_CAS_BREZ_ZACETKA",
+                    code="PAIR_TIME_WITHOUT_START",
                     payload={"rows": rows_missing},
                 )
             )
@@ -435,7 +435,7 @@ class TimePairRule(SheetRule):
                         f"Ključ '{key}' se ponavlja za 'datumcaszacetek'/'datumcaskonec'{tab_info}.",
                         context=context,
                         column="Ključ preverjanja",
-                        code="KLJUC_PODVOJEN_CAS_PAR",
+                        code="KEY_DUP_TIME_PAIR",
                         payload={"rows": all_rows, "tab": tab},
                     )
                 )
@@ -487,7 +487,7 @@ class KeyNumberingRule(SheetRule):
                         f"Ključ '{base}…' začetek oštevilčenja ni 1 (najdeno {ordered[0]}).",
                         context=context,
                         column="Ključ preverjanja",
-                        code="KLJUC_NUM_NE_1",
+                        code="KEY_NUM_NOT_FROM_ONE",
                     )
                 )
             for n in range(1, ordered[-1] + 1):
@@ -497,7 +497,7 @@ class KeyNumberingRule(SheetRule):
                             f"Ključ '{base}{n}' manjka v zaporedju (preskok).",
                             context=context,
                             column="Ključ preverjanja",
-                            code="KLJUC_NUM_PRESLEDEK",
+                            code="KEY_NUM_GAP",
                         )
                     )
             if bare_present.get(base) and len(numbers) > 1:
@@ -506,7 +506,7 @@ class KeyNumberingRule(SheetRule):
                         f"Nekonsistenten stil označevanja ključa '{base}'",
                         context=context,
                         column="Ključ preverjanja",
-                        code="KLJUC_NUM_PODVOJEN_BASE",
+                        code="KEY_NUM_DUPLICATE_BASE",
                         severity=Severity.WARNING,
                     )
                 )
@@ -559,7 +559,7 @@ class TehtnicaMasaPairRule(SheetRule):
                         f"Tehtnica s ključem '{key}' nima ustrezne mase, zato ne sme imeti kontrole 'kontrolaustreznostiopreme'.",
                         context=context.with_row(row_idx),
                         column="(Kontrole)",
-                        code="KONTROLA_TEHTNICA_BREZ_MASE",
+                        code="CONTROL_SCALE_WITHOUT_MASS",
                     )
                 )
 
@@ -687,7 +687,7 @@ class TehtnicaVrednostFromFormulaRule(SheetRule):
                             f"Pri tehtnici s ključem '{key}' mora biti vrednost 'TEH-KLA' ali 'TEH-KLA, TEH-ANA' (masa je {masa_num}, kar je >= 10).",
                             context=context.with_row(row_idx),
                             column="Vrednost",
-                            code="TEHTNICA_VREDNOST_PREVISOKA",
+                            code="SCALE_VALUE_TOO_HIGH",
                         )
                     )
             else:
@@ -702,7 +702,7 @@ class TehtnicaVrednostFromFormulaRule(SheetRule):
                             f"Pri tehtnici s ključem '{key}' mora biti vrednost 'TEH-ANA' ali 'TEH-KLA, TEH-ANA' (masa je {masa_num}, kar je < 10).",
                             context=context.with_row(row_idx),
                             column="Vrednost",
-                            code="TEHTNICA_VREDNOST_PRENIZKA",
+                            code="SCALE_VALUE_TOO_LOW",
                         )
                     )
 

@@ -54,7 +54,7 @@ class TestObjectTypeRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "TIP_OBJEKTA_PRAZEN" in error_codes
+        assert "OBJECT_TYPE_EMPTY" in error_codes
 
     def test_unknown_object_type(self, rule: ObjectTypeRule) -> None:
         """Test that unknown object type raises an error."""
@@ -65,7 +65,7 @@ class TestObjectTypeRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "TIP_OBJEKTA_NEZNAN" in error_codes
+        assert "OBJECT_TYPE_UNKNOWN" in error_codes
 
     def test_case_insensitive(self, rule: ObjectTypeRule) -> None:
         """Test that object type validation is case-insensitive."""
@@ -98,7 +98,7 @@ class TestDataObjectCompatibilityRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        obj_mismatch_errors = [e for e in errors if e.code == "TIP_NE_USREZA"]
+        obj_mismatch_errors = [e for e in errors if e.code == "OBJECT_TYPE_MISMATCH"]
         assert len(obj_mismatch_errors) == 0
 
     def test_invalid_combination(self, rule: DataObjectCompatibilityRule) -> None:
@@ -110,7 +110,7 @@ class TestDataObjectCompatibilityRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "TIP_NE_USREZA" in error_codes
+        assert "OBJECT_TYPE_MISMATCH" in error_codes
 
 
 class TestLabelRequirementsRule:
@@ -134,7 +134,7 @@ class TestLabelRequirementsRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        labela_errors = [e for e in errors if e.code == "LABELA_MORA_KODA"]
+        labela_errors = [e for e in errors if e.code == "LABEL_MUST_BE_KODA"]
         assert len(labela_errors) == 0
 
     def test_labela_koda_missing(self, rule: LabelRequirementsRule) -> None:
@@ -151,7 +151,7 @@ class TestLabelRequirementsRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "LABELA_MORA_KODA" in error_codes
+        assert "LABEL_MUST_BE_KODA" in error_codes
 
 
 class TestCheckboxLabelaRule:
@@ -168,7 +168,7 @@ class TestCheckboxLabelaRule:
             {"Tip objekta": "checkbox", "Labela": "DA (kljukica)", "št. Koraka": "1"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert [e for e in errors if e.code == "LABELA_CHECKBOX_OBLIKA"] == []
+        assert [e for e in errors if e.code == "LABEL_CHECKBOX_FORMAT"] == []
 
     def test_checkbox_valid_labela_da_ne(self, rule: CheckboxLabelaRule) -> None:
         """Checkbox z Labela 'DA (kljukica)/NE (prazno)' ne sme javiti napake."""
@@ -176,7 +176,7 @@ class TestCheckboxLabelaRule:
             {"Tip objekta": "checkbox", "Labela": "DA (kljukica)/NE (prazno)", "št. Koraka": "1"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert [e for e in errors if e.code == "LABELA_CHECKBOX_OBLIKA"] == []
+        assert [e for e in errors if e.code == "LABEL_CHECKBOX_FORMAT"] == []
 
     def test_checkbox_invalid_labela_raises(self, rule: CheckboxLabelaRule) -> None:
         """Checkbox z napačno Labela mora javiti LABELA_CHECKBOX."""
@@ -184,7 +184,7 @@ class TestCheckboxLabelaRule:
             {"Tip objekta": "checkbox", "Labela": "Nepravilna labela", "št. Koraka": "1"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "LABELA_CHECKBOX_OBLIKA" for e in errors)
+        assert any(e.code == "LABEL_CHECKBOX_FORMAT" for e in errors)
 
     def test_checkbox_empty_labela_raises(self, rule: CheckboxLabelaRule) -> None:
         """Checkbox s prazno Labela mora javiti LABELA_CHECKBOX."""
@@ -192,7 +192,7 @@ class TestCheckboxLabelaRule:
             {"Tip objekta": "checkbox", "Labela": "", "št. Koraka": "1"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "LABELA_CHECKBOX_OBLIKA" for e in errors)
+        assert any(e.code == "LABEL_CHECKBOX_FORMAT" for e in errors)
 
     def test_non_checkbox_ignored(self, rule: CheckboxLabelaRule) -> None:
         """Vrstice brez tipa objekta checkbox se ne preverjajo za Labela."""
@@ -200,7 +200,7 @@ class TestCheckboxLabelaRule:
             {"Tip objekta": "edit", "Labela": "poljubno", "št. Koraka": "1"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert [e for e in errors if e.code == "LABELA_CHECKBOX_OBLIKA"] == []
+        assert [e for e in errors if e.code == "LABEL_CHECKBOX_FORMAT"] == []
 
 
 class TestKeyValidationRule:
@@ -221,7 +221,7 @@ class TestKeyValidationRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        key_format_errors = [e for e in errors if e.code == "KLJUC_NAPAKEN_FORMAT"]
+        key_format_errors = [e for e in errors if e.code == "KEY_INVALID_FORMAT"]
         assert len(key_format_errors) == 0
 
     def test_invalid_key_format(self, rule: KeyValidationRule) -> None:
@@ -234,7 +234,7 @@ class TestKeyValidationRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_NAPAKEN_FORMAT" in error_codes
+        assert "KEY_INVALID_FORMAT" in error_codes
 
     def test_key_required_for_main_types(self, rule: KeyValidationRule) -> None:
         """Test that keys are required for main data types."""
@@ -245,7 +245,7 @@ class TestKeyValidationRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "KLJUC_ZAHTEVAN" in error_codes
+        assert "KEY_REQUIRED" in error_codes
 
 
 class TestFormulaSyntaxRule:
@@ -277,7 +277,7 @@ class TestFormulaSyntaxRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "FORMULA_SINTAKSA" in error_codes
+        assert "FORMULA_SYNTAX" in error_codes
 
     def test_formula_no_reference(self, rule: FormulaSyntaxRule) -> None:
         """Test that formulas without step references raise errors."""
@@ -288,7 +288,7 @@ class TestFormulaSyntaxRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "FORMULA_BREZ_SKLICA" in error_codes
+        assert "FORMULA_NO_REFERENCE" in error_codes
 
 
 class TestCommaNumberRule:
@@ -309,7 +309,7 @@ class TestCommaNumberRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        comma_errors = [e for e in errors if e.code == "VEJICA_NEDOVOLJENA"]
+        comma_errors = [e for e in errors if e.code == "COMMA_NOT_ALLOWED"]
         assert len(comma_errors) == 0
 
     def test_comma_in_number(self, rule: CommaNumberRule) -> None:
@@ -321,7 +321,7 @@ class TestCommaNumberRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "VEJICA_NEDOVOLJENA" in error_codes
+        assert "COMMA_NOT_ALLOWED" in error_codes
 
 
 class TestNoSpacesRule:
@@ -339,7 +339,7 @@ class TestNoSpacesRule:
             {"št. Koraka": "2", "Navodilo": "Drugi korak", "Vrednost": "abc", "Labela": "koda"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         assert len(space_errors) == 0
 
     def test_space_in_column_reports_error(self, rule: NoSpacesRule) -> None:
@@ -349,8 +349,8 @@ class TestNoSpacesRule:
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         error_codes = [e.code for e in errors]
-        assert "PRESLEDEK_NEDOVOLJEN" in error_codes
-        err = next(e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN")
+        assert "SPACE_NOT_ALLOWED" in error_codes
+        err = next(e for e in errors if e.code == "SPACE_NOT_ALLOWED")
         assert err.column == "Vrednost"
 
     def test_navodilo_with_spaces_no_error(self, rule: NoSpacesRule) -> None:
@@ -359,7 +359,7 @@ class TestNoSpacesRule:
             {"št. Koraka": "1", "Navodilo": "Navodilo z več presledki in besedami", "Vrednost": "1", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         assert len(space_errors) == 0
 
     def test_leading_trailing_space_reports_error(self, rule: NoSpacesRule) -> None:
@@ -368,12 +368,12 @@ class TestNoSpacesRule:
             {"št. Koraka": "1", "Navodilo": "Korak", "Vrednost": " 123", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "PRESLEDEK_NEDOVOLJEN" and e.column == "Vrednost" for e in errors)
+        assert any(e.code == "SPACE_NOT_ALLOWED" and e.column == "Vrednost" for e in errors)
         rows_trailing = [
             {"št. Koraka": "2", "Navodilo": "Korak", "Vrednost": "456 ", "Labela": "g"},
         ]
         errors_trailing = rule.run(rows_trailing, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "PRESLEDEK_NEDOVOLJEN" and e.column == "Vrednost" for e in errors_trailing)
+        assert any(e.code == "SPACE_NOT_ALLOWED" and e.column == "Vrednost" for e in errors_trailing)
 
     def test_empty_cells_no_error(self, rule: NoSpacesRule) -> None:
         """Prazne celice ne sprožijo napake."""
@@ -382,7 +382,7 @@ class TestNoSpacesRule:
             {"št. Koraka": "2", "Navodilo": "", "Vrednost": "x", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         assert len(space_errors) == 0
 
     def test_multiple_columns_with_spaces(self, rule: NoSpacesRule) -> None:
@@ -391,32 +391,23 @@ class TestNoSpacesRule:
             {"št. Koraka": "1 ", "Navodilo": "Korak", "Vrednost": "a b", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         columns_with_errors = {e.column for e in space_errors}
         assert "št. Koraka" in columns_with_errors
         assert "Vrednost" in columns_with_errors
         assert "Navodilo" not in columns_with_errors
 
-    def test_labela_da_kljukica_allowed_with_spaces(self, rule: NoSpacesRule) -> None:
-        """V Labela so 'DA (kljukica)', 'DA (kljukica)/NE (prazno)' in 'naziv opreme' dovoljeni (s presledki)."""
+    def test_labela_with_spaces_no_error(self, rule: NoSpacesRule) -> None:
+        """Stolpec Labela se ne preverja za presledke (poljubna vrednost s presledki je dovoljena)."""
         rows = [
             {"št. Koraka": "1", "Navodilo": "Korak", "Labela": "DA (kljukica)"},
             {"št. Koraka": "2", "Navodilo": "Korak", "Labela": "DA (kljukica)/NE (prazno)"},
             {"št. Koraka": "3", "Navodilo": "Korak", "Labela": "naziv opreme"},
+            {"št. Koraka": "4", "Navodilo": "Korak", "Labela": "nekaj z presledkom"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         assert len(space_errors) == 0
-
-    def test_labela_other_value_with_space_reports_error(self, rule: NoSpacesRule) -> None:
-        """Druga vrednost v Labela s presledkom sproži napako."""
-        rows = [
-            {"št. Koraka": "1", "Navodilo": "Korak", "Labela": "nekaj z presledkom"},
-        ]
-        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        space_errors = [e for e in errors if e.code == "PRESLEDEK_NEDOVOLJEN"]
-        assert len(space_errors) == 1
-        assert space_errors[0].column == "Labela"
 
 
 class TestFormulaReferenceRule:
@@ -442,7 +433,7 @@ class TestFormulaReferenceRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
-        bad_ref_errors = [e for e in errors if e.code == "FORMULA_NAPACEN_SKLICE"]
+        bad_ref_errors = [e for e in errors if e.code == "FORMULA_INVALID_REFERENCE"]
         assert len(bad_ref_errors) == 0
 
     def test_formula_bad_reference(self, rule: FormulaReferenceRule) -> None:
@@ -460,7 +451,7 @@ class TestFormulaReferenceRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
-        assert "FORMULA_NAPACEN_SKLICE" in error_codes
+        assert "FORMULA_INVALID_REFERENCE" in error_codes
 
 
 class TestFormulaStepEditLabelaRule:
@@ -483,7 +474,7 @@ class TestFormulaStepEditLabelaRule:
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        step_errors = [e for e in errors if e.code == "FORMULA_KORAK_EDIT_LABELA"]
+        step_errors = [e for e in errors if e.code == "FORMULA_STEP_INVALID_TYPE"]
         assert len(step_errors) == 0
 
     def test_formula_references_allowed_formula_types(self, rule: FormulaStepEditLabelaRule) -> None:
@@ -499,7 +490,7 @@ class TestFormulaStepEditLabelaRule:
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        step_errors = [e for e in errors if e.code == "FORMULA_KORAK_EDIT_LABELA"]
+        step_errors = [e for e in errors if e.code == "FORMULA_STEP_INVALID_TYPE"]
         assert len(step_errors) == 0
 
     def test_formula_references_step_without_allowed_type(self, rule: FormulaStepEditLabelaRule) -> None:
@@ -514,7 +505,7 @@ class TestFormulaStepEditLabelaRule:
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        step_errors = [e for e in errors if e.code == "FORMULA_KORAK_EDIT_LABELA"]
+        step_errors = [e for e in errors if e.code == "FORMULA_STEP_INVALID_TYPE"]
         assert len(step_errors) >= 1
         assert any("$2" in e.message for e in step_errors)
 

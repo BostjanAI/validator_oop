@@ -13,6 +13,7 @@ from validator_oop.core.constants import (
     LABELA_CHECKBOX_ALLOWED,
     LABELA_KODA_TYPES,
     STANDARD_TIP_PODATKA,
+    VALIDATION_EXCLUDED_COLUMNS,
 )
 from validator_oop.core.error import Severity
 from validator_oop.rules import RowRule, RuleContext, register
@@ -44,7 +45,7 @@ class ObjectTypeRule(RowRule):
                 "Tip objekta ne sme biti prazen.",
                 context=context,
                 column="Tip objekta",
-                code="TIP_OBJEKTA_PRAZEN",
+                code="OBJECT_TYPE_EMPTY",
             )
             return
 
@@ -53,7 +54,7 @@ class ObjectTypeRule(RowRule):
                 f"Neznan Tip objekta: '{tip_obj}'.",
                 context=context,
                 column="Tip objekta",
-                code="TIP_OBJEKTA_NEZNAN",
+                code="OBJECT_TYPE_UNKNOWN",
             )
 
 
@@ -81,7 +82,7 @@ class DataObjectCompatibilityRule(RowRule):
                     f"'{tip_data_raw}' zahteva Tip objekta {allowed_str}, najdeno: '{tip_obj}'.",
                     context=context,
                     column="Tip objekta",
-                    code="TIP_NE_USREZA",
+                    code="OBJECT_TYPE_MISMATCH",
                 )
             )
         return errors
@@ -108,7 +109,7 @@ class LabelRequirementsRule(RowRule):
                     f"Za tip podatka '{tip_data}' mora biti Labela = 'koda'.",
                     context=context,
                     column="Labela",
-                    code="LABELA_MORA_KODA",
+                    code="LABEL_MUST_BE_KODA",
                 )
             )
 
@@ -143,7 +144,7 @@ class LabelRequirementsRule(RowRule):
                     f"Enota v 'Labela' ({label_unit}) se ne ujema z enoto v 'Navodilo' ({nav_unit}).",
                     context=context,
                     column="Labela",
-                    code="ENOTA_NE_USREZA",
+                    code="UNIT_MISMATCH",
                 )
             )
 
@@ -169,7 +170,7 @@ class CheckboxLabelaRule(RowRule):
                 "Pri tipu objekta 'checkbox' mora biti Labela zapolnjena: 'DA (kljukica)' ali 'DA (kljukica)/NE (prazno)'.",
                 context=context,
                 column="Labela",
-                code="LABELA_CHECKBOX_OBLIKA",
+                code="LABEL_CHECKBOX_FORMAT",
             )
             return
 
@@ -179,7 +180,7 @@ class CheckboxLabelaRule(RowRule):
                 f"Pri tipu objekta 'checkbox' mora biti Labela ena od: '{allowed_str}'. Najdeno: '{labela_raw.strip()}'.",
                 context=context,
                 column="Labela",
-                code="LABELA_CHECKBOX_OBLIKA",
+                code="LABEL_CHECKBOX_FORMAT",
             )
 
 
@@ -251,7 +252,7 @@ class KeyValidationRule(RowRule):
                     error_msg,
                     context=context,
                     column="Ključ preverjanja",
-                    code="KLJUC_NAPAKEN_FORMAT",
+                    code="KEY_INVALID_FORMAT",
                 )
             )
 
@@ -261,7 +262,7 @@ class KeyValidationRule(RowRule):
                     "Za tipe 'kemikalija', 'raztopina', 'masa' in 'tehtnica' mora biti nastavljen 'Ključ preverjanja'.",
                     context=context,
                     column="Ključ preverjanja",
-                    code="KLJUC_ZAHTEVAN",
+                    code="KEY_REQUIRED",
                 )
             )
 
@@ -289,7 +290,7 @@ class FormulaSyntaxRule(RowRule):
                     "Pri formulskih objektih mora 'Vrednost' začeti z '=' in uporabljati $korake (npr. =$12+$13).",
                     context=context,
                     column="Vrednost",
-                    code="FORMULA_SINTAKSA",
+                    code="FORMULA_SYNTAX",
                 )
             )
         if "$" not in value:
@@ -298,7 +299,7 @@ class FormulaSyntaxRule(RowRule):
                     "Formula ne vsebuje sklica na korake (npr. $12). Preveri sklice.",
                     context=context,
                     column="Vrednost",
-                    code="FORMULA_BREZ_SKLICA",
+                    code="FORMULA_NO_REFERENCE",
                     severity=self.severity if self.severity != Severity.INFO else None,
                 )
             )
@@ -318,9 +319,11 @@ class CommaNumberRule(RowRule):
         allowed_columns = {"Navodilo"}
         if shared:
             allowed_columns.update(self._allowed_param_columns(row, shared))
-            columns: Sequence[str] = shared.columns or list(row.keys())
+            columns = shared.columns or [
+                k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS
+            ]
         else:
-            columns = list(row.keys())
+            columns = [k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS]
 
         errors = []
         for column in columns:
@@ -334,7 +337,7 @@ class CommaNumberRule(RowRule):
                     f"Vrednost v '{column}' vsebuje vejico v številu (ni dovoljeno). Uporabi decimalno piko.",
                     context=context,
                     column=column,
-                    code="VEJICA_NEDOVOLJENA",
+                    code="COMMA_NOT_ALLOWED",
                 )
             )
         return errors
@@ -371,30 +374,27 @@ class CommaNumberRule(RowRule):
             return None
 
 
-# Vrednosti Labela, pri katerih so presledki dovoljeni (po norm_text)
-LABELA_ALLOWED_WITH_SPACES: frozenset[str] = frozenset({
-    "da (kljukica)",
-    "da (kljukica)/ne (prazno)",
-    "naziv opreme",
-})
-
-
 @register
 class NoSpacesRule(RowRule):
-    """Preveri, da vrednosti v vseh stolpcih (razen Navodilo in izjem v Labela) ne vsebujejo presledkov."""
+    """Preveri, da vrednosti v vseh stolpcih (razen Navodilo in Labela) ne vsebujejo presledkov."""
 
     name = "no_spaces_rule"
-    description = "V vseh stolpcih in vrsticah ne sme biti presledkov (izjemi: Navodilo; v Labela vrednosti 'DA (kljukica)', 'DA (kljukica)/NE (prazno)' in 'naziv opreme')."
+    description = "V vseh stolpcih in vrsticah ne sme biti presledkov (izjemi: Navodilo, Labela)."
 
-    # Stolpec, kjer so presledki vedno dovoljeni
-    EXCLUDED_COLUMN = "Navodilo"
+    # Stolpci, kjer so presledki vedno dovoljeni
+    EXCLUDED_COLUMNS: frozenset[str] = frozenset({"Navodilo", "Labela"})
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         shared = context.shared
-        columns: Sequence[str] = (shared.columns or list(row.keys())) if shared else list(row.keys())
+        if shared:
+            columns = shared.columns or [
+                k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS
+            ]
+        else:
+            columns = [k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS]
 
         for column in columns:
-            if column == self.EXCLUDED_COLUMN:
+            if column in self.EXCLUDED_COLUMNS:
                 continue
             value = row.get(column)
             if value is None:
@@ -409,13 +409,11 @@ class NoSpacesRule(RowRule):
             if not raw.strip():
                 continue
             if " " in raw:
-                if column == "Labela" and norm_text(raw) in LABELA_ALLOWED_WITH_SPACES:
-                    continue
                 yield self.build_error(
                     f"Vrednost v stolpcu '{column}' vsebuje presledek (ni dovoljeno).",
                     context=context,
                     column=column,
-                    code="PRESLEDEK_NEDOVOLJEN",
+                    code="SPACE_NOT_ALLOWED",
                 )
 
 
@@ -453,7 +451,7 @@ class FormulaReferenceRule(RowRule):
                 f"Formula se sklicuje na neobstoječi korak ${step}.",
                 context=context,
                 column="Vrednost",
-                code="FORMULA_NAPACEN_SKLICE",
+                code="FORMULA_INVALID_REFERENCE",
             )
 
 
@@ -493,6 +491,6 @@ class FormulaStepEditLabelaRule(RowRule):
                 f"Korak ${step}, na katerega se formula sklicuje, ni pravilen!",
                 context=context,
                 column="Vrednost",
-                code="FORMULA_KORAK_EDIT_LABELA",
+                code="FORMULA_STEP_INVALID_TYPE",
             )
 

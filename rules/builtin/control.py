@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence
 
-from validator_oop.core.constants import ALLOWED_CONTROLS_NORMALIZED, NUMERIC_TOKEN_RE
+from validator_oop.core.constants import ALLOWED_CONTROLS_NORMALIZED, EXCEL_ERROR_TOKENS, NUMERIC_TOKEN_RE
 from validator_oop.core.error import Severity
 from validator_oop.rules import RowRule, RuleContext, SheetRule, register
 from validator_oop.utils import (
     base_key_no_trailing_number,
     coerce_str,
+    decimal_places_of_first_number,
     decimals_from_eps,
     derive_decimal_step_from_text,
     eq_with_decimals,
@@ -45,7 +46,7 @@ SPECIFIC_TYPE_CONTROLS = {
     "kontrolaprazneembalaze": {"embalaza"},
 }
 
-EQUIPMENT_TYPES = {"tehtnica", "termometer", "kopel", "ph_meter", "sušilnik", "susilnik", "vak_sušilnik", "vak_susilnik"}
+EQUIPMENT_TYPES = {"tehtnica", "termometer", "kopel", "ph_meter", "sušilnik", "susilnik", "vak_sušilnik", "vak_susilnik", "naprava"}
 INPUT_OBJECT_TYPES = {"edit", "spustniseznam", "izberidatumcas", "gumbdatumcas", "memo"}
 
 EXPECTED_CONTROLS = {
@@ -61,12 +62,14 @@ EXPECTED_CONTROLS = {
     "susilnik": [["kontrolaveljavnostiopreme"]],
     "vak_sušilnik": [["kontrolaveljavnostiopreme"]],
     "vak_susilnik": [["kontrolaveljavnostiopreme"]],
+    "naprava": [["kontrolaveljavnostiopreme"]],
     "monolit": [["kontrolaveljavnostimonolita"], ["kontrolaustreznostimonolita"]],
     "raztopina": [["kontrolaveljavnostiraztopine"], ["kontrolaustreznostiraztopine"]],
 }
 
 ZAKLENI_CONTROL = "zaklenipolja"
 ALIOB_CONTROL = "aliobstajapogoj"
+INTERVAL_CONTROL_NAMES = ("kontrolainterval", "kontrolaintervala")
 # Labela za checkbox: samo kljukica → zahteva aliObkljukan; kljukica/prazno → aliObkljukan ne sme biti
 LABELA_DA_KLJUKICA = "da (kljukica)"
 LABELA_DA_NE = "da (kljukica)/ne (prazno)"
@@ -95,6 +98,91 @@ class ControlInstance:
     param2_column: str | None
 
 
+@dataclass(slots=True)
+class NumericNavodiloParse:
+    raw: str
+    clean: str
+    range_min: float | None
+    range_max: float | None
+    range_step: float | None
+    pm_center: float | None
+    pm_tolerance: float | None
+    pm_step: float | None
+    inequality_op: str | None
+    inequality_value: float | None
+    inequality_step: float | None
+
+    def has_numeric_interval(self) -> bool:
+        return (
+            (self.range_min is not None and self.range_max is not None)
+            or (self.pm_center is not None and self.pm_tolerance is not None)
+            or (self.inequality_op is not None and self.inequality_value is not None)
+        )
+
+
+@dataclass(slots=True)
+class ControlContextState:
+    row: Mapping[str, object]
+    shared: Any
+    tip_data_raw: str
+    tip_data: str
+    tip_obj: str
+    navodilo_norm: str
+    key_here: str
+    label_value_raw: str
+    label_value: str
+    controls: list[ControlInstance]
+    present_names_ns: set[str]
+    is_hplc_pump: bool
+
+
+def _normalize_navodilo_text(navodilo: str) -> str:
+    return navodilo.replace("â‰¤", "≤").replace("â‰¥", "≥")
+
+
+def _parse_number(value: str) -> float | None:
+    if not value:
+        return None
+    try:
+        return float(value.replace(",", "."))
+    except ValueError:
+        return None
+
+
+def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
+    navodilo_clean = _normalize_navodilo_text(navodilo)
+    range_min, range_max, _, range_step = parse_navodilo_interval(navodilo_clean)
+    pm_center, pm_tolerance, _, pm_step = parse_navodilo_pm(navodilo_clean)
+    inequality_op, inequality_value, _, inequality_step = parse_navodilo_inequality(navodilo_clean)
+
+    if inequality_op is None:
+        simple_match = re.search(r"(>=|<=|>|<|≥|≤)\s*(\d+(?:[.,]\d+)?)", navodilo_clean)
+        if simple_match:
+            raw_op = simple_match.group(1)
+            if raw_op in (">=", "≥"):
+                inequality_op = ">="
+            elif raw_op in ("<=", "≤"):
+                inequality_op = "<="
+            else:
+                inequality_op = raw_op
+            inequality_value = float(simple_match.group(2).replace(",", "."))
+            inequality_step = inequality_step or derive_decimal_step_from_text(navodilo)
+
+    return NumericNavodiloParse(
+        raw=navodilo,
+        clean=navodilo_clean,
+        range_min=range_min,
+        range_max=range_max,
+        range_step=range_step,
+        pm_center=pm_center,
+        pm_tolerance=pm_tolerance,
+        pm_step=pm_step,
+        inequality_op=inequality_op,
+        inequality_value=inequality_value,
+        inequality_step=inequality_step,
+    )
+
+
 def _get_present_controls(row: Mapping[str, object], shared) -> list[ControlInstance]:
     if not shared:
         return []
@@ -103,7 +191,7 @@ def _get_present_controls(row: Mapping[str, object], shared) -> list[ControlInst
         raw = coerce_str(row.get(column, ""))
         if not raw:
             continue
-        ctrl_number = _extract_control_number(column)
+        ctrl_number = shared.control_numbers.get(column)
         param1_col = shared.param1_columns.get(ctrl_number) if ctrl_number is not None else None
         param2_col = shared.param2_columns.get(ctrl_number) if ctrl_number is not None else None
         controls.append(
@@ -129,26 +217,39 @@ def _get_control(controls: Sequence[ControlInstance], name: str) -> list[Control
     return [ctrl for ctrl in controls if ctrl.name_ns == target]
 
 
+def _get_interval_controls(controls: Sequence[ControlInstance]) -> list[ControlInstance]:
+    interval_controls: list[ControlInstance] = []
+    for name in INTERVAL_CONTROL_NAMES:
+        interval_controls.extend(_get_control(controls, name))
+    return interval_controls
+
+
 def _navodilo_has_numeric_interval(navodilo: str) -> bool:
     """Return True if Navodilo contains a numeric range/±/inequality expression."""
     if not navodilo:
         return False
-    # Normaliziraj posebne znake
-    nav_clean = navodilo.replace("â‰¤", "≤").replace("â‰¥", "≥")
+    return _parse_numeric_navodilo(navodilo).has_numeric_interval()
 
-    a, b, _, _ = parse_navodilo_interval(nav_clean)
-    if a is not None and b is not None:
-        return True
 
-    xpm, tpm, _, _ = parse_navodilo_pm(nav_clean)
-    if xpm is not None and tpm is not None:
-        return True
-
-    op, xi, _, _ = parse_navodilo_inequality(nav_clean)
-    if op and xi is not None:
-        return True
-
-    return False
+def _make_control_context_state(row: Mapping[str, object], shared) -> ControlContextState:
+    tip_data_raw = coerce_str(row.get("Tip podatka", ""))
+    navodilo = coerce_str(row.get("Navodilo", ""))
+    controls = _get_present_controls(row, shared)
+    navodilo_norm = norm_text(navodilo)
+    return ControlContextState(
+        row=row,
+        shared=shared,
+        tip_data_raw=tip_data_raw,
+        tip_data=norm_text(tip_data_raw),
+        tip_obj=norm_text(coerce_str(row.get("Tip objekta", ""))),
+        navodilo_norm=navodilo_norm,
+        key_here=coerce_str(row.get("Ključ preverjanja", "")),
+        label_value_raw=coerce_str(row.get("Labela", "")),
+        label_value=norm_text(coerce_str(row.get("Labela", ""))),
+        controls=controls,
+        present_names_ns={ctrl.name_ns for ctrl in controls},
+        is_hplc_pump=bool(re.search(r"hplc\s*[-–]?\s*(?:č|c)rpalka\b", navodilo_norm)),
+    )
 
 
 @register
@@ -170,10 +271,58 @@ class UnknownControlsRule(RowRule):
                         f"Neznano ime kontrole: '{control.raw_name}'.",
                         context=context,
                         column=control.column,
-                        code="KONTROLA_NEZNAN",
+                        code="CTRL_UNKNOWN",
                     )
                 )
         return errors
+
+
+@register
+class ExcelErrorTokenRule(RowRule):
+    """Detect Excel error tokens in formula-related input cells."""
+
+    name = "excel_error_token_rule"
+    description = "Excel napake (#REF!, #N/A, ...) v Vrednost in Param stolpcih niso dovoljene."
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+
+        target_columns: list[str] = []
+        if "Vrednost" in row:
+            target_columns.append("Vrednost")
+
+        for control in _get_present_controls(row, shared):
+            if control.param1_column and control.param1_column not in target_columns:
+                target_columns.append(control.param1_column)
+            if control.param2_column and control.param2_column not in target_columns:
+                target_columns.append(control.param2_column)
+
+        errors = []
+        for column in target_columns:
+            token = self._find_excel_error_token(row.get(column))
+            if not token:
+                continue
+            errors.append(
+                self.build_error(
+                    f"Celica vsebuje Excel napako '{token}'.",
+                    context=context,
+                    column=column,
+                    code="EXCEL_ERROR_TOKEN",
+                )
+            )
+        return errors
+
+    @staticmethod
+    def _find_excel_error_token(value: object) -> str | None:
+        text = coerce_str(value).strip().upper()
+        if not text:
+            return None
+        for token in EXCEL_ERROR_TOKENS:
+            if token in text:
+                return token
+        return None
 
 
 @register
@@ -183,255 +332,299 @@ class ControlContextRule(RowRule):
     name = "control_context_rule"
     description = "Kontrole morajo biti na ustreznih tipih podatka/objekta."
 
-    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
-        shared = context.shared
-        if not shared:
-            return []
-
-        tip_data_raw = coerce_str(row.get("Tip podatka", ""))
-        tip_data = norm_text(tip_data_raw)
-        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
-        navodilo = coerce_str(row.get("Navodilo", ""))
-        navodilo_clean = navodilo.replace("â‰¤", "≤").replace("â‰¥", "≥")
-        nav_n = norm_text(navodilo)
-        key_here = coerce_str(row.get("Ključ preverjanja", ""))
-        label_value_raw = coerce_str(row.get("Labela", ""))
-        label_value = norm_text(label_value_raw)
-        controls = _get_present_controls(row, shared)
-        present_names_ns = {ctrl.name_ns for ctrl in controls}
-        is_hplc_pump = bool(re.search(r"hplc\s*[-–]?\s*(?:č|c)rpalka\b", nav_n))
-        is_hplc_pump = bool(re.search(r"hplc\s*[-–]?\s*(?:č|c)rpalka\b", nav_n))
-        is_hplc_pump = bool(re.search(r"hplc\s*[-–]?\s*(?:č|c)rpalka\b", nav_n))
-
-        errors = []
-        sensitive_ctrls_ns = {
-            # Oprema (kemikalija in raztopina zahtevata samo polje 'koda', glej spodaj)
+    SENSITIVE_EQUIPMENT_CONTROLS = frozenset(
+        {
             "kontrolaveljavnostiopreme",
             "kontrolaustreznostiopreme",
             "kontrolaustreznostiopremeizmase",
         }
-        for control in controls:
-            name_ns = control.name_ns
+    )
+    EQUIPMENT_CONTEXT_CONTROLS = SENSITIVE_EQUIPMENT_CONTROLS
+    KEMIKALIJA_CONTROLS = frozenset({"kontrolaveljavnostikemikalije", "kontrolaustreznostikemikalije"})
+    MONOLIT_CONTROLS = frozenset({"kontrolaveljavnostimonolita", "kontrolaustreznostimonolita"})
+    RAZTOPINA_CONTROLS = frozenset({"kontrolaveljavnostiraztopine", "kontrolaustreznostiraztopine"})
+    CHECKBOX_ONLY_CONTROLS = frozenset({"aliobkljukan", "aliniobkljukan"})
 
-            if name_ns not in ALLOWED_CONTROLS_NS:
-                errors.append(
-                    self.build_error(
-                        f"Neznano ime kontrole: '{control.raw_name}'.",
-                        context=context,
-                        column=control.column,
-                        code="KONTROLA_NEZNAN",
-                    )
-                )
-                continue
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+        state = _make_control_context_state(row, shared)
 
-            allowed_types = SPECIFIC_TYPE_CONTROLS.get(name_ns)
-            if allowed_types and tip_data not in allowed_types:
-                errors.append(
-                    self.build_error(
-                        f"Kontrola '{control.raw_name}' ni dovoljena na tipu '{tip_data}'.",
-                        context=context,
-                        column=control.column,
-                        code="KONTROLA_NAPACEN_KONTEKST",
-                    )
-                )
-                continue
-
-            if name_ns in {"aliobkljukan", "aliniobkljukan"} and tip_obj != "checkbox":
-                errors.append(
-                    self.build_error(
-                        f"Kontrola '{control.raw_name}' je smiselna le na checkbox poljih.",
-                        context=context,
-                        column=control.column,
-                        code="KONTROLA_NAPACEN_KONTEKST",
-                    )
-                )
-                continue
-
-            # Kontrole za opremo so dovoljene na spustnem seznamu ali polju 'koda'.
-            # (Kemikalija in raztopina zahtevata samo polje 'koda' – glej bloke spodaj.)
-            if name_ns in sensitive_ctrls_ns:
-                is_koda_field = label_value == "koda"
-                if not (tip_obj == "spustniseznam" or is_koda_field):
-                    errors.append(
-                        self.build_error(
-                            (
-                                f"Kontrola '{control.raw_name}' je dovoljena samo na spustnem seznamu "
-                                f"ali polju 'koda'. Trenutni Tip objekta='"
-                                f"{coerce_str(row.get('Tip objekta', '')).strip()}', "
-                                f"Labela='{label_value_raw.strip()}'."
-                            ),
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                    continue
-
-            equipment_ctrls_ns = {
-                "kontrolaveljavnostiopreme",
-                "kontrolaustreznostiopreme",
-                "kontrolaustreznostiopremeizmase",
-            }
-
-            def equipment_context_ok() -> bool:
-                if is_equipment_tip(tip_data_raw):
-                    return True
-                if key_here and key_here in shared.equipment_keys:
-                    return True
-                return False
-
-            if name_ns in equipment_ctrls_ns:
-                if is_hplc_pump:
-                    continue
-                if not equipment_context_ok():
-                    tip_podatka_current = coerce_str(row.get("Tip podatka", "")).strip()
-                    errors.append(
-                        self.build_error(
-                            (
-                                f"Kontrola '{control.raw_name}' mora biti na opremi ali povezani vrstici (isti ključ kot oprema). "
-                                f"Trenutno: Tip podatka='{tip_podatka_current}'"
-                            ),
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                continue
-
-            if name_ns in {"kontrolaveljavnostikemikalije", "kontrolaustreznostikemikalije"}:
-                if not tip_data.startswith("kemikalija"):
-                    errors.append(
-                        self.build_error(
-                            f"Kontrola '{control.raw_name}' je na polju, ki ni 'kemikalija'.",
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                    continue
-                # Dovoljeno samo polje 'koda' (brez spustnega seznama).
-                if label_value != "koda":
-                    errors.append(
-                        self.build_error(
-                            (
-                                f"Kontrola '{control.raw_name}' je dovoljena samo na polju 'koda'. "
-                                f"Trenutni Tip objekta='{coerce_str(row.get('Tip objekta', '')).strip()}', "
-                                f"Labela='{label_value_raw.strip()}'."
-                            ),
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                    continue
-
-            if name_ns in {"kontrolaveljavnostimonolita", "kontrolaustreznostimonolita"} and not tip_data.startswith(
-                "monolit"
-            ):
-                errors.append(
-                    self.build_error(
-                        f"Kontrola '{control.raw_name}' je na polju, ki ni 'monolit'.",
-                        context=context,
-                        column=control.column,
-                        code="KONTROLA_NAPACEN_KONTEKST",
-                    )
-                )
-                continue
-
-            if name_ns in {"kontrolaveljavnostiraztopine", "kontrolaustreznostiraztopine"}:
-                if not tip_data.startswith("raztopina"):
-                    errors.append(
-                        self.build_error(
-                            f"Kontrola '{control.raw_name}' je na polju, ki ni 'raztopina'.",
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                    continue
-                # Dovoljeno samo polje 'koda' (brez spustnega seznama).
-                if label_value != "koda":
-                    errors.append(
-                        self.build_error(
-                            (
-                                f"Kontrola '{control.raw_name}' je dovoljena samo na polju 'koda'. "
-                                f"Trenutni Tip objekta='{coerce_str(row.get('Tip objekta', '')).strip()}', "
-                                f"Labela='{label_value_raw.strip()}'."
-                            ),
-                            context=context,
-                            column=control.column,
-                            code="KONTROLA_NAPACEN_KONTEKST",
-                        )
-                    )
-                    continue
-
-                # Validacija Param1 za raztopine
-                if not key_here:
-                    errors.append(
-                        self.build_error(
-                            "Kontrola raztopine brez ključa v vrstici.",
-                            context=context,
-                            column="Ključ preverjanja",
-                            code="RAZTOPINA_KLJUC_MANJKA",
-                        )
-                    )
+        errors = []
+        for control in state.controls:
+            validation_error = (
+                self._validate_known_control(control, context)
+                or self._validate_specific_type_control(control, state, context)
+                or self._validate_checkbox_only_control(control, state, context)
+                or self._validate_equipment_field_constraint(control, state, context)
+                or self._validate_equipment_context(control, state, context)
+                or self._validate_kemikalija_context(control, state, context)
+                or self._validate_monolit_context(control, state, context)
+                or self._validate_raztopina_context(control, state, context)
+                or self._validate_aliisto_context(control, state, context)
+                or self._validate_kontrolacasa_context(control, state, context)
+            )
+            if validation_error is not None:
+                if isinstance(validation_error, list):
+                    errors.extend(validation_error)
                 else:
-                    key_base = base_key_no_trailing_number(key_here)
-                    
-                    # Validacija Param1
-                    param1_col = control.param1_column
-                    if not param1_col:
-                        errors.append(
-                            self.build_error(
-                                "Kontrola raztopine brez baze ključa (Param1).",
-                                context=context,
-                                column=control.column,
-                                code="RAZTOPINA_P1_MANJKA",
-                            )
-                        )
-                    else:
-                        param1_value = coerce_str(row.get(param1_col, "")).strip()
-                        if param1_value:
-                            # Param1 mora biti enak bazi ključa (brez številke na koncu)
-                            if param1_value != key_base:
-                                errors.append(
-                                    self.build_error(
-                                        "Param1 ne ustreza bazi ključa",
-                                        context=context,
-                                        column=param1_col,
-                                        code="RAZTOPINA_P1_BAZA",
-                                    )
-                                )
-                    
-                    # Validacija Param2 (če obstaja)
-                    param2_col = control.param2_column
-                    if param2_col:
-                        param2_value = coerce_str(row.get(param2_col, "")).strip()
-                        if param2_value:
-                            # Param2 mora biti enak bazi ključa (brez številke na koncu)
-                            if param2_value != key_base:
-                                errors.append(
-                                    self.build_error(
-                                        "Param2 ne ustreza bazi ključa",
-                                        context=context,
-                                        column=param2_col,
-                                        code="RAZTOPINA_P2_BAZA",
-                                    )
-                                )
-                continue
+                    errors.append(validation_error)
+        return errors
 
-            if name_ns == "kontrolacasa" and tip_data != "datumcaskonec":
+    def _build_invalid_context_error(
+        self,
+        message: str,
+        context: RuleContext,
+        column: str,
+    ):
+        return self.build_error(
+            message,
+            context=context,
+            column=column,
+            code="CTRL_INVALID_CONTEXT",
+        )
+
+    def _validate_known_control(self, control: ControlInstance, context: RuleContext):
+        if control.name_ns in ALLOWED_CONTROLS_NS:
+            return None
+        return self.build_error(
+            f"Neznano ime kontrole: '{control.raw_name}'.",
+            context=context,
+            column=control.column,
+            code="CTRL_UNKNOWN",
+        )
+
+    def _validate_specific_type_control(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        allowed_types = SPECIFIC_TYPE_CONTROLS.get(control.name_ns)
+        if not allowed_types or state.tip_data in allowed_types:
+            return None
+        return self._build_invalid_context_error(
+            f"Kontrola '{control.raw_name}' ni dovoljena na tipu '{state.tip_data}'.",
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_checkbox_only_control(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.CHECKBOX_ONLY_CONTROLS or state.tip_obj == "checkbox":
+            return None
+        return self._build_invalid_context_error(
+            f"Kontrola '{control.raw_name}' je smiselna le na checkbox poljih.",
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_equipment_field_constraint(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.SENSITIVE_EQUIPMENT_CONTROLS:
+            return None
+        is_koda_field = state.label_value == "koda"
+        if state.tip_obj == "spustniseznam" or is_koda_field:
+            return None
+        return self._build_invalid_context_error(
+            (
+                f"Kontrola '{control.raw_name}' je dovoljena samo na spustnem seznamu "
+                f"ali polju 'koda'. Trenutni Tip objekta='"
+                f"{coerce_str(state.row.get('Tip objekta', '')).strip()}', "
+                f"Labela='{state.label_value_raw.strip()}'."
+            ),
+            context=context,
+            column=control.column,
+        )
+
+    def _equipment_context_ok(self, state: ControlContextState) -> bool:
+        if is_equipment_tip(state.tip_data_raw):
+            return True
+        if state.key_here and state.key_here in state.shared.equipment_keys:
+            return True
+        return False
+
+    def _validate_equipment_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.EQUIPMENT_CONTEXT_CONTROLS or state.is_hplc_pump:
+            return None
+        if self._equipment_context_ok(state):
+            return None
+        return self._build_invalid_context_error(
+            (
+                f"Kontrola '{control.raw_name}' mora biti na opremi ali povezani vrstici (isti ključ kot oprema). "
+                f"Trenutno: Tip podatka='{coerce_str(state.row.get('Tip podatka', '')).strip()}'"
+            ),
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_kemikalija_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.KEMIKALIJA_CONTROLS:
+            return None
+        if not state.tip_data.startswith("kemikalija"):
+            return self._build_invalid_context_error(
+                f"Kontrola '{control.raw_name}' je na polju, ki ni 'kemikalija'.",
+                context=context,
+                column=control.column,
+            )
+        if state.label_value == "koda":
+            return None
+        return self._build_invalid_context_error(
+            (
+                f"Kontrola '{control.raw_name}' je dovoljena samo na polju 'koda'. "
+                f"Trenutni Tip objekta='{coerce_str(state.row.get('Tip objekta', '')).strip()}', "
+                f"Labela='{state.label_value_raw.strip()}'."
+            ),
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_monolit_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.MONOLIT_CONTROLS or state.tip_data.startswith("monolit"):
+            return None
+        return self._build_invalid_context_error(
+            f"Kontrola '{control.raw_name}' je na polju, ki ni 'monolit'.",
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_raztopina_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns not in self.RAZTOPINA_CONTROLS:
+            return None
+        if not state.tip_data.startswith("raztopina"):
+            return self._build_invalid_context_error(
+                f"Kontrola '{control.raw_name}' je na polju, ki ni 'raztopina'.",
+                context=context,
+                column=control.column,
+            )
+        if state.label_value != "koda":
+            return self._build_invalid_context_error(
+                (
+                    f"Kontrola '{control.raw_name}' je dovoljena samo na polju 'koda'. "
+                    f"Trenutni Tip objekta='{coerce_str(state.row.get('Tip objekta', '')).strip()}', "
+                    f"Labela='{state.label_value_raw.strip()}'."
+                ),
+                context=context,
+                column=control.column,
+            )
+        return self._validate_raztopina_params(control, state, context)
+
+    def _validate_raztopina_params(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        errors = []
+        if not state.key_here:
+            errors.append(
+                self.build_error(
+                    "Kontrola raztopine brez ključa v vrstici.",
+                    context=context,
+                    column="Ključ preverjanja",
+                    code="SOLUTION_KEY_MISSING",
+                )
+            )
+            return errors
+
+        key_base = base_key_no_trailing_number(state.key_here)
+        param1_col = control.param1_column
+        if not param1_col:
+            errors.append(
+                self.build_error(
+                    "Kontrola raztopine brez baze ključa (Param1).",
+                    context=context,
+                    column=control.column,
+                    code="SOLUTION_P1_MISSING",
+                )
+            )
+        else:
+            param1_value = coerce_str(state.row.get(param1_col, "")).strip()
+            if param1_value and param1_value != key_base:
                 errors.append(
                     self.build_error(
-                        "Kontrola 'kontrolaCasa' naj bo na zaključnem času (datumcaskonec).",
+                        "Param1 ne ustreza bazi ključa",
                         context=context,
-                        column=control.column,
-                        code="KONTROLA_NAPACEN_KONTEKST",
+                        column=param1_col,
+                        code="SOLUTION_P1_BASE",
                     )
                 )
-                continue
 
-        return errors
+        param2_col = control.param2_column
+        if param2_col:
+            param2_value = coerce_str(state.row.get(param2_col, "")).strip()
+            if param2_value and param2_value != key_base:
+                errors.append(
+                    self.build_error(
+                        "Param2 ne ustreza bazi ključa",
+                        context=context,
+                        column=param2_col,
+                        code="SOLUTION_P2_BASE",
+                    )
+                )
+        return errors or None
+
+    def _validate_aliisto_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns != "aliisto":
+            return None
+        if state.tip_data.startswith("raztopina") or state.tip_data.startswith("kemikalija"):
+            return None
+        return self._build_invalid_context_error(
+            (
+                f"Kontrola '{control.raw_name}' je dovoljena samo pri tipu podatka "
+                f"'raztopina' ali 'kemikalija'."
+            ),
+            context=context,
+            column=control.column,
+        )
+
+    def _validate_kontrolacasa_context(
+        self,
+        control: ControlInstance,
+        state: ControlContextState,
+        context: RuleContext,
+    ):
+        if control.name_ns != "kontrolacasa" or state.tip_data == "datumcaskonec":
+            return None
+        return self._build_invalid_context_error(
+            "Kontrola 'kontrolaCasa' naj bo na zaključnem času (datumcaskonec).",
+            context=context,
+            column=control.column,
+        )
 
 
 @register
@@ -466,7 +659,7 @@ class RequiredControlsRule(RowRule):
                     "Manjka kontrola 'kontrolaPraznoPolje' pri vnosnem polju.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_ZAHTEVANO_PRAZNO",
+                    code="CTRL_REQUIRED_EMPTY",
                 )
             )
 
@@ -476,7 +669,7 @@ class RequiredControlsRule(RowRule):
                     "Checkbox ne sme imeti 'kontrolaPraznoPolje'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_CHECKBOX_PRAZNO",
+                    code="CTRL_CHECKBOX_EMPTY",
                 )
             )
 
@@ -487,7 +680,7 @@ class RequiredControlsRule(RowRule):
                     "Pri 'zaklenipolja' na checkbox ne sme biti kontrola 'kontrolaPraznoPolje'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_ZAKLENI_BREZ_PRAZNO",
+                    code="CTRL_LOCK_EMPTY_NOT_ALLOWED",
                 )
             )
         return errors
@@ -507,6 +700,7 @@ class ExpectedControlsRule(RowRule):
 
         tip_data_raw = coerce_str(row.get("Tip podatka", ""))
         tip_data = norm_text(tip_data_raw)
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
         navodilo = coerce_str(row.get("Navodilo", ""))
         nav_n = norm_text(navodilo)
         label_value = coerce_str(row.get("Labela", ""))
@@ -514,79 +708,194 @@ class ExpectedControlsRule(RowRule):
         controls = _get_present_controls(row, shared)
         present_names_ns = {ctrl.name_ns for ctrl in controls}
         is_hplc_pump = bool(re.search(r"hplc\s*[-–]?\s*(?:č|c)rpalka\b", nav_n))
+        errors = []
+        self._append_expected_for_kemikalija(errors, controls, tip_data, tip_data_raw, context)
+        self._append_expected_for_masa(errors, controls, tip_data, navodilo, nav_n, label_value, vrednost, tip_data_raw, context)
+        self._append_expected_for_embalaza(errors, controls, tip_data, tip_data_raw, context)
+        self._append_expected_for_equipment(
+            errors,
+            controls,
+            tip_data,
+            tip_data_raw,
+            tip_obj,
+            norm_text(label_value),
+            present_names_ns,
+            is_hplc_pump,
+            coerce_str(row.get("Ključ preverjanja", "")),
+            shared,
+            context,
+        )
+        self._append_expected_for_monolit(errors, controls, tip_data, tip_data_raw, context)
+        self._append_expected_for_raztopina(errors, controls, tip_data, tip_data_raw, context)
+        return errors
 
-        def warn_if_missing_any(one_of: list[str], label: str) -> None:
-            if any(_has_control(controls, ctrl_name) for ctrl_name in one_of):
-                return
+    def _warn_if_missing_any(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        one_of: list[str],
+        label: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if any(_has_control(controls, ctrl_name) for ctrl_name in one_of):
+            return
 
-            message = f"{label} manjka: pričakovana vsaj ena od {one_of}"
-            if label.startswith("Oprema –"):
-                tip_current = tip_data_raw.strip()
-                if tip_current:
-                    if " manjka:" in message:
-                        pref, rest = message.split(" manjka:", 1)
-                        message = f"{pref} za opremo '{tip_current}' manjka:{rest}"
-            errors.append(
-                self.build_error(
-                    message,
-                    context=context,
-                    column="(Kontrole)",
-                    code="KONTROLA_PRICAKOVANO_MANJKA",
-                    severity=Severity.WARNING,
-                )
+        message = f"{label} manjka: pričakovana vsaj ena od {one_of}"
+        if label.startswith("Oprema –"):
+            tip_current = tip_data_raw.strip()
+            if tip_current and " manjka:" in message:
+                pref, rest = message.split(" manjka:", 1)
+                message = f"{pref} za opremo '{tip_current}' manjka:{rest}"
+        errors.append(
+            self.build_error(
+                message,
+                context=context,
+                column="(Kontrole)",
+                code="CTRL_EXPECTED_MISSING",
+                severity=Severity.WARNING,
+            )
+        )
+
+    def _append_expected_for_kemikalija(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if tip_data != "kemikalija":
+            return
+        for needed in [["kontrolaveljavnostikemikalije"], ["kontrolaustreznostikemikalije"]]:
+            self._warn_if_missing_any(errors, controls, needed, "Kemikalija – pričakovane kontrole", tip_data_raw, context)
+
+    def _is_masa_exception(self, navodilo: str, nav_n: str, label_value: str, vrednost: str) -> bool:
+        porabljan_word = bool(re.search(r"\bporablj\w*\b", nav_n, flags=re.IGNORECASE))
+        volume_number_present = bool(re.search(r"\d+(?:[.,]\d+)?\s*(?:ml|l)\b", navodilo, flags=re.IGNORECASE))
+        has_concentration = bool(re.search(r"\b(?:mg|g)\s*/\s*ml\b", nav_n, flags=re.IGNORECASE))
+        label_unit_token = extract_unit_token(label_value)
+        nav_unit_token = extract_unit_token(navodilo)
+        any_volume_unit = (label_unit_token in {"ml", "l"}) or (nav_unit_token in {"ml", "l"})
+        concentration_implies_volume = has_concentration and any_volume_unit
+        no_numeric_in_navodilo = not bool(NUMERIC_TOKEN_RE.search(nav_n))
+        vrednost_has_number = bool(NUMERIC_TOKEN_RE.search(vrednost))
+        return (
+            porabljan_word
+            or volume_number_present
+            or concentration_implies_volume
+            or no_numeric_in_navodilo
+        ) and (not vrednost_has_number)
+
+    def _append_expected_for_masa(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        navodilo: str,
+        nav_n: str,
+        label_value: str,
+        vrednost: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if tip_data != "masa" or self._is_masa_exception(navodilo, nav_n, label_value, vrednost):
+            return
+        self._warn_if_missing_any(
+            errors,
+            controls,
+            ["kontrolamase", "kontrolainterval", "kontrolarazlika"],
+            "Masa – pričakovane kontrole",
+            tip_data_raw,
+            context,
+        )
+
+    def _append_expected_for_embalaza(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if tip_data != "embalaza":
+            return
+        for needed in [["kontrolaembalaze"], ["kontrolaprazneembalaze"]]:
+            self._warn_if_missing_any(errors, controls, needed, "Embalaža – pričakovana kontrola", tip_data_raw, context)
+
+    def _append_expected_for_equipment(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        tip_obj: str,
+        label_value: str,
+        present_names_ns: set[str],
+        is_hplc_pump: bool,
+        key_here: str,
+        shared: Any,
+        context: RuleContext,
+    ) -> None:
+        if not is_equipment_row(tip_data_raw, tuple(present_names_ns)) or is_hplc_pump:
+            return
+
+        requires_equipment_validity = tip_obj == "spustniseznam" or label_value == "koda"
+        if requires_equipment_validity:
+            self._warn_if_missing_any(
+                errors,
+                controls,
+                ["kontrolaveljavnostiopreme"],
+                "Oprema – pričakovana kontrola veljavnosti",
+                tip_data_raw,
+                context,
+            )
+        if tip_data != "tehtnica":
+            return
+        masa_keys = shared.get_keys_with_value_for_type("masa")
+        if key_here and key_here in masa_keys:
+            self._warn_if_missing_any(
+                errors,
+                controls,
+                ["kontrolaustreznostiopreme"],
+                "Oprema – pričakovana kontrola ustreznosti",
+                tip_data_raw,
+                context,
             )
 
-        errors = []
-        tip_n = tip_data
+    def _append_expected_for_monolit(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if not tip_data.startswith("monolit"):
+            return
+        self._warn_if_missing_any(
+            errors, controls, ["kontrolaveljavnostimonolita"], "Monolit – pričakovana kontrola veljavnosti", tip_data_raw, context
+        )
+        self._warn_if_missing_any(
+            errors, controls, ["kontrolaustreznostimonolita"], "Monolit – pričakovana kontrola ustreznosti", tip_data_raw, context
+        )
 
-        if tip_n == "kemikalija":
-            for needed in [["kontrolaveljavnostikemikalije"], ["kontrolaustreznostikemikalije"]]:
-                warn_if_missing_any(needed, "Kemikalija – pričakovane kontrole")
-
-        if tip_n == "masa":
-            porabljan_word = bool(re.search(r"\bporablj\w*\b", nav_n, flags=re.IGNORECASE))
-            volume_number_present = bool(re.search(r"\d+(?:[.,]\d+)?\s*(?:ml|l)\b", navodilo, flags=re.IGNORECASE))
-            has_concentration = bool(re.search(r"\b(?:mg|g)\s*/\s*ml\b", nav_n, flags=re.IGNORECASE))
-            label_unit_token = extract_unit_token(label_value)
-            nav_unit_token = extract_unit_token(navodilo)
-            any_volume_unit = (label_unit_token in {"ml", "l"}) or (nav_unit_token in {"ml", "l"})
-            concentration_implies_volume = has_concentration and any_volume_unit
-            no_numeric_in_navodilo = not bool(NUMERIC_TOKEN_RE.search(nav_n))
-            vrednost_has_number = bool(NUMERIC_TOKEN_RE.search(vrednost))
-            masa_is_exception = (
-                porabljan_word
-                or volume_number_present
-                or concentration_implies_volume
-                or no_numeric_in_navodilo
-            ) and (not vrednost_has_number)
-            if not masa_is_exception:
-                warn_if_missing_any(
-                    ["kontrolamase", "kontrolainterval", "kontrolarazlika"],
-                    "Masa – pričakovane kontrole",
-                )
-
-        if tip_n == "embalaza":
-            for needed in [["kontrolaembalaze"], ["kontrolaprazneembalaze"]]:
-                warn_if_missing_any(needed, "Embalaža – pričakovana kontrola")
-
-        if is_equipment_row(tip_data_raw, present_names_ns) and not is_hplc_pump:
-            warn_if_missing_any(["kontrolaveljavnostiopreme"], "Oprema – pričakovana kontrola veljavnosti")
-            if tip_n == "tehtnica":
-                # Zahteva kontrolaustreznostiopreme samo, če obstaja masa z enakim ključem
-                key_here = coerce_str(row.get("Ključ preverjanja", ""))
-                masa_keys = shared.get_keys_for_type("masa")
-                if key_here and key_here in masa_keys:
-                    warn_if_missing_any(["kontrolaustreznostiopreme"], "Oprema – pričakovana kontrola ustreznosti")
-
-        if tip_n.startswith("monolit"):
-            warn_if_missing_any(["kontrolaveljavnostimonolita"], "Monolit – pričakovana kontrola veljavnosti")
-            warn_if_missing_any(["kontrolaustreznostimonolita"], "Monolit – pričakovana kontrola ustreznosti")
-
-        if tip_n.startswith("raztopina"):
-            warn_if_missing_any(["kontrolaveljavnostiraztopine"], "Raztopina – pričakovana kontrola veljavnosti")
-            warn_if_missing_any(["kontrolaustreznostiraztopine"], "Raztopina – pričakovana kontrola ustreznosti")
-
-        return errors
+    def _append_expected_for_raztopina(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if not tip_data.startswith("raztopina"):
+            return
+        self._warn_if_missing_any(
+            errors, controls, ["kontrolaveljavnostiraztopine"], "Raztopina – pričakovana kontrola veljavnosti", tip_data_raw, context
+        )
+        self._warn_if_missing_any(
+            errors, controls, ["kontrolaustreznostiraztopine"], "Raztopina – pričakovana kontrola ustreznosti", tip_data_raw, context
+        )
 
 
 @register
@@ -620,7 +929,7 @@ class ZakleniParamRule(RowRule):
                         "Param1 vsebuje Excel napako.",
                         context=context,
                         column=param_col or control.column,
-                        code="ZAKLENI_PAR1_EXCEL_NAPAKA",
+                        code="LOCK_P1_EXCEL_ERROR",
                     )
                 )
                 continue
@@ -630,7 +939,7 @@ class ZakleniParamRule(RowRule):
                         "Param1 mora biti seznam celih števil, ločenih z vejicami (npr. 12, 13, 14).",
                         context=context,
                         column=param_col or control.column,
-                        code="ZAKLENI_PAR1_FORMAT",
+                        code="LOCK_P1_FORMAT",
                     )
                 )
                 continue
@@ -648,7 +957,7 @@ class ZakleniParamRule(RowRule):
                             f"Korak {step} iz Param1 ne obstaja v tabeli.",
                             context=context,
                             column=param_col or control.column,
-                            code="ZAKLENI_P1_KORAK_MANJKA",
+                            code="LOCK_P1_STEP_MISSING",
                         )
                     )
                 elif require_pogoj and "aliobstajapogoj" not in shared.step_to_controls.get(step, set()):
@@ -657,7 +966,7 @@ class ZakleniParamRule(RowRule):
                             f"Korak {step} mora imeti kontrolo 'aliObstajaPogoj'.",
                             context=context,
                             column=param_col or control.column,
-                            code="ZAKLENI_P1_BREZ_POGOJA",
+                            code="LOCK_P1_WITHOUT_CONDITION",
                         )
                     )
         return errors
@@ -760,7 +1069,7 @@ class AliObstajaPogojCombinationRule(RowRule):
                 f"Možne kombinacije: {msg_tail}",
                 context=target_context,
                 column=column,
-                code="ZAKLENI_POGOJ_P1P2",
+                code="LOCK_CONDITION_P1P2",
             )
         ]
 
@@ -813,7 +1122,7 @@ class ZakleniParam1OdvecniKorakiRule(RowRule):
                     f"Pri zaklenipolja v Param1 so odvečni koraki: {odvecni_str}.",
                     context=context,
                     column=p1_col,
-                    code="ZAKLENI_P1_ODVECNI_KORAKI",
+                    code="LOCK_P1_EXTRA_STEPS",
                 )
             break  # only one zaklenipolja per row
         return
@@ -873,7 +1182,7 @@ class ZakleniUniqueKeyRule(SheetRule):
                             f"Pojavitve (vrstice): {row_list}.",
                             context=context.with_row(row_idx),
                             column=col_name,
-                            code="ZAKLENI_KLJUC_PODVOJEN",
+                            code="LOCK_KEY_DUPLICATE",
                         )
                     )
 
@@ -916,7 +1225,7 @@ class ZakleniInverseRule(SheetRule):
                             f"Korak {step} ima 'aliObstajaPogoj', vendar ni naveden v Param1 pri 'zaklenipolja'.",
                             context=context.with_row(row_index),
                             column=column,
-                            code="ZAKLENI_P1_MANJKA_ZA_POGOJ",
+                            code="LOCK_P1_MISSING_FOR_CONDITION",
                         )
                     )
         return errors
@@ -950,7 +1259,7 @@ class ZakleniCheckboxRule(RowRule):
                         "Pri 'zaklenipolja' na checkboxu ni dovoljena kontrola 'aliObkljukan'.",
                         context=context,
                         column="(Kontrole)",
-                        code="KONTROLA_ZAKLENI_BREZ_ALIOB",
+                        code="CTRL_LOCK_ALIOB_NOT_ALLOWED",
                     )
                 )
 
@@ -961,7 +1270,7 @@ class ZakleniCheckboxRule(RowRule):
                     "Pri checkboxu z 'DA (kljukica)/NE (prazno)' ni dovoljena kontrola 'aliObkljukan'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_CHECKBOX_DA_NE_BREZ_ALIOB",
+                    code="CTRL_CHECKBOX_DANE_ALIOB_NOT_ALLOWED",
                 )
             )
 
@@ -976,7 +1285,7 @@ class ZakleniCheckboxRule(RowRule):
                     "Pri 'zaklenipolja' na checkbox ne sme biti kontrola 'kontrolaPraznoPolje'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_ZAKLENI_BREZ_PRAZNO",
+                    code="CTRL_LOCK_EMPTY_NOT_ALLOWED",
                 )
             )
         return errors
@@ -1011,7 +1320,7 @@ class AliObkljukanParamRule(RowRule):
                         "aliObkljukan zahteva Param1 = 'DA' ali 'NE'.",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="ALIOB_PARAM_DA_NE",
+                        code="ALIOB_PARAM_CHECK",
                     )
                 )
                 continue
@@ -1022,7 +1331,7 @@ class AliObkljukanParamRule(RowRule):
                         f"Checkbox '{key}' pričakovan '{param_value.upper()}', najdeno: {'DA' if checkbox_state == 1 else 'NE'}.",
                         context=context,
                         column=control.column,
-                        code="CHECKBOX_STANJE",
+                        code="CHECKBOX_STATE",
                     )
                 )
         return errors
@@ -1041,8 +1350,7 @@ class KontrolaIntervalParamRule(RowRule):
             return []
 
         controls = _get_present_controls(row, shared)
-        # Support both "kontrolainterval" and "kontrolaintervala" variants
-        interval_controls = _get_control(controls, "kontrolainterval") + _get_control(controls, "kontrolaintervala")
+        interval_controls = _get_interval_controls(controls)
         if not interval_controls:
             return []
 
@@ -1056,20 +1364,20 @@ class KontrolaIntervalParamRule(RowRule):
                         "kontrolaInterval potrebuje vsaj en parameter (min ali max).",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="KONTROLA_INTERVAL_PARAMETRI",
+                        code="CTRL_INTERVAL_PARAMS",
                     )
                 )
                 continue
 
-            p1_val = self._parse_number(p1)
-            p2_val = self._parse_number(p2)
+            p1_val = _parse_number(p1)
+            p2_val = _parse_number(p2)
             if p1 and p1_val is None:
                 errors.append(
                     self.build_error(
                         f"Param1 '{p1}' ni številčna vrednost.",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="KONTROLA_INTERVAL_NI_STEVILO",
+                        code="CTRL_INTERVAL_NOT_NUMBER",
                     )
                 )
             if p2 and p2_val is None:
@@ -1078,7 +1386,7 @@ class KontrolaIntervalParamRule(RowRule):
                         f"Param2 '{p2}' ni številčna vrednost.",
                         context=context,
                         column=control.param2_column or control.column,
-                        code="KONTROLA_INTERVAL_NI_STEVILO",
+                        code="CTRL_INTERVAL_NOT_NUMBER",
                     )
                 )
             if p1_val is not None and p2_val is not None and p2_val <= p1_val:
@@ -1087,18 +1395,10 @@ class KontrolaIntervalParamRule(RowRule):
                         "Param2 (max) mora biti večji od Param1 (min).",
                         context=context,
                         column=control.param2_column or control.column,
-                        code="KONTROLA_INTERVAL_VRSTA",
+                        code="CTRL_INTERVAL_RANGE",
                     )
                 )
         return errors
-
-    def _parse_number(self, value: str) -> float | None:
-        if not value:
-            return None
-        try:
-            return float(value.replace(",", "."))
-        except ValueError:
-            return None
 
 
 @register
@@ -1114,36 +1414,19 @@ class KontrolaIntervalAdvancedRule(RowRule):
             return []
 
         controls = _get_present_controls(row, shared)
-        # Support both "kontrolainterval" and "kontrolaintervala" variants
-        interval_controls = _get_control(controls, "kontrolainterval") + _get_control(controls, "kontrolaintervala")
+        interval_controls = _get_interval_controls(controls)
         if not interval_controls:
             return []
 
-        navodilo = coerce_str(row.get("Navodilo", ""))
-        # Normaliziraj posebne znake (enako kot v ControlContextRule)
-        navodilo_clean = navodilo.replace("â‰¤", "≤").replace("â‰¥", "≥")
-        a, b, unit_range, step_ab = parse_navodilo_interval(navodilo_clean)
-        xpm, tpm, unit_pm, step_pm = parse_navodilo_pm(navodilo_clean)
-        op, xi, unit_ineq, step_in = parse_navodilo_inequality(navodilo_clean)
-        if op is None:
-            simple_match = re.search(r"(>=|<=|>|<|≥|≤)\s*(\d+(?:[.,]\d+)?)", navodilo_clean)
-            if simple_match:
-                raw_op = simple_match.group(1)
-                if raw_op in (">=", "≥"):
-                    op = ">="
-                elif raw_op in ("<=", "≤"):
-                    op = "<="
-                else:
-                    op = raw_op
-                xi = float(simple_match.group(2).replace(",", "."))
-                step_in = step_in or derive_decimal_step_from_text(navodilo)
+        navodilo_parse = _parse_numeric_navodilo(coerce_str(row.get("Navodilo", "")))
+        navodilo = navodilo_parse.raw
         errors = []
 
         for control in interval_controls:
             p1_raw = coerce_str(row.get(control.param1_column or "", ""))
             p2_raw = coerce_str(row.get(control.param2_column or "", ""))
-            p1_val = self._parse_number(p1_raw)
-            p2_val = self._parse_number(p2_raw)
+            p1_val = _parse_number(p1_raw)
+            p2_val = _parse_number(p2_raw)
             p1_is_num = p1_val is not None
             p2_is_num = p2_val is not None
 
@@ -1152,28 +1435,15 @@ class KontrolaIntervalAdvancedRule(RowRule):
                     return raw or ""
                 return f"{value:.{decimals}f}"
 
-            def pm_next_step_from_tolerance(tolerance: float) -> float:
-                """Return next-step increment from last non-zero decimal in tolerance.
-
-                Examples:
-                - 0.20 -> 0.1
-                - 0.14 -> 0.01
-                - 0.032 -> 0.001
-                """
-                if tolerance <= 0:
-                    return 1.0
-                s = f"{tolerance:.12f}".rstrip("0").rstrip(".")
-                if "." not in s:
-                    return 1.0
-                frac = s.split(".", 1)[1]
-                for pos in range(len(frac), 0, -1):
-                    if frac[pos - 1] != "0":
-                        return 10 ** (-pos)
-                return 1.0
-
             # 1) Neenačbe (>, >=, <, <=) – enako kot v MES_validator.py
-            if op and xi is not None:
-                eps = step_in if step_in is not None else derive_decimal_step_from_text(navodilo)
+            if navodilo_parse.inequality_op and navodilo_parse.inequality_value is not None:
+                op = navodilo_parse.inequality_op
+                xi = navodilo_parse.inequality_value
+                eps = (
+                    navodilo_parse.inequality_step
+                    if navodilo_parse.inequality_step is not None
+                    else derive_decimal_step_from_text(navodilo)
+                )
                 d_exact = decimals_from_eps(eps)
                 # Vsaj toliko decimalk kot jih narekuje korak, plus vse iz dejanskih vrednosti
                 d_fmt = max(d_exact, max_decimals(xi, p1_val, p2_val, xi - eps, xi + eps))
@@ -1189,7 +1459,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                                 context=context,
                                 column=control.param1_column or control.column,
-                                code="KONTROLA_INTERVAL_CILJ_P1",
+                                code="CTRL_INTERVAL_TARGET_P1",
                             )
                         )
                     if not (p2_is_num and round(p2_val, d_exact) >= round(xi + eps, d_exact)):
@@ -1201,7 +1471,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                                 context=context,
                                 column=control.param2_column or control.column,
-                                code="KONTROLA_INTERVAL_CILJ_P2_MIN",
+                                code="CTRL_INTERVAL_TARGET_P2_MIN",
                             )
                         )
                 elif op == ">=":
@@ -1216,7 +1486,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                                 context=context,
                                 column=control.param1_column or control.column,
-                                code="KONTROLA_INTERVAL_CILJ_P1",
+                                code="CTRL_INTERVAL_TARGET_P1",
                             )
                         )
                     if not (p2_is_num and round(p2_val, d_exact) >= round(xi + eps, d_exact)):
@@ -1228,291 +1498,113 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                                 context=context,
                                 column=control.param2_column or control.column,
-                                code="KONTROLA_INTERVAL_CILJ_P2_MIN",
+                                code="CTRL_INTERVAL_TARGET_P2_MIN",
                             )
                         )
-                elif op in (">", ">=", "<", "<="):
-                    # Za preostale primere (<, <=) je p1 omejen zgoraj, p2 spodaj
+                elif op in ("<", "<="):
+                    # Manjše / manjše ali enako:
+                    # Param1 je spodnja meja – ni določena z navodilom, mora biti ≤ xi − eps
+                    # Param2 je zgornja meja:
+                    #   <  (strogo): Param2 = xi        (MES zavrne vrednosti ≥ xi)
+                    #   <= (vključno): Param2 = xi + eps (MES zavrne vrednosti > xi)
                     if not (p1_is_num and round(p1_val, d_exact) <= round(xi - eps, d_exact)):
                         errors.append(
                             self.build_error(
                                 (
                                     f"Param1 mora biti ≤ {xi - eps:.{d_fmt}f} – iz navodila {navodilo}. "
-                                    f"({xi:.{d_fmt}f} − x = {xi - eps:.{d_fmt}f}) Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
+                                    f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
                                 ),
                                 context=context,
                                 column=control.param1_column or control.column,
-                                code="KONTROLA_INTERVAL_CILJ_P1_MAX",
+                                code="CTRL_INTERVAL_TARGET_P1_MAX",
                             )
                         )
                     if op == "<":
-                        # Strogo manjše: Param2 > xi + eps
-                        comparison_ok = p2_is_num and p2_val > xi + eps
-                        severity = "CTRL_INTERVAL_TARGET_P2_STRICT"
-                        requirement_text = f"> {xi + eps:.{d_fmt}f}"
+                        # Strogo manjše: Param2 = xi (MES: zavrni če vrednost >= Param2)
+                        p2_required = xi
+                        p2_ok = p2_is_num and eq_with_decimals(p2_val, p2_required, d_exact)
+                        p2_msg = f"{p2_required:.{d_fmt}f}"
                     else:  # "<="
-                        # Manjše ali enako: Param2 ≥ xi + eps
-                        comparison_ok = p2_is_num and p2_val >= xi + eps
-                        severity = "CTRL_INTERVAL_TARGET_P2_EXACT"
-                        requirement_text = f"≥ {xi + eps:.{d_fmt}f}"
-                    if not comparison_ok:
+                        # Manjše ali enako: Param2 = xi + eps (MES: zavrni če vrednost > xi)
+                        p2_required = xi + eps
+                        p2_ok = p2_is_num and eq_with_decimals(p2_val, p2_required, d_exact)
+                        p2_msg = f"{p2_required:.{d_fmt}f}"
+                    if not p2_ok:
                         errors.append(
                             self.build_error(
                                 (
-                                    f"Param2 mora biti {requirement_text} – zgornja meja iz navodila {navodilo}. "
-                                    f"({xi:.{d_fmt}f} + x = {xi + eps:.{d_fmt}f}) Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
+                                    f"Param2 mora biti {p2_msg} – zgornja meja iz navodila {navodilo}. "
+                                    f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
                                 ),
                                 context=context,
                                 column=control.param2_column or control.column,
-                                code=severity,
+                                code="CTRL_INTERVAL_TARGET_P2",
                             )
                         )
                 continue
 
-            # 2) ± notation
-            if xpm is not None and tpm is not None:
-                eps = step_pm if step_pm is not None else derive_decimal_step_from_text(navodilo)
-                d_exact = decimals_from_eps(eps)
-                
-                # Preverimo, ali je tolerance decimalna (< 1) ali cela (>= 1)
-                is_decimal_tolerance = tpm < 1.0
-                
-                if is_decimal_tolerance:
-                    # Za decimalne tolerance (npr. 0.1) uporabljamo zaokroževalno logiko
-                    # Določimo natančnost meritve iz tolerance (npr. 0.1 → 1 decimalno mesto)
-                    # Uporabimo step_pm za določitev natančnosti tolerance (ne xpm)
-                    # step_pm je izračunan iz max(d1, d2), kjer sta d1 in d2 decimalni mesti iz x in t
-                    # Vendar moramo uporabiti natančnost tolerance (d2), ne max(d1, d2)
-                    # Zato poiščimo najmanjši d, kjer je 10^(-d) enak tolerance
-                    d_measurement = None
-                    for d in range(0, 12):
-                        step = 10 ** (-d)
-                        if abs(tpm - step) < 1e-12:
-                            d_measurement = d
-                            break
-                    # Če ni natančnega ujemanja, poiščimo najmanjši d, kjer je 10^(-d) <= tpm
-                    if d_measurement is None:
-                        for d in range(0, 12):
-                            step = 10 ** (-d)
-                            if tpm >= step:
-                                d_measurement = d
-                                break
-                    if d_measurement is None:
-                        d_measurement = d_exact
-                    # Normaliziramo tolerance na to natančnost (samo za potence 10)
-                    # Za tpm = 0.1: tpm_normalized = 0.1
-                    # Za tpm = 0.5: tpm_normalized = 0.5 (ne 0.1!)
-                    # Preverimo, ali je tpm potenca 10
-                    is_power_of_10 = False
-                    for d in range(0, 12):
-                        step = 10 ** (-d)
-                        if abs(tpm - step) < 1e-12:
-                            is_power_of_10 = True
-                            break
-                    
-                    if is_power_of_10:
-                        tpm_normalized = 10 ** (-d_measurement) if d_measurement > 0 else 1.0
-                    else:
-                        # Če ni potenca 10, uporabimo tpm neposredno
-                        tpm_normalized = tpm
-                        # Določimo d_measurement iz tpm
-                        d_measurement = decimals_from_eps(tpm) if tpm > 0 else d_exact
-                    
-                    # Za decimalne tolerance: left_req je spodnja meja intervala
-                    # left_req = xpm - tpm (brez zaokroževanja xpm)
-                    left_req = xpm - tpm_normalized
-                    right_req = xpm + tpm_normalized
-                    
-                    # Param1 mora biti left_req - tolerance_zmanjšana_za_eno_decimalko
-                    # Logika:
-                    # 1. Najprej odštejemo toleranco od xpm: left_req = xpm - tpm (to je spodnja meja intervala)
-                    # 2. Za Param1 od left_req odštejemo še tolerance, vendar zmanjšano za eno decimalko
-                    # Primer: 8.0 ± 0.4
-                    #         - Najprej: 8.0 - 0.4 = 7.6 (left_req, spodnja meja)
-                    #         - Tolerance 0.4 ima 1 decimalno mesto, zmanjšamo za eno decimalko: 0.4 → 0.1
-                    #         - Param1: 7.6 - 0.1 = 7.5 ✓
-                    # Primer: 6.50 ± 0.10
-                    #         - Najprej: 6.50 - 0.10 = 6.40 (left_req, spodnja meja)
-                    #         - Tolerance 0.10 je potenca 10, uporabimo polno tolerance: 0.10
-                    #         - Param1: 6.40 - 0.10 = 6.30 ✓
-                    if is_power_of_10:
-                        # Za tolerance, ki so potenca 10, odštejemo polno tolerance
-                        param1_required = left_req - tpm_normalized
-                        param2_step = tpm_normalized
-                        param2_target = right_req + param2_step
-                    else:
-                        high_res_step = (10 * step_pm) if step_pm is not None else None
-                        is_high_res_zero_tail = False
-                        if (
-                            step_pm is not None
-                            and step_pm < 0.01
-                            and high_res_step is not None
-                            and high_res_step > 0
-                        ):
-                            # Uporabi "coarse" korak samo za tolerance tipa 0.140 (zadnja decimala je 0).
-                            ratio = tpm_normalized / high_res_step
-                            is_high_res_zero_tail = abs(ratio - round(ratio)) < 1e-9
-
-                        if is_high_res_zero_tail:
-                            # 14.010 ± 0.140: Param1 = xpm - (tpm + 0.01), Param2 = xpm + (tpm + 0.01)
-                            offset_pm = tpm_normalized + high_res_step
-                            param1_required = xpm - offset_pm
-                        else:
-                            # 8.0 ± 0.4, 2.00 ± 0.20 in 3.180 ± 0.032
-                            tpm_decimals = decimals_from_eps(tpm_normalized)
-                            if tpm_decimals == 1:
-                                param1_required = left_req - tpm_normalized / 4
-                            else:
-                                param1_required = left_req - tpm_normalized / 10
-                        # Param2 je vedno naslednji korak nad zgornjo mejo, določen z zadnjo
-                        # neničelno decimalko tolerance (npr. 0.14 -> +0.01, 0.20 -> +0.1).
-                        param2_step = pm_next_step_from_tolerance(tpm_normalized)
-                        param2_target = right_req + param2_step
-                    d_fmt = max_decimals(left_req, right_req, param1_required, p1_val, p2_val)
-                    
-                    # Za Param1: vrednost mora biti tako, da se zaokroži na param1_required
-                    # Primer: 6.50 ± 0.10 → left_req = 6.40, param1_required = 6.30 (tolerance je potenca 10)
-                    # 6.30 → zaokroži na 6.30 → veljavno (✓)
-                    # 6.34 → zaokroži na 6.30 → veljavno (✓) - znotraj tolerance zaokroževanja
-                    # 6.25 → zaokroži na 6.30 → veljavno (✓)
-                    # 6.20 → zaokroži na 6.20 → neveljavno (✗) - premalo
-                    # Primer: 8.0 ± 0.4 → left_req = 7.6, param1_required = 7.5 (tolerance ni potenca 10, uporabimo tpm/4)
-                    # Validacija: vrednost mora biti znotraj param1_required ± tpm/4 = 7.5 ± 0.1 = [7.4, 7.6]
-                    # 7.5 → znotraj [7.4, 7.6] → veljavno (✓)
-                    # 7.4 → znotraj [7.4, 7.6] → veljavno (✓)
-                    # 7.6 → znotraj [7.4, 7.6] → veljavno (✓)
-                    # 7.2 → zunaj [7.4, 7.6] → neveljavno (✗) - premalo
-                    # 7.7 → zunaj [7.4, 7.6] → neveljavno (✗) - preveč
-                    p1_valid = False
-                    if p1_is_num:
-                        if is_power_of_10:
-                            # Za tolerance, ki so potenca 10, uporabimo zaokroževalno logiko
-                            p1_rounded_to_tolerance = round(p1_val / tpm_normalized) * tpm_normalized
-                            # Preverimo, ali se ujema z param1_required
-                            if eq_with_decimals(p1_rounded_to_tolerance, param1_required, d_measurement):
-                                p1_valid = True
-                        else:
-                            # Za tolerance, ki niso potenca 10, preverimo, ali je vrednost znotraj param1_required ± tpm/4
-                            tolerance_range = tpm_normalized / 4
-                            if abs(p1_val - param1_required) <= tolerance_range:
-                                p1_valid = True
-                    
-                    if not p1_valid:
-                        errors.append(
-                            self.build_error(
-                                (
-                                    f"Param1 mora biti {param1_required:.{d_fmt}f} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
-                                    f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
-                                ),
-                                context=context,
-                                column=control.param1_column or control.column,
-                                code="KONTROLA_INTERVAL_PM_P1",
-                            )
-                        )
-                    
-                    # Param2: območje okoli param2_target (right_req + step); npr. 5.5±0.1 → param2_target=5.7
-                    p2_valid = False
-                    if p2_is_num:
-                        if is_power_of_10:
-                            half = param2_step / 2
-                            lo = param2_target - half
-                            hi = param2_target + half - 1e-12
-                            if lo <= p2_val <= hi:
-                                p2_valid = True
-                        else:
-                            tolerance_range = tpm_normalized / 4
-                            if abs(p2_val - param2_target) <= tolerance_range:
-                                p2_valid = True
-                    
-                    if not p2_valid:
-                        msg_target = f"{param2_target:.{d_fmt}f} (naslednja vrednost nad zgornjo dovoljeno mejo {right_req:.{d_fmt}f})"
-                        errors.append(
-                            self.build_error(
-                                (
-                                    f"Param2 mora biti {msg_target} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
-                                    f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
-                                ),
-                                context=context,
-                                column=control.param2_column or control.column,
-                                code="KONTROLA_INTERVAL_PM_P2",
-                            )
-                        )
+            # 2) ± notation – Možnost A: eps iz natančnosti xpm (decimalna mesta ciljne vrednosti)
+            if navodilo_parse.pm_center is not None and navodilo_parse.pm_tolerance is not None:
+                xpm = navodilo_parse.pm_center
+                tpm = navodilo_parse.pm_tolerance
+                # Za ± uporabljamo decimalke tolerance (t), ne decimalke sredine (x).
+                # Tako npr. "8 ± 0.4" vedno zahteva Param1=7.5 in Param2=8.5.
+                # Float xpm/tpm izgubi trailing zeros, zato decimalke beremo iz surovega besedila v Navodilu.
+                pm_raw_match = re.search(
+                    r'(?P<x>\d+(?:[.,]\d+)?)\s*(?:±|\+/-|\+\s*/\s*-)\s*(?P<t>\d+(?:[.,]\d+)?)',
+                    navodilo_parse.clean,
+                )
+                if pm_raw_match:
+                    d_tol = decimal_places_of_first_number(pm_raw_match.group("t")) or 0
                 else:
-                    # Za cele tolerance (>= 1) uporabljamo logiko odvisno od tega, ali ima xpm decimalna mesta
-                    left_req = xpm - tpm
-                    right_req = xpm + tpm
-                    
-                    # Preverimo, ali ima xpm decimalna mesta
-                    # Če je xpm celo število (npr. 90), odštejemo 1
-                    # Če xpm ima decimalna mesta (npr. 90.0), odštejemo 0.1
-                    # Uporabimo eps za določitev decimalnih mest - če je eps < 1, ima xpm decimalna mesta
-                    # Ali pa preverimo, ali je xpm celo število
-                    xpm_is_integer = abs(xpm - round(xpm)) < 1e-10
-                    # Preverimo tudi eps - če je eps decimalna vrednost (npr. 0.1), ima xpm decimalna mesta
-                    eps_is_decimal = eps < 1.0
-                    
-                    # Če je xpm celo število IN eps ni decimalna vrednost, odštejemo 1
-                    # Sicer odštejemo 0.1
-                    if xpm_is_integer and not eps_is_decimal:
-                        # xpm je celo število (npr. 90) in eps ni decimalna → odštejemo 1
-                        param1_required = left_req - 1
-                    else:
-                        # xpm ima decimalna mesta (npr. 90.0) ali eps je decimalna → odštejemo 0.1
-                        param1_required = left_req - 0.1
-                    
-                    # Za Param2 uporabimo enako logiko kot za Param1, vendar prištejemo namesto odštejemo
-                    # Če je xpm celo število IN eps ni decimalna vrednost, prištejemo 1
-                    # Sicer prištejemo 0.1
-                    if xpm_is_integer and not eps_is_decimal:
-                        # xpm je celo število (npr. 20) in eps ni decimalna → prištejemo 1
-                        param2_required = right_req + 1
-                    else:
-                        # xpm ima decimalna mesta (npr. 20.0) ali eps je decimalna → prištejemo 0.1
-                        param2_required = right_req + 0.1
-                    
-                    # Primer: 20 ± 1
-                    #         - Najprej: 20 - 1 = 19 (left_req, spodnja meja), 20 + 1 = 21 (right_req, zgornja meja)
-                    #         - xpm nima decimalnih mest, odštejemo 1 za Param1, prištejemo 1 za Param2
-                    #         - Param1: 19 - 1 = 18, Param2: 21 + 1 = 22 ✓
-                    # Primer: 90 ± 2
-                    #         - Najprej: 90 - 2 = 88 (left_req), 90 + 2 = 92 (right_req)
-                    #         - xpm nima decimalnih mest, odštejemo 1 za Param1, prištejemo 1 za Param2
-                    #         - Param1: 88 - 1 = 87, Param2: 92 + 1 = 93 ✓
-                    # Primer: 90.0 ± 2
-                    #         - Najprej: 90.0 - 2 = 88.0 (left_req), 90.0 + 2 = 92.0 (right_req)
-                    #         - xpm ima decimalna mesta, odštejemo 0.1 za Param1, prištejemo 0.1 za Param2
-                    #         - Param1: 88.0 - 0.1 = 87.9, Param2: 92.0 + 0.1 = 92.1 ✓
-                    
-                    d_fmt = max_decimals(left_req, right_req, param1_required, param2_required, p1_val, p2_val)
-                    if not (p1_is_num and eq_with_decimals(p1_val, param1_required, d_exact)):
-                        errors.append(
-                            self.build_error(
-                                (
-                                    f"Param1 mora biti {param1_required:.{d_fmt}f} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
-                                    f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
-                                ),
-                                context=context,
-                                column=control.param1_column or control.column,
-                                code="KONTROLA_INTERVAL_PM_P1",
-                            )
+                    # Fallback: step_pm je definiran kot korak iz max(decimalk(x), decimalk(t))
+                    d_tol = decimals_from_eps(navodilo_parse.pm_step) if navodilo_parse.pm_step is not None else 0
+
+                eps_pm = 10 ** (-d_tol) if d_tol > 0 else 1.0
+
+                left_req = xpm - tpm
+                right_req = xpm + tpm
+                param1_required = left_req - eps_pm
+                param2_required = right_req + eps_pm
+
+                d_fmt = max_decimals(left_req, right_req, param1_required, param2_required, p1_val, p2_val)
+
+                if not (p1_is_num and eq_with_decimals(p1_val, param1_required, d_tol)):
+                    errors.append(
+                        self.build_error(
+                            (
+                                f"Param1 mora biti {param1_required:.{d_fmt}f} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
+                                f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
+                            ),
+                            context=context,
+                            column=control.param1_column or control.column,
+                            code="CTRL_INTERVAL_PM_P1",
                         )
-                    if not (p2_is_num and eq_with_decimals(p2_val, param2_required, d_exact)):
-                        errors.append(
-                            self.build_error(
-                                (
-                                    f"Param2 mora biti {param2_required:.{d_fmt}f} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
-                                    f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
-                                ),
-                                context=context,
-                                column=control.param2_column or control.column,
-                                code="KONTROLA_INTERVAL_PM_P2",
-                            )
+                    )
+                if not (p2_is_num and eq_with_decimals(p2_val, param2_required, d_tol)):
+                    errors.append(
+                        self.build_error(
+                            (
+                                f"Param2 mora biti {param2_required:.{d_fmt}f} (naslednja vrednost nad zgornjo dovoljeno mejo {right_req:.{d_fmt}f})"
+                                f" – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
+                                f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
+                            ),
+                            context=context,
+                            column=control.param2_column or control.column,
+                            code="CTRL_INTERVAL_PM_P2",
                         )
+                    )
                 continue
 
             # 3) Range a-b
-            if a is not None and b is not None:
-                eps = step_ab if step_ab is not None else derive_decimal_step_from_text(navodilo)
+            if navodilo_parse.range_min is not None and navodilo_parse.range_max is not None:
+                a = navodilo_parse.range_min
+                b = navodilo_parse.range_max
+                eps = (
+                    navodilo_parse.range_step
+                    if navodilo_parse.range_step is not None
+                    else derive_decimal_step_from_text(navodilo)
+                )
                 d_exact = decimals_from_eps(eps)
                 lower = a - eps
                 upper = b + eps
@@ -1527,7 +1619,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                             context=context,
                             column=control.param1_column or control.column,
-                            code="KONTROLA_INTERVAL_P1_MEJA",
+                            code="CTRL_INTERVAL_P1_BOUND",
                         )
                     )
                 if not (p2_is_num and eq_with_decimals(p2_val, upper, d_exact)):
@@ -1539,20 +1631,12 @@ class KontrolaIntervalAdvancedRule(RowRule):
                                 ),
                             context=context,
                             column=control.param2_column or control.column,
-                            code="KONTROLA_INTERVAL_P2_MEJA",
+                            code="CTRL_INTERVAL_P2_BOUND",
                         )
                     )
                 continue
 
         return errors
-
-    def _parse_number(self, value: str) -> float | None:
-        if not value:
-            return None
-        try:
-            return float(value.replace(",", "."))
-        except ValueError:
-            return None
 
 
 @register
@@ -1579,8 +1663,8 @@ class KontrolaCasaRule(RowRule):
             p1 = coerce_str(row.get(control.param1_column or "", ""))
             p2 = coerce_str(row.get(control.param2_column or "", ""))
 
-            p1_num = self._parse_number(p1)
-            p2_num = self._parse_number(p2)
+            p1_num = _parse_number(p1)
+            p2_num = _parse_number(p2)
 
             # Basic validation
             if not p1:
@@ -1589,7 +1673,7 @@ class KontrolaCasaRule(RowRule):
                         "kontrolaCasa zahteva Param1 (min trajanje v sekundah).",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="KONTROLA_CAS_MIN",
+                        code="CTRL_CASA_MIN",
                     )
                 )
             elif p1_num is None:
@@ -1598,7 +1682,7 @@ class KontrolaCasaRule(RowRule):
                         f"kontrolaCasa Param1 '{p1}' ni številčna (sekunde).",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="KONTROLA_CAS_MIN_NI_STEVILO",
+                        code="CTRL_CASA_MIN_NOT_NUMBER",
                     )
                 )
 
@@ -1608,7 +1692,7 @@ class KontrolaCasaRule(RowRule):
                         f"kontrolaCasa Param2 '{p2}' ni številčna (sekunde).",
                         context=context,
                         column=control.param2_column or control.column,
-                        code="KONTROLA_CAS_MAX_NI_STEVILO",
+                        code="CTRL_CASA_MAX_NOT_NUMBER",
                     )
                 )
 
@@ -1618,7 +1702,7 @@ class KontrolaCasaRule(RowRule):
                         "kontrolaCasa Param2 (max) < Param1 (min).",
                         context=context,
                         column=control.param2_column or control.column,
-                        code="KONTROLA_CAS_VRSTA",
+                        code="CTRL_CASA_RANGE",
                         severity=Severity.WARNING,
                     )
                 )
@@ -1661,7 +1745,7 @@ class KontrolaCasaRule(RowRule):
                             f"Trenutno: {p1_num:.0f} s",
                             context=context,
                             column=control.param1_column or control.column,
-                            code="KONTROLA_CAS_P1_NAVODILO",
+                            code="CTRL_CASA_P1_INSTRUCTION",
                         )
                     )
 
@@ -1674,7 +1758,7 @@ class KontrolaCasaRule(RowRule):
                             f"Trenutno: {p2_num:.0f} s",
                             context=context,
                             column=control.param2_column or control.column,
-                            code="KONTROLA_CAS_P2_NAVODILO",
+                            code="CTRL_CASA_P2_INSTRUCTION",
                         )
                     )
 
@@ -1693,7 +1777,7 @@ class KontrolaCasaRule(RowRule):
                         f"Trenutno: {p1_num:.0f} s",
                         context=context,
                         column=control.param1_column or control.column,
-                        code="KONTROLA_CAS_P1_NAVODILO",
+                        code="CTRL_CASA_P1_INSTRUCTION",
                     )
                 )
 
@@ -1704,7 +1788,7 @@ class KontrolaCasaRule(RowRule):
                         f"Trenutno: {p2_num:.0f} s",
                         context=context,
                         column=control.param2_column or control.column,
-                        code="KONTROLA_CAS_P2_NAVODILO",
+                        code="CTRL_CASA_P2_INSTRUCTION",
                     )
                 )
 
@@ -1725,15 +1809,6 @@ class KontrolaCasaRule(RowRule):
             return value * 86400.0
 
         return value * 3600.0  # Default to hours
-
-    def _parse_number(self, value: str) -> float | None:
-        if not value:
-            return None
-        try:
-            return float(value.replace(",", "."))
-        except ValueError:
-            return None
-
 
 @register
 class DatumCasKonecKontrolaCasaRequiredRule(RowRule):
@@ -1766,7 +1841,7 @@ class DatumCasKonecKontrolaCasaRequiredRule(RowRule):
                 "Manjka kontrola 'kontrolaCasa' pri tipu podatka 'datumcasKonec'.",
                 context=context,
                 column="(Kontrole)",
-                code="KONTROLA_CAS_ZAHTEVANA",
+                code="CTRL_CASA_REQUIRED",
             )
         ]
 
@@ -1806,10 +1881,7 @@ class NavodiloIntervalKontrolaIntervalRequiredRule(RowRule):
             return []
 
         controls = _get_present_controls(row, shared)
-        has_interval_ctrl = _has_control(controls, "kontrolainterval") or _has_control(
-            controls, "kontrolaintervala"
-        )
-        if has_interval_ctrl:
+        if _get_interval_controls(controls):
             return []
 
         return [
@@ -1817,7 +1889,7 @@ class NavodiloIntervalKontrolaIntervalRequiredRule(RowRule):
                 "Navodilo vsebuje številčni interval, vendar manjka kontrola 'kontrolaInterval'.",
                 context=context,
                 column="(Kontrole)",
-                code="KONTROLA_INTERVAL_ZAHTEVANA",
+                code="CTRL_INTERVAL_REQUIRED",
             )
         ]
 
@@ -1857,7 +1929,7 @@ class CheckboxAliObkljukanRequiredRule(RowRule):
                 "Manjka kontrola 'aliObkljukan' pri checkboxu z Labela 'DA (kljukica)' (obvezna, če ni kontrole 'zaklenipolja').",
                 context=context,
                 column="(Kontrole)",
-                code="KONTROLA_ALIOBKLJUKAN_ZAHTEVANA",
+                code="CTRL_ALIOBKLJUKAN_REQUIRED",
             )
         ]
 
@@ -1888,7 +1960,7 @@ class ZaposleniAliPravavlogaKodaRequiredRule(RowRule):
                 "Manjka kontrola 'aliPravavlogaKoda' pri tipu podatka 'zaposleni'.",
                 context=context,
                 column="(Kontrole)",
-                code="KONTROLA_ALIPRAVAVLOGAKODA_ZAHTEVANA",
+                code="CTRL_ALIPRAVAVLOGAKODA_REQUIRED",
             )
         ]
 
@@ -1919,7 +1991,7 @@ class MonolitControlsRequiredRule(RowRule):
                     "Manjka kontrola 'kontrolaVeljavnostiMonolita' pri tipu podatka 'monolit'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_MONOLIT_VELJAVNOST_ZAHTEVANA",
+                    code="CTRL_MONOLIT_VALIDITY_REQUIRED",
                 )
             )
         if not _has_control(controls, "kontrolaustreznostimonolita"):
@@ -1928,7 +2000,7 @@ class MonolitControlsRequiredRule(RowRule):
                     "Manjka kontrola 'kontrolaUstreznostiMonolita' pri tipu podatka 'monolit'.",
                     context=context,
                     column="(Kontrole)",
-                    code="KONTROLA_MONOLIT_USTREZNOST_ZAHTEVANA",
+                    code="CTRL_MONOLIT_SUITABILITY_REQUIRED",
                 )
             )
         return errors
@@ -1964,7 +2036,7 @@ class MasaKontrolaMaseBrezVrednostiRule(RowRule):
                 "Pri tipu podatka 'masa' kontrola 'kontrolaMase' ni dovoljena, če je stolpec 'Vrednost' prazen.",
                 context=context,
                 column="(Kontrole)",
-                code="KONTROLA_MASA_BREZ_VREDNOSTI",
+                code="CTRL_MASS_WITHOUT_VALUE",
             )
         ]
 

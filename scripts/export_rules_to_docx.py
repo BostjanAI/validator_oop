@@ -63,9 +63,10 @@ ALLOWED_CONTROLS = [
     "kontrolaveljavnostimonolita", "kontrolaustreznostimonolita",
     "kontrolaveljavnostiraztopine", "kontrolaustreznostiraztopine",
     "kontrolaveljavnostirepro", "kontrolaustreznostirepro", "kontrolaprimernostirepro",
-    "kontrolaprimernostitelesainpokrova", "prenosrepro",
+    "kontrolaprimernostitelesainpokrova", "prenosrepro", "prenosset",
     "kontrolarazlika", "aliisto", "kontrolaistizapis",
-    "kontrolaustreznostimonomerne", "kontrolaveljavnostimonomerne", "odpispraznemm",
+    "kontrolaustreznostimonomerne", "kontrolaveljavnostimonomerne",
+    "kontrolaustreznostiseta", "kontrolaveljavnostiseta", "kontrolaustreznostilinije", "odpispraznemm",
 ]
 
 

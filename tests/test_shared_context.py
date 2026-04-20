@@ -25,9 +25,11 @@ class TestSharedContext:
         assert ctx.step_to_controls == {}
         assert ctx.step_to_row_indices == {}
         assert ctx.keys_by_type == {}
+        assert ctx.keys_with_value_by_type == {}
         assert ctx.section_by_row == {}
         assert ctx.tab_by_row == {}
         assert ctx.control_columns == []
+        assert ctx.control_numbers == {}
         assert ctx.param1_columns == {}
         assert ctx.param2_columns == {}
         assert ctx.existing_steps == set()
@@ -48,6 +50,18 @@ class TestSharedContext:
         assert ctx.get_keys_for_type("kemijski") == {"KEY_1": [2, 3], "KEY_2": [4]}
         assert ctx.get_keys_for_type("raztopine") == {"RAZT_1": [5]}
         assert ctx.get_keys_for_type("nonexistent") == {}
+
+    def test_get_keys_with_value_for_type(self) -> None:
+        """Test get_keys_with_value_for_type method."""
+        ctx = SharedContext()
+        ctx.keys_with_value_by_type = {
+            "masa": {"MASA_1", "MASA_3"},
+            "kemijski": {"KEM_1"},
+        }
+
+        assert ctx.get_keys_with_value_for_type("masa") == {"MASA_1", "MASA_3"}
+        assert ctx.get_keys_with_value_for_type("kemijski") == {"KEM_1"}
+        assert ctx.get_keys_with_value_for_type("nonexistent") == set()
 
     def test_has_step(self) -> None:
         """Test has_step method."""
@@ -94,6 +108,14 @@ class TestSharedContextBuilder:
 
         assert ctx.columns == columns
 
+    def test_build_excludes_column_0_from_validation(self, builder: SharedContextBuilder) -> None:
+        """Placeholder column_0 (prazen naslov) ne sme biti v kontekstu validacije."""
+        columns = ["column_0", "št. Koraka", "Vrednost"]
+        ctx = builder.build([], columns)
+
+        assert ctx.columns == ["št. Koraka", "Vrednost"]
+        assert "column_0" not in ctx.columns
+
     def test_build_control_columns(self, builder: SharedContextBuilder) -> None:
         """Test extraction of control columns."""
         columns = [
@@ -116,6 +138,11 @@ class TestSharedContextBuilder:
         ctx = builder.build([], columns)
 
         assert ctx.control_columns == ["Kontrola-1", "Kontrola-2", "Kontrola-10"]
+        assert ctx.control_numbers == {
+            "Kontrola-1": 1,
+            "Kontrola-2": 2,
+            "Kontrola-10": 10,
+        }
 
     def test_build_param_columns(self, builder: SharedContextBuilder) -> None:
         """Test extraction of param columns."""
@@ -179,12 +206,13 @@ class TestSharedContextBuilder:
     def test_build_keys_by_type(self, builder: SharedContextBuilder) -> None:
         """Test grouping of keys by data type."""
         rows = [
-            {"Tip podatka": "kemijski", "Ključ preverjanja": "KEM_1"},
-            {"Tip podatka": "kemijski", "Ključ preverjanja": "KEM_2"},
-            {"Tip podatka": "raztopine", "Ključ preverjanja": "RAZT_1"},
-            {"Tip podatka": "masa", "Ključ preverjanja": "MASA_1"},
+            {"Tip podatka": "kemijski", "Ključ preverjanja": "KEM_1", "Vrednost": "A"},
+            {"Tip podatka": "kemijski", "Ključ preverjanja": "KEM_2", "Vrednost": ""},
+            {"Tip podatka": "raztopine", "Ključ preverjanja": "RAZT_1", "Vrednost": "B"},
+            {"Tip podatka": "masa", "Ključ preverjanja": "MASA_1", "Vrednost": ""},
+            {"Tip podatka": "masa", "Ključ preverjanja": "MASA_2", "Vrednost": "10 g"},
         ]
-        columns = ["Tip podatka", "Ključ preverjanja"]
+        columns = ["Tip podatka", "Ključ preverjanja", "Vrednost"]
         ctx = builder.build(rows, columns)
 
         assert "kemijski" in ctx.keys_by_type
@@ -192,6 +220,9 @@ class TestSharedContextBuilder:
         assert "KEM_2" in ctx.keys_by_type["kemijski"]
         assert "RAZT_1" in ctx.keys_by_type["raztopine"]
         assert "MASA_1" in ctx.keys_by_type["masa"]
+        assert ctx.keys_with_value_by_type["kemijski"] == {"KEM_1"}
+        assert ctx.keys_with_value_by_type["raztopine"] == {"RAZT_1"}
+        assert ctx.keys_with_value_by_type["masa"] == {"MASA_2"}
 
     def test_build_section_and_tab(self, builder: SharedContextBuilder) -> None:
         """Test section and tab tracking."""
