@@ -25,6 +25,7 @@ _RULE_MODULES: list[str] = [
     "validator_oop.rules.builtin.relational",
     "validator_oop.rules.builtin.control",
     "validator_oop.rules.builtin.sop_compliance_rule",
+    "validator_oop.rules.builtin.catalog_code_rule",
 ]
 
 

@@ -2,7 +2,7 @@
 
 **Verzija:** 1.1.0 (Build 125, 2026-02-20)  
 **Jezik:** Python 3.12  
-**Datum revizije:** 19. 3. 2026
+**Datum revizije:** 20. 4. 2026
 
 ---
 
@@ -12,11 +12,13 @@
 validator_oop/
 │
 ├── main.py                          ← CLI vstopna točka + zaganjanje GUI
+├── __main__.py                      ← Vstopna točka za python -m validator_oop
 ├── requirements.txt
 ├── CHANGELOG.md
 ├── validation_progress.json         ← Sledilnik metrik izvajanja
 │
 ├── core/                            ← Jedro validacijskega ogrodja
+│   ├── __init__.py                  ← Formalizirani __all__ izvozi (javni API)
 │   ├── _version.py
 │   ├── constants.py
 │   ├── config.py
@@ -27,6 +29,7 @@ validator_oop/
 │   └── shared_context.py
 │
 ├── rules/                           ← Definicije pravil
+│   ├── __init__.py                  ← Formalizirani __all__ izvozi (javni API)
 │   ├── base_rule.py
 │   ├── rule_registry.py
 │   └── builtin/
@@ -57,33 +60,50 @@ validator_oop/
 │
 ├── tests/
 │   ├── conftest.py
+│   ├── test_control_rule_matrix.py  ← Matrični regresijski testi za control pravila
 │   ├── test_control_rules.py
+│   ├── test_engines.py              ← Integracija: RuleEngine + ValidatorEngine
+│   ├── test_equipment_detection.py
+│   ├── test_excel_loader.py         ← ExcelLoader + WorkbookParser
 │   ├── test_field_rules.py
 │   ├── test_relational_rules.py
+│   ├── test_rules.py                ← Osnovni razredi RowRule/SheetRule/WorkbookRule
+│   ├── test_shared_context.py       ← SharedContext + SharedContextBuilder
+│   ├── test_sop_compliance_rule.py  ← SOPComplianceRule (brez SOP podatkov)
 │   ├── test_structural_rules.py
-│   └── test_equipment_detection.py
+│   └── test_validator.py            ← ValidatorEngine integracija
 │
-└── scripts/
-    ├── bump_version.py
-    ├── analytics_report.py
-    └── export_rules_to_docx.py
+├── scripts/
+│   ├── analytics_report.py
+│   ├── bump_version.py
+│   ├── check_clean_workspace.py     ← Zavrnitev zgradbe ob prisotnih artefaktih
+│   └── export_rules_to_docx.py
+│
+└── analytics_out/                   ← Izhod analytics_report.py (generirano)
+    ├── runs.csv
+    ├── codes_long.csv
+    ├── daily_timeseries.csv
+    ├── summary.json
+    └── trend_errors_warnings.png
 ```
 
 ### Vloge modulov
 
 | Modul | Vloga |
 |-------|-------|
-| `core/` | Jedro ogrodja: podatkovni modeli (`error.py`, `config.py`, `report.py`), izračun skupnega stanja (`shared_context.py`), pogon pravil (`rule_engine.py`), vrhnji orkestrator (`validator_engine.py`) |
-| `rules/` | Osnovni razredi pravil, register in 30+ konkretnih implementacij pravil |
+| `core/` | Jedro ogrodja: podatkovni modeli (`error.py`, `config.py`, `report.py`), izračun skupnega stanja (`shared_context.py`), pogon pravil (`rule_engine.py`), vrhnji orkestrator (`validator_engine.py`). `__init__.py` izpostavlja formalizirani javni `__all__` API. |
+| `rules/` | Osnovni razredi pravil, register in 40 konkretnih implementacij pravil (2+10+6+21+1). `__init__.py` izpostavlja formalizirani javni `__all__` API. |
 | `excel/` | Ves Excel I/O: nalaganje delovnih zvezkov z `openpyxl`, razčlenjevanje listov v slovarje, pisanje poročil, nalaganje SOP Word dokumentov |
 | `utils/` | Čiste pomožne funkcije: normalizacija nizov, razčlenjevanje števil, ekstrakcija časa/enot, razčlenjevanje formul, sledenje napredku |
 | `ui/` | Tri implementacije GUI (Tkinter klasičen, Tkinter s temo, PyQt6) z enotnim usmerjevalnikom |
-| `scripts/` | Orodja za razvijalce: dvig verzije, generiranje analitičnih CSV/grafov, izvoz pravil v DOCX |
-| `tests/` | pytest testna zbirka, ena datoteka na kategorijo pravil |
+| `scripts/` | Orodja za razvijalce: dvig verzije, generiranje analitičnih CSV/grafov, izvoz pravil v DOCX, preverjanje čistosti delovnega prostora (`check_clean_workspace.py`) |
+| `tests/` | pytest testna zbirka z 13 datotekami: pokritost vseh kategorij pravil, integracijsko testiranje cevovoda, testi za `SharedContext`, `ExcelLoader` in `SOPComplianceRule` |
+| `analytics_out/` | Generirani izhod `analytics_report.py` — CSV, JSON in PNG grafi; ni del repozitorija |
 
 ### Vstopne točke
 
 - **`main.py`** — CLI vstopna točka. Razčleni argumente (`--gui`, `--input`, `--sop`, `--output`, `--gui-style`). Preusmeri na `run_gui()` ali neposredno konstruira `ValidatorEngine` in pokliče `validate()`.
+- **`__main__.py`** — Omogoča zagon paketa z `python -m validator_oop`. Delegira na `main.main()`.
 - **`ui/run_validator.py` → `run_gui()`** — Usmerjevalnik GUI z rezervno verigo: Qt → Tkinter s temo → klasičen Tkinter.
 
 ---
@@ -268,7 +288,7 @@ Vsa pravila se nahajajo v `rules/builtin/` v 5 datotekah:
 | `structural.py` | `SheetRule` | 2 | Prisotnost stolpcev, številčenje korakov |
 | `field.py` | `RowRule` | 10 | Validacija vrednosti na celico |
 | `relational.py` | `SheetRule` | 6 | Medvrstična validacija ključev in parov |
-| `control.py` | `RowRule` + `SheetRule` | ~18 | Logika kontrolnih stolpcev |
+| `control.py` | `RowRule` + `SheetRule` | 21 | Logika kontrolnih stolpcev |
 | `sop_compliance_rule.py` | `WorkbookRule` | 1 | Skladnost SOP dokumenta |
 
 Vsak razred pravila je dekoriran z `@register` (iz `rules/__init__.py`), ki ga ob uvozu registrira v `default_registry`.
@@ -425,9 +445,9 @@ ui/main_window*.py
 
 **`SharedContextBuilder` je 340-vrstični monolit.** Vseh 7 `_build_*` metod akumulira stanje v en sam spremenljiv objekt podoben slovarju pred zamrznitvijo. Dodajanje nove dimenzije konteksta zahteva spremembo polj `SharedContext`, `SharedContextBuilder` in vseh pravil, ki porabljajo novo polje — tri točke dotika.
 
-**`control.py` je datoteka z 1500+ vrsticami.** Vsebuje 18 razredov pravil in samostojne pomožne funkcije (`_get_present_controls`, `_has_control` itd.). Pomočniki so funkcije na nivoju modula namesto skupne storitve, kar oteži njihovo posnemanje v testih.
+**`control.py` je datoteka z 2042 vrsticami.** Vsebuje 21 razredov pravil in samostojne pomožne funkcije (`_get_present_controls`, `_has_control` itd.). Pomočniki so funkcije na nivoju modula namesto skupne storitve, kar oteži njihovo posnemanje v testih.
 
-**`SOPComplianceRule` je razred z 1000+ vrsticami.** Vključuje ekstrakcijo podatkov, normalizacijo in 7+ metod pod-validacije znotraj enega razreda. Meša razčlenjevalno logiko (ki spada v `SOPLoader`) z validacijsko logiko.
+**`SOPComplianceRule` je razred z 1550 vrsticami.** Vključuje ekstrakcijo podatkov, normalizacijo in 7+ metod pod-validacije znotraj enega razreda. Meša razčlenjevalno logiko (ki spada v `SOPLoader`) z validacijsko logiko.
 
 **Implicitna zahteva po klicu `register_all()`** Če `register_all()` ni poklican pred validacijo, motor tiho procesira nič pravil. Ni trditve ali zaščite.
 
@@ -461,4 +481,4 @@ ui/main_window*.py
 
 ### Vrzeli v testiranju
 
-Testna zbirka ima pokritost za vse štiri kategorije pravil, a nima integracijskega testa, ki bi preizkusil celoten cevovod `ValidatorEngine → RuleEngine → ReportWriter` na resničnih Excel datotekah. `SOPComplianceRule` nima namenske testne datoteke.
+Testna zbirka ima pokritost za vse štiri kategorije pravil. Z dodanimi datotekami `test_engines.py`, `test_validator.py`, `test_rules.py`, `test_shared_context.py`, `test_excel_loader.py`, `test_sop_compliance_rule.py` in `test_control_rule_matrix.py` so bile zapolnjene prej identificirane vrzeli (brez integracijske pokritosti, brez testov za `SOPComplianceRule` in `SharedContext`). Ostaja vrzel: ni integracijskega testa, ki bi preizkusil celoten cevovod na resničnih `.xlsx` datotekah (brez `mock` objektov).

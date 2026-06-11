@@ -14,6 +14,7 @@ from validator_oop.core.shared_context import SharedContextBuilder
 from validator_oop.rules.builtin.field import (
     CheckboxLabelaRule,
     CommaNumberRule,
+    CrtaEmptyColumnsRule,
     DataObjectCompatibilityRule,
     FormulaReferenceRule,
     FormulaStepEditLabelaRule,
@@ -22,6 +23,7 @@ from validator_oop.rules.builtin.field import (
     LabelRequirementsRule,
     NoSpacesRule,
     ObjectTypeRule,
+    SpustniseznamVrednostRule,
 )
 
 
@@ -80,6 +82,147 @@ class TestObjectTypeRule:
         assert len(errors) == 0
 
 
+class TestCrtaEmptyColumnsRule:
+    """Tests for CrtaEmptyColumnsRule."""
+
+    @pytest.fixture
+    def rule(self) -> CrtaEmptyColumnsRule:
+        """Create a CrtaEmptyColumnsRule instance."""
+        return CrtaEmptyColumnsRule()
+
+    def test_crta_row_with_empty_columns_passes(self, rule: CrtaEmptyColumnsRule) -> None:
+        """Veljavna vrstica crta z praznimi stolpci ne sme sprožiti napake."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip podatka": "crta",
+                "Tip objekta": "crta",
+                "Navodilo": "",
+                "Ključ preverjanja": "",
+                "Vrednost": "",
+                "Labela": "",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert len(errors) == 0
+
+    def test_crta_row_with_zavihek_formula_passes(self, rule: CrtaEmptyColumnsRule) -> None:
+        """Zavihek z formulo je dovoljen pri vrstici crta."""
+        rows = [
+            {
+                "Zavihek": "=B42",
+                "št. Koraka": "5",
+                "Tip podatka": "crta",
+                "Tip objekta": "crta",
+                "Navodilo": "",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert len(errors) == 0
+
+    def test_crta_row_with_navodilo_fails(self, rule: CrtaEmptyColumnsRule) -> None:
+        """Navodilo pri tipu podatka crta mora biti prazno."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip podatka": "crta",
+                "Tip objekta": "crta",
+                "Navodilo": "Ločnik",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "CRTA_COLUMN_NOT_EMPTY" in error_codes
+        assert any(e.column == "Navodilo" for e in errors)
+
+    def test_crta_row_with_control_fails(self, rule: CrtaEmptyColumnsRule) -> None:
+        """Kontrole pri tipu podatka crta morajo biti prazne."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip podatka": "crta",
+                "Tip objekta": "crta",
+                "Kontrola-1": "kontrolapraznopolje",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "CRTA_COLUMN_NOT_EMPTY" in error_codes
+
+    def test_non_crta_row_not_checked(self, rule: CrtaEmptyColumnsRule) -> None:
+        """Pri drugih tipih podatka pravilo ne preverja praznosti stolpcev."""
+        rows = [
+            {
+                "št. Koraka": "1",
+                "Tip podatka": "masa",
+                "Tip objekta": "edit",
+                "Navodilo": "Masa raztopine",
+                "Ključ preverjanja": "key1",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert len(errors) == 0
+
+
+class TestSpustniseznamVrednostRule:
+    """Tests for SpustniseznamVrednostRule."""
+
+    @pytest.fixture
+    def rule(self) -> SpustniseznamVrednostRule:
+        """Create a SpustniseznamVrednostRule instance."""
+        return SpustniseznamVrednostRule()
+
+    def test_spustniseznam_with_value_passes(self, rule: SpustniseznamVrednostRule) -> None:
+        """Spustniseznam z vrednostjo ne sme sprožiti napake."""
+        rows = [
+            {
+                "Tip objekta": "spustniseznam",
+                "Vrednost": "HPLC",
+                "št. Koraka": "1",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert len(errors) == 0
+
+    def test_spustniseznam_empty_value_fails(self, rule: SpustniseznamVrednostRule) -> None:
+        """Spustniseznam brez vrednosti mora sprožiti napako."""
+        rows = [
+            {
+                "Tip objekta": "spustniseznam",
+                "Vrednost": "",
+                "št. Koraka": "1",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "SPUSTNISEZNAM_VREDNOST_EMPTY" in error_codes
+
+    def test_spustniseznam_whitespace_value_fails(self, rule: SpustniseznamVrednostRule) -> None:
+        """Spustniseznam s presledki namesto vrednosti mora sprožiti napako."""
+        rows = [
+            {
+                "Tip objekta": "spustniseznam",
+                "Vrednost": "   ",
+                "št. Koraka": "1",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "SPUSTNISEZNAM_VREDNOST_EMPTY" in error_codes
+
+    def test_edit_empty_value_allowed(self, rule: SpustniseznamVrednostRule) -> None:
+        """Pri tipu edit prazna vrednost ne sproži tega pravila."""
+        rows = [
+            {
+                "Tip objekta": "edit",
+                "Vrednost": "",
+                "št. Koraka": "1",
+            },
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert len(errors) == 0
+
+
 class TestDataObjectCompatibilityRule:
     """Tests for DataObjectCompatibilityRule."""
 
@@ -111,6 +254,23 @@ class TestDataObjectCompatibilityRule:
 
         error_codes = [e.code for e in errors]
         assert "OBJECT_TYPE_MISMATCH" in error_codes
+
+    @pytest.mark.parametrize("tip_objekta", ["formula", "formula0", "formula1"])
+    def test_masa_disallows_formula_object_types(
+        self,
+        rule: DataObjectCompatibilityRule,
+        tip_objekta: str,
+    ) -> None:
+        """Tip podatka 'masa' ne sme imeti formulskih tipov objekta."""
+        rows = [
+            {"Tip objekta": tip_objekta, "Tip podatka": "masa"},
+        ]
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        mismatch_errors = [e for e in errors if e.code == "OBJECT_TYPE_MISMATCH"]
+        assert len(mismatch_errors) == 1
+        assert "ne sme biti 'formula', 'formula0' ali 'formula1'" in mismatch_errors[0].message
 
 
 class TestLabelRequirementsRule:
@@ -227,14 +387,35 @@ class TestKeyValidationRule:
     def test_invalid_key_format(self, rule: KeyValidationRule) -> None:
         """Test that invalid key formats raise errors."""
         rows = [
-            {"Ključ preverjanja": "invalid key", "Tip podatka": "kemijski"},  # spaces
-            {"Ključ preverjanja": "123_STARTS_WITH_NUMBER", "Tip podatka": "kemijski"},  # starts with number
+            {"Ključ preverjanja": "invalid#key", "Tip podatka": "kemijski"},
         ]
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
 
         error_codes = [e.code for e in errors]
         assert "KEY_INVALID_FORMAT" in error_codes
+
+    def test_key_edge_space_reports_error(self, rule: KeyValidationRule) -> None:
+        """Presledek na začetku ali koncu ključa sproži KEY_INVALID_FORMAT."""
+        rows = [
+            {"Ključ preverjanja": " KEY_1", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": "KEY_2 ", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": " KEY_3 ", "Tip podatka": "kemikalija"},
+        ]
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        key_errors = [e for e in errors if e.code == "KEY_INVALID_FORMAT"]
+
+        assert len(key_errors) == 3
+        assert all("začetku ali koncu" in e.message for e in key_errors)
+
+    def test_key_interior_space_not_key_rule(self, rule: KeyValidationRule) -> None:
+        """Presledek v sredini ključa obravnava NoSpacesRule, ne key_validation."""
+        rows = [{"Ključ preverjanja": "invalid key", "Tip podatka": "kemikalija"}]
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert [e for e in errors if e.code == "KEY_INVALID_FORMAT"] == []
 
     def test_key_required_for_main_types(self, rule: KeyValidationRule) -> None:
         """Test that keys are required for main data types."""
@@ -343,15 +524,25 @@ class TestNoSpacesRule:
         assert len(space_errors) == 0
 
     def test_space_in_column_reports_error(self, rule: NoSpacesRule) -> None:
-        """Presledek v stolpcu (razen Navodilo) sproži napako."""
+        """Presledek v vmesnosti (razen izjemnih stolpcev) sproži napako."""
         rows = [
-            {"št. Koraka": "1", "Navodilo": "Korak", "Vrednost": "vrednost s presledkom", "Labela": "g"},
+            {"št. Koraka": "1", "Navodilo": "Korak", "Tip objekta": "edit x", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         error_codes = [e.code for e in errors]
         assert "SPACE_NOT_ALLOWED" in error_codes
         err = next(e for e in errors if e.code == "SPACE_NOT_ALLOWED")
-        assert err.column == "Vrednost"
+        assert err.column == "Tip objekta"
+
+    def test_vrednost_with_spaces_no_error(self, rule: NoSpacesRule) -> None:
+        """Stolpec Vrednost se ne preverja za presledke."""
+        rows = [
+            {"št. Koraka": "1", "Navodilo": "Korak", "Vrednost": "vrednost s presledkom", "Labela": "g"},
+            {"št. Koraka": "2", "Navodilo": "Korak", "Vrednost": " 10 g ", "Labela": "g"},
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
+        assert len(space_errors) == 0
 
     def test_navodilo_with_spaces_no_error(self, rule: NoSpacesRule) -> None:
         """Stolpec Navodilo sme vsebovati presledke."""
@@ -362,18 +553,15 @@ class TestNoSpacesRule:
         space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         assert len(space_errors) == 0
 
-    def test_leading_trailing_space_reports_error(self, rule: NoSpacesRule) -> None:
-        """Začetni ali končni presledek v vrednosti sproži napako."""
+    def test_leading_trailing_space_no_error(self, rule: NoSpacesRule) -> None:
+        """Robni presledki v vrednosti ne sprožijo SPACE_NOT_ALLOWED (preveri se vmesnost)."""
         rows = [
             {"št. Koraka": "1", "Navodilo": "Korak", "Vrednost": " 123", "Labela": "g"},
-        ]
-        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "SPACE_NOT_ALLOWED" and e.column == "Vrednost" for e in errors)
-        rows_trailing = [
             {"št. Koraka": "2", "Navodilo": "Korak", "Vrednost": "456 ", "Labela": "g"},
         ]
-        errors_trailing = rule.run(rows_trailing, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "SPACE_NOT_ALLOWED" and e.column == "Vrednost" for e in errors_trailing)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
+        assert len(space_errors) == 0
 
     def test_empty_cells_no_error(self, rule: NoSpacesRule) -> None:
         """Prazne celice ne sprožijo napake."""
@@ -386,16 +574,25 @@ class TestNoSpacesRule:
         assert len(space_errors) == 0
 
     def test_multiple_columns_with_spaces(self, rule: NoSpacesRule) -> None:
-        """Več stolpcev s presledki vrne napako za vsak tak stolpec."""
+        """Presledek v vmesnosti v več stolpcih vrne napako za vsak tak stolpec."""
         rows = [
-            {"št. Koraka": "1 ", "Navodilo": "Korak", "Vrednost": "a b", "Labela": "g"},
+            {"št. Koraka": "1 2", "Navodilo": "Korak", "Vrednost": "a b", "Tip objekta": "x y", "Labela": "g"},
         ]
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         space_errors = [e for e in errors if e.code == "SPACE_NOT_ALLOWED"]
         columns_with_errors = {e.column for e in space_errors}
         assert "št. Koraka" in columns_with_errors
-        assert "Vrednost" in columns_with_errors
+        assert "Tip objekta" in columns_with_errors
+        assert "Vrednost" not in columns_with_errors
         assert "Navodilo" not in columns_with_errors
+
+    def test_kljuc_presledek_only_key_validation(self, rule: NoSpacesRule) -> None:
+        """Ključ preverjanja: robni presledek obravnava key_validation, ne no_spaces_rule."""
+        rows = [
+            {"Ključ preverjanja": " KEY_1", "Vrednost": "1", "Tip podatka": "kemikalija"},
+        ]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "SPACE_NOT_ALLOWED"] == []
 
     def test_labela_with_spaces_no_error(self, rule: NoSpacesRule) -> None:
         """Stolpec Labela se ne preverja za presledke (poljubna vrednost s presledki je dovoljena)."""
@@ -487,6 +684,20 @@ class TestFormulaStepEditLabelaRule:
         ]
         builder = SharedContextBuilder(row_offset=2)
         columns = ["št. Koraka", "Tip objekta", "Vrednost"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        step_errors = [e for e in errors if e.code == "FORMULA_STEP_INVALID_TYPE"]
+        assert len(step_errors) == 0
+
+    def test_formula_references_klictehtnice1(self, rule: FormulaStepEditLabelaRule) -> None:
+        """When a referenced step has Tip objekta klictehtnice1, no error is reported."""
+        rows = [
+            {"št. Koraka": "1", "Tip objekta": "klictehtnice1", "Tip podatka": "masa"},
+            {"št. Koraka": "2", "Tip objekta": "formula", "Vrednost": "=$1"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Tip podatka", "Vrednost"]
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)

@@ -59,11 +59,12 @@ def _run_rule(
             {
                 "rule_cls": KontrolaIntervalParamRule,
                 "row": {
+                    "Navodilo": "3 - 6",
                     "Kontrola-4": "kontrolaIntervala",
                     "Kontrola-4: Par 1": "",
                     "Kontrola-4: Par 2": "",
                 },
-                "columns": ["Kontrola-4", "Kontrola-4: Par 1", "Kontrola-4: Par 2"],
+                "columns": ["Navodilo", "Kontrola-4", "Kontrola-4: Par 1", "Kontrola-4: Par 2"],
                 "expected_code": "CTRL_INTERVAL_PARAMS",
                 "expected_column": "Kontrola-4: Par 1",
             },
@@ -158,6 +159,7 @@ def test_navodilo_interval_requirement_detects_supported_numeric_forms(navodilo:
 def test_kontrola_interval_reports_missing_params_in_any_control_slot(slot: int) -> None:
     control_col, param1_col, param2_col = _control_slot_columns(slot)
     row = {
+        "Navodilo": "3 - 6",
         control_col: "kontrolaIntervala",
         param1_col: "",
         param2_col: "",
@@ -165,7 +167,24 @@ def test_kontrola_interval_reports_missing_params_in_any_control_slot(slot: int)
     errors = _run_rule(
         KontrolaIntervalParamRule(),
         [row],
-        [control_col, param1_col, param2_col],
+        ["Navodilo", control_col, param1_col, param2_col],
+    )
+    assert "CTRL_INTERVAL_PARAMS" in [error.code for error in errors]
+
+
+@pytest.mark.parametrize("slot", CONTROL_SLOTS)
+def test_kontrola_interval_requires_both_params_without_numeric_navodilo(slot: int) -> None:
+    control_col, param1_col, param2_col = _control_slot_columns(slot)
+    row = {
+        "Navodilo": "Vnesite temperaturo",
+        control_col: "kontrolaIntervala",
+        param1_col: "",
+        param2_col: "",
+    }
+    errors = _run_rule(
+        KontrolaIntervalParamRule(),
+        [row],
+        ["Navodilo", control_col, param1_col, param2_col],
     )
     assert "CTRL_INTERVAL_PARAMS" in [error.code for error in errors]
 

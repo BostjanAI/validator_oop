@@ -17,6 +17,12 @@ try:
 except ImportError:
     SOPData = None  # type: ignore
 
+from validator_oop.excel.catalog_loader import (
+    CatalogData,
+    build_catalog_validation_summary,
+    load_catalogs,
+)
+
 from .rule_engine import RuleEngine
 
 
@@ -35,6 +41,8 @@ class ValidatorEngine:
         logger: logging.Logger | None = None,
         include_formulas: bool = False,
         sop_data: SOPData | None = None,
+        catalog_data: dict[str, CatalogData] | None = None,
+        catalog_paths: dict[str, str] | None = None,
     ) -> None:
         """Initialize the validator engine.
 
@@ -44,16 +52,24 @@ class ValidatorEngine:
             logger: Logger instance for debugging.
             include_formulas: If True, load cell formulas for formula validation.
             sop_data: Optional SOP data for compliance validation.
+            catalog_data: Optional catalog data for code validation.
+            catalog_paths: Optional paths to catalog files (raztopina, kemikalija keys).
         """
         self._rule_engine = rule_engine
         self._excel_loader = excel_loader
         self._logger = logger or logging.getLogger(self.__class__.__name__)
         self._include_formulas = include_formulas
         self._sop_data = sop_data
+        self._catalog_data = catalog_data
+        self._catalog_paths = catalog_paths or {}
         
         # Pass sop_data to rule_engine via rule_dependencies
         if sop_data is not None:
             self._rule_engine._rule_dependencies["sop_data"] = sop_data
+
+        # Pass catalog_data to rule_engine via rule_dependencies
+        if catalog_data is not None:
+            self._rule_engine._rule_dependencies["catalog_data"] = catalog_data
 
     def validate(self, workbook_path: str | Path) -> ValidationReport:
         """Load the workbook, execute rules, and return a detailed report.
@@ -108,8 +124,27 @@ class ValidatorEngine:
         }
         report.metadata["row_offset"] = loaded.row_offset
         report.metadata["sheet_names"] = list(meta_sheet_names)
+        self._attach_catalog_metadata(report, filtered_values, errors)
 
         return report
+
+    def _attach_catalog_metadata(
+        self,
+        report: ValidationReport,
+        filtered_values: dict[str, list[dict[str, object]]],
+        errors: list,
+    ) -> None:
+        """Add catalog validation summary to report metadata when catalogs are loaded."""
+        if not self._catalog_data:
+            report.metadata["catalog_validation"] = {"enabled": False}
+            return
+        report.metadata["catalog_validation"] = build_catalog_validation_summary(
+            filtered_values,
+            self._catalog_data,
+            errors,
+            raztopine_path=self._catalog_paths.get("raztopina"),
+            kemikalije_path=self._catalog_paths.get("kemikalija"),
+        )
 
     def _filter_sheets_by_required_columns(
         self,
@@ -210,5 +245,6 @@ class ValidatorEngine:
         }
         report.metadata["row_offset"] = loaded.row_offset
         report.metadata["sheet_names"] = list(meta_sheet_names)
+        self._attach_catalog_metadata(report, filtered_values, errors)
 
         return report

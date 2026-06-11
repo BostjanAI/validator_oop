@@ -1,6 +1,6 @@
 # Pravila validatorja – pregled in opis
 
-Validator OOP izvaja **38 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
+Validator OOP izvaja **40 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
 
 ---
 
@@ -33,13 +33,14 @@ Preverja pravilnost vrednosti v stolpcu `št. Koraka`.
 
 | | |
 |---|---|
-| **Preverja** | Vrednost je celo število; ni duplikatov znotraj zavihka; prvi korak je 1; ni vrzeli v zaporedju; korak ni prazen, če vrstica vsebuje podatke |
+| **Preverja** | Vrednost je celo število; ni duplikatov znotraj zavihka; prvi korak je 1; ni vrzeli v zaporedju; korak ni prazen, če vrstica vsebuje podatke; koraki so v naraščajočem fizičnem vrstnem redu |
 | **Napake** | `KORAK_NI_CELO` – vrednost ni celo število |
 | | `KORAK_MANJKA` – korak manjka pri vrstici s podatki |
 | | `KORAK_PODVOJEN` – podvojena številka koraka |
 | | `KORAKI_ZAVIH_NE_1` – zavihek ne začne s korakom 1 |
-| | `KORAK_PRESLEDKI` – vrzel v zaporedju (npr. 1, 2, 4 …) |
-| **Opomba** | Duplikati in začetek pri 1 se preverita ločeno po zavihkih |
+| | `KORAK_PRESLEDKI` – vrzel v zaporedju (npr. 1, 2, 4 …), preverja se tudi kadar koraki ne začnejo pri 1 |
+| | `STEP_OUT_OF_ORDER` – korak se v Excelu pojavi pred višje oštevilčenim korakom (npr. 12, 11, 10) |
+| **Opomba** | Duplikati in začetek pri 1 se preverita ločeno po zavihkih; vrstni red se prav tako preverja po zavihkih |
 
 ---
 
@@ -91,7 +92,29 @@ Preverja dovoljene vrednosti Labele za polja tipa checkbox.
 
 ---
 
-### 2.5 Oblika ključa preverjanja
+### 2.5 Vrednost pri spustnem seznamu
+
+Preverja, da je stolpec `Vrednost` zapolnjen pri poljih tipa spustni seznam.
+
+| | |
+|---|---|
+| **Preverja** | Kadar je `Tip objekta` = `spustniseznam`, mora biti `Vrednost` neprazna (oznaka šifranta, npr. `HPLC`, `tehtnica`) |
+| **Napaka** | `SPUSTNISEZNAM_VREDNOST_EMPTY` – vrednost manjka pri spustnem seznamu |
+
+---
+
+### 2.6 Prazni stolpci pri ločniku (`crta`)
+
+Preverja, da vrstice tipa ločnik ne vsebujejo podatkov v drugih stolpcih.
+
+| | |
+|---|---|
+| **Preverja** | Kadar je `Tip podatka` = `crta`, morajo biti prazni vsi stolpci razen `št. Koraka`, `Tip podatka`, `Tip objekta` in `Zavihek` |
+| **Napaka** | `CRTA_COLUMN_NOT_EMPTY` – stolpec vsebuje vrednost, čeprav mora biti prazen pri ločniku |
+
+---
+
+### 2.7 Oblika ključa preverjanja
 
 Preverja sintakso in prisotnost vrednosti v stolpcu `Ključ preverjanja`.
 
@@ -103,7 +126,7 @@ Preverja sintakso in prisotnost vrednosti v stolpcu `Ključ preverjanja`.
 
 ---
 
-### 2.6 Sintaksa formule
+### 2.8 Sintaksa formule
 
 Preverja pravilno obliko vsebine `Vrednost` pri formulah.
 
@@ -115,7 +138,7 @@ Preverja pravilno obliko vsebine `Vrednost` pri formulah.
 
 ---
 
-### 2.7 Prepovedana vejica kot decimalno ločilo
+### 2.9 Prepovedana vejica kot decimalno ločilo
 
 Zaznava nepravilno uporabo vejice namesto pike kot decimalnega ločila.
 
@@ -126,7 +149,7 @@ Zaznava nepravilno uporabo vejice namesto pike kot decimalnega ločila.
 
 ---
 
-### 2.8 Nedovoljeni presledki
+### 2.10 Nedovoljeni presledki
 
 Zaznava presledke v vrednostih celic.
 
@@ -137,7 +160,7 @@ Zaznava presledke v vrednostih celic.
 
 ---
 
-### 2.9 Veljavnost sklicevanja formule
+### 2.11 Veljavnost sklicevanja formule
 
 Preverja, da sklici v formuli kažejo na obstoječe korake.
 
@@ -148,7 +171,7 @@ Preverja, da sklici v formuli kažejo na obstoječe korake.
 
 ---
 
-### 2.10 Tip objekta pri sklicanem koraku
+### 2.12 Tip objekta pri sklicanem koraku
 
 Preverja, da se formula sklicuje le na primerne korake.
 
@@ -178,11 +201,11 @@ Preverja enoličnost ključev preverjanja pri kemikalijah, raztopinah in masah.
 
 ### 3.2 Lastnik mase
 
-Preverja, da ima vsaka vrstica z maso ustrezno „lastniško" vrstico kemikalije ali raztopine.
+Preverja, da ima vsaka vrstica z maso ustrezno „lastniško" vrstico kemikalije, raztopine ali monomerne.
 
 | | |
 |---|---|
-| **Preverja** | Vsaka vrstica `masa` (razen vode) mora imeti najbližjo predhodno vrstico `kemikalija` ali `raztopina` z ujemajočim baznim ključem na istem zavihku; ključ mase mora biti enak polnemu ključu lastnika |
+| **Preverja** | Vsaka vrstica `masa` (razen vode) mora imeti najbližjo predhodno vrstico `kemikalija`, `raztopina` ali `monomerna` (vključno z oštevilčenimi variantami, npr. `monomerna1`) z ujemajočim baznim ključem na istem zavihku; ključ mase mora biti enak polnemu ključu lastnika |
 | **Napake** | `PAR_MASA_BREZ_LASTNIKA` – masa nima ustreznega lastnika |
 | | `PAR_MASA_NAPACEN_RAZD` – masa je v napačnem razdelku glede na lastnika |
 

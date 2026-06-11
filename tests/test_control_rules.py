@@ -187,6 +187,38 @@ class TestControlContextRule:
         bad = [e for e in errors if e.code == "CTRL_INVALID_CONTEXT"]
         assert len(bad) == 1
 
+    def test_kontrolaustreznostiopremeizmase_allowed_on_klictehtnice1(
+        self, rule: ControlContextRule
+    ) -> None:
+        """kontrolaustreznostiopremeizmase je dovoljena na klicu tehtnice (masa), ne le na kodi/spustnem seznamu."""
+        rows = [
+            {
+                "Tip objekta": "spustniseznam",
+                "Tip podatka": "tehtnica",
+                "Labela": "koda",
+                "Ključ preverjanja": "T1",
+            },
+            {
+                "Tip objekta": "klictehtnice1",
+                "Tip podatka": "masa",
+                "Labela": "g",
+                "Ključ preverjanja": "T1",
+                "Kontrola-1": "kontrolaUstreznostiOpremeIzMase",
+            },
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip objekta", "Tip podatka", "Labela", "Ključ preverjanja", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        field_errors = [
+            e
+            for e in errors
+            if e.code == "CTRL_INVALID_CONTEXT"
+            and "spustnem seznamu" in (e.message or "")
+        ]
+        assert not field_errors
+
     def test_kemikalija_control_requires_labela_koda(self, rule: ControlContextRule) -> None:
         """Kemikalija kontrola je dovoljena samo na polju 'koda'."""
         rows = [
@@ -475,6 +507,51 @@ class TestKontrolaIntervalParamRule:
 
         error_codes = [e.code for e in errors]
         assert "CTRL_INTERVAL_RANGE" in error_codes
+
+    def test_interval_requires_both_params_without_numeric_navodilo(
+        self, rule: KontrolaIntervalParamRule
+    ) -> None:
+        """Par1 in Par2 sta obvezna tudi brez številčnega intervala v Navodilu."""
+        rows = [
+            {
+                "Navodilo": "Vnesite temperaturo",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "",
+                "Kontrola-1: Par 2": "",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert "CTRL_INTERVAL_PARAMS" in [e.code for e in errors]
+
+    def test_interval_with_params_without_numeric_navodilo_ok(
+        self, rule: KontrolaIntervalParamRule
+    ) -> None:
+        """kontrolaInterval z obema mejama je dovoljen brez intervala v Navodilu."""
+        rows = [
+            {
+                "Navodilo": "Vnesite temperaturo",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "10",
+                "Kontrola-1: Par 2": "100",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        interval_errors = [e for e in errors if e.code.startswith("CTRL_INTERVAL")]
+        assert interval_errors == []
 
 
 class TestZakleniParamRule:
@@ -1026,6 +1103,48 @@ class TestKontrolaIntervalAdvancedRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert "CTRL_INTERVAL_TARGET_P1" in [e.code for e in errors]
+
+    def test_inequality_gte_double_value_navodilo_accepts_correct_params(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """For navodilo with two values like '≥ 5 MVS (≥ 3.35 L)', Param1=3.34 and Param2=3.36 must be valid."""
+        rows = [
+            {
+                "Navodilo": "Prečrpano ≥ 5 MVS 80 % v/v EtOH (≥ 3.35 L)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "3.34",
+                "Kontrola-1: Par 2": "3.36",
+            }
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_TARGET_")] == []
+
+    def test_inequality_gte_fp_noise_in_param1_accepts_as_correct(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """Param1 with tiny floating-point noise (e.g. formula cell) must not raise a false positive."""
+        rows = [
+            {
+                "Navodilo": "≥ 3.35 L",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "3.340000000001",
+                "Kontrola-1: Par 2": "3.36",
+            }
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "CTRL_INTERVAL_TARGET_P1"] == []
 
     def test_inequality_less_equal_with_spaced_decimal_uses_correct_step(
         self, rule: KontrolaIntervalAdvancedRule

@@ -216,6 +216,21 @@ class TestMassOwnerRule:
         no_owner_errors = [e for e in errors if e.code == "PAIR_MASS_WITHOUT_OWNER"]
         assert len(no_owner_errors) == 0
 
+    def test_masa_with_monomerna_owner(self, rule: MassOwnerRule) -> None:
+        """Masa with monomerna (or numbered variant) as owner passes."""
+        for owner_tip in ("monomerna", "monomerna1"):
+            rows = [
+                {"Ključ preverjanja": "SMM1", "Tip podatka": owner_tip},
+                {"Ključ preverjanja": "SMM1", "Tip podatka": "masa"},
+            ]
+            builder = SharedContextBuilder(row_offset=2)
+            columns = ["Ključ preverjanja", "Tip podatka"]
+            ctx = builder.build(rows, columns)
+            rule.set_shared_context(ctx)
+            errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+            no_owner_errors = [e for e in errors if e.code == "PAIR_MASS_WITHOUT_OWNER"]
+            assert len(no_owner_errors) == 0, owner_tip
+
     def test_masa_without_owner(self, rule: MassOwnerRule) -> None:
         """Test that masa without an owner raises an error."""
         rows = [
@@ -380,6 +395,24 @@ class TestKeyNumberingRule:
     def rule(self) -> KeyNumberingRule:
         """Create a KeyNumberingRule instance."""
         return KeyNumberingRule()
+
+    def test_chemical_key_without_underscore_suffix_no_numbering_error(
+        self, rule: KeyNumberingRule
+    ) -> None:
+        """Ključi brez pripone _N (npr. H2SO4) ne sprožijo oštevilčenja."""
+        rows = [
+            {"Ključ preverjanja": "H2SO4", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": "NaCl", "Tip podatka": "raztopina"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        num_errors = [e for e in errors if e.code.startswith("KEY_NUM")]
+        assert len(num_errors) == 0
 
     def test_valid_key_numbering(self, rule: KeyNumberingRule) -> None:
         """Test that valid key numbering passes."""

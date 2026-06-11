@@ -1,0 +1,6 @@
+# Runtime odvisnosti za Docker sliko (brez PyQt6/GUI).
+openpyxl>=3.1.0
+python-docx>=1.1.0
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9

@@ -49,6 +49,10 @@ class ValidatorConfig:
     # SOP validation settings
     sop_data_path: Path | None = None
     enable_sop_validation: bool = True
+    # Catalog validation settings (solution/chemical code matching)
+    catalog_raztopine_path: Path | None = None
+    catalog_kemikalije_path: Path | None = None
+    enable_catalog_validation: bool = True
     extra: dict[str, Any] = field(default_factory=dict)
 
     def should_skip_rule(self, rule_name: str, rule_code: str = "") -> bool:
@@ -116,6 +120,9 @@ class ValidatorConfig:
             ),
             sop_data_path=Path(data["sop_data_path"]) if data.get("sop_data_path") else None,
             enable_sop_validation=data.get("enable_sop_validation", True),
+            catalog_raztopine_path=Path(data["catalog_raztopine_path"]) if data.get("catalog_raztopine_path") else None,
+            catalog_kemikalije_path=Path(data["catalog_kemikalije_path"]) if data.get("catalog_kemikalije_path") else None,
+            enable_catalog_validation=data.get("enable_catalog_validation", True),
             extra=data.get("extra", {}),
         )
 
@@ -139,6 +146,9 @@ class ValidatorConfig:
             "bypass_zakleni_inverse_pogoj_requirement": self.bypass_zakleni_inverse_pogoj_requirement,
             "sop_data_path": str(self.sop_data_path) if self.sop_data_path else None,
             "enable_sop_validation": self.enable_sop_validation,
+            "catalog_raztopine_path": str(self.catalog_raztopine_path) if self.catalog_raztopine_path else None,
+            "catalog_kemikalije_path": str(self.catalog_kemikalije_path) if self.catalog_kemikalije_path else None,
+            "enable_catalog_validation": self.enable_catalog_validation,
             "extra": self.extra,
         }
 

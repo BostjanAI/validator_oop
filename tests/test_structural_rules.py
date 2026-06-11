@@ -33,12 +33,44 @@ class TestRequiredColumnsRule:
                 "Vrednost": "100",
                 "Navodilo": "Test",
                 "Labela": "Test Label",
+                "Kontrola 1": "",
+                "Kontrola 1 - par 1": "",
+                "Kontrola 1 - par 2": "",
+                "Kontrola 2": "",
+                "Kontrola 2 - par 1": "",
+                "Kontrola 2 - par 2": "",
+                "Kontrola 3": "",
+                "Kontrola 3 - par 1": "",
+                "Kontrola 3 - par 2": "",
+                "Kontrola 4": "",
+                "Kontrola 4 - par 1": "",
+                "Kontrola 4 - par 2": "",
             }
         ]
 
         # Build shared context with all required columns
         builder = SharedContextBuilder(row_offset=2)
-        columns = ["št. Koraka", "Tip objekta", "Tip podatka", "Ključ preverjanja", "Vrednost", "Navodilo", "Labela"]
+        columns = [
+            "št. Koraka",
+            "Tip objekta",
+            "Tip podatka",
+            "Ključ preverjanja",
+            "Vrednost",
+            "Navodilo",
+            "Labela",
+            "Kontrola 1",
+            "Kontrola 1 - par 1",
+            "Kontrola 1 - par 2",
+            "Kontrola 2",
+            "Kontrola 2 - par 1",
+            "Kontrola 2 - par 2",
+            "Kontrola 3",
+            "Kontrola 3 - par 1",
+            "Kontrola 3 - par 2",
+            "Kontrola 4",
+            "Kontrola 4 - par 1",
+            "Kontrola 4 - par 2",
+        ]
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
 
@@ -213,6 +245,81 @@ class TestStepNumberingRule:
         step_not_int_errors = [e for e in errors if e.code == "STEP_NOT_INTEGER"]
         assert len(step_not_int_errors) == 1
         assert step_not_int_errors[0].row_index == 3
+
+    def test_step_gaps_when_not_starting_at_one(self, rule: StepNumberingRule) -> None:
+        """Test that STEP_GAPS is reported even when steps don't start at 1."""
+        rows = [
+            {"št. Koraka": "5", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "6", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "8", "Tip objekta": "edit", "Zavihek": "Tab1"},  # Gap: 7 missing
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        error_codes = [e.code for e in errors]
+        assert "STEP_GAPS" in error_codes
+
+    def test_step_out_of_order(self, rule: StepNumberingRule) -> None:
+        """Test that STEP_OUT_OF_ORDER is reported when steps appear in wrong physical order."""
+        rows = [
+            {"št. Koraka": "1", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "3", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "2", "Tip objekta": "edit", "Zavihek": "Tab1"},  # Out of order
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        error_codes = [e.code for e in errors]
+        assert "STEP_OUT_OF_ORDER" in error_codes
+
+    def test_step_out_of_order_multiple(self, rule: StepNumberingRule) -> None:
+        """Test that multiple out-of-order steps each produce an error (image example)."""
+        rows = [
+            {"št. Koraka": "1", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "2", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "5", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "4", "Tip objekta": "edit", "Zavihek": "Tab1"},  # Out of order
+            {"št. Koraka": "3", "Tip objekta": "edit", "Zavihek": "Tab1"},  # Out of order
+            {"št. Koraka": "6", "Tip objekta": "edit", "Zavihek": "Tab1"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        out_of_order_errors = [e for e in errors if e.code == "STEP_OUT_OF_ORDER"]
+        assert len(out_of_order_errors) == 2
+
+    def test_valid_sequence_no_order_error(self, rule: StepNumberingRule) -> None:
+        """Test that ascending steps produce no STEP_OUT_OF_ORDER error."""
+        rows = [
+            {"št. Koraka": "1", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "2", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "3", "Tip objekta": "edit", "Zavihek": "Tab1"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        error_codes = [e.code for e in errors]
+        assert "STEP_OUT_OF_ORDER" not in error_codes
 
     def test_naslov_rows_skipped(self, rule: StepNumberingRule) -> None:
         """Test that rows without any REQUIRED_COLUMNS data are skipped for step validation."""

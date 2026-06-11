@@ -20,6 +20,7 @@ from validator_oop.utils.helpers import (
     is_equipment_row,
     is_equipment_tip,
     is_excel_error_token,
+    is_mass_owner_tip,
     is_water_key,
     looks_like_number_with_commas,
     max_decimals,
@@ -60,6 +61,7 @@ __all__ = [
     "base_key_no_trailing_number",
     "extract_suffix_number",
     "split_key_number",
+    "is_mass_owner_tip",
     "is_water_key",
     # Equipment detection
     "is_equipment_tip",

@@ -148,40 +148,71 @@ def has_only_comma_separated_ints(text: str) -> bool:
 # ==============================================================================
 
 
+_HYPHEN_LETTER_INSTANCE = re.compile(r"(-[A-Za-z]+)\d+$")
+_SHORT_CODE_INSTANCE = re.compile(r"^[A-Za-z]{2}\d+$")
+_UNDERSCORE_NUM_SUFFIX = re.compile(r"^(.+)_(\d+)$")
+
+
 def base_key_no_trailing_number(key: str) -> str:
-    """Remove trailing number and separator from key.
+    """Remove instance numbering from key without altering chemical formulas.
 
-    Args:
-        key: Key string (e.g., 'kemikalija_1', 'masa2', 'GK10').
-
-    Returns:
-        Base key without trailing number (e.g., 'kemikalija', 'masa', 'GK').
+    Handles:
+    - ``-GK1`` / ``-GK10`` at end of solution keys -> ``-GK`` (not ``pH5.0`` -> ``pH5.``)
+    - short IPO codes ``GK1`` -> ``GK`` (not ``H2SO4`` -> ``H2SO``)
+    - underscore suffix ``KEY_2`` -> ``KEY``
     """
     key = key.strip()
-    # Vedno odstranimo vse številke na koncu, ne samo zadnjo
-    return re.sub(r"[_\-\.\s]*\d+$", "", key)
+    m = _HYPHEN_LETTER_INSTANCE.search(key)
+    if m:
+        return key[: m.end(1)]
+    if _SHORT_CODE_INSTANCE.fullmatch(key):
+        return re.sub(r"\d+$", "", key)
+    m_und = _UNDERSCORE_NUM_SUFFIX.match(key)
+    if m_und:
+        return m_und.group(1)
+    # Instance after _ or - only (not decimal dot in pH5.0).
+    stripped = re.sub(r"[_\-]\d+$", "", key)
+    return stripped if stripped else key
+
+
+def strip_instance_suffix(key: str) -> str:
+    """Alias for catalog / šifrant lookup (GK1 -> GK, -GK10 -> -GK)."""
+    return base_key_no_trailing_number(key)
 
 
 def extract_suffix_number(key: str) -> tuple[str, int]:
-    """Extract base and numeric suffix from key.
+    """Extract base and numeric suffix from key when suffixed as _N.
 
     Args:
-        key: Key string (e.g., 'kemikalija1', 'masa_2').
+        key: Key string (e.g., 'masa_2', 'KEY_10'). Keys like 'H2SO4' have no _N suffix.
 
     Returns:
-        Tuple of (base, number). Number is 0 if no suffix.
+        Tuple of (base, number). Number is 0 if key does not end with _<digits>.
     """
-    match = re.match(r"^(.*?)(\d+)?$", key.strip())
-    if not match:
-        return key.strip(), 0
-    base = (match.group(1) or "").rstrip("_- .")
-    num = int(match.group(2)) if match.group(2) else 0
-    return base, num
+    key = key.strip()
+    match = re.match(r"^(.+)_(\d+)$", key)
+    if match:
+        return match.group(1), int(match.group(2))
+    return key, 0
 
 
 def split_key_number(key: str) -> tuple[str, int]:
     """Alias for extract_suffix_number for compatibility."""
     return extract_suffix_number(key)
+
+
+# ==============================================================================
+# MASS OWNER TYPES
+# ==============================================================================
+
+MASS_OWNER_TIP_PREFIXES: tuple[str, ...] = ("kemikalija", "raztopina", "monomerna")
+
+
+def is_mass_owner_tip(tip_podatka: str) -> bool:
+    """Check if tip_podatka can own a masa row (kemikalija, raztopina, monomerna + numbered variants)."""
+    if not tip_podatka:
+        return False
+    return any(tip_podatka.startswith(prefix) for prefix in MASS_OWNER_TIP_PREFIXES)
 
 
 # ==============================================================================

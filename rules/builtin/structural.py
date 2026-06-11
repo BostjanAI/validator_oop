@@ -98,6 +98,7 @@ class StepNumberingRule(SheetRule):
         errors.extend(self._check_duplicate_steps(step_entries, context))
         errors.extend(self._check_tab_start(step_entries, context))
         errors.extend(self._check_missing_steps(step_entries, context))
+        errors.extend(self._check_step_order(step_entries, context))
         return errors
 
     def _row_contains_data(self, row: Mapping[str, object]) -> bool:
@@ -191,10 +192,10 @@ class StepNumberingRule(SheetRule):
 
         steps = [step for _, step in step_entries]
         unique_steps = sorted(set(steps))
-        if not unique_steps or unique_steps[0] != 1:
+        if not unique_steps:
             return []
 
-        expected = set(range(1, unique_steps[-1] + 1))
+        expected = set(range(unique_steps[0], unique_steps[-1] + 1))
         missing = sorted(expected.difference(set(steps)))
         if not missing:
             return []
@@ -206,4 +207,40 @@ class StepNumberingRule(SheetRule):
                 code="STEP_GAPS",
             )
         ]
+
+    def _check_step_order(
+        self,
+        step_entries: Sequence[tuple[int, int]],
+        context: RuleContext,
+    ) -> list:
+        if not step_entries:
+            return []
+
+        tab_by_row = context.shared.tab_by_row if context.shared else {}
+        tab_to_steps: dict[str, list[tuple[int, int]]] = defaultdict(list)
+
+        for row_index, step in step_entries:
+            tab = tab_by_row.get(row_index, "")
+            tab_to_steps[tab].append((row_index, step))
+
+        errors = []
+        for tab, entries in tab_to_steps.items():
+            prev_step: int | None = None
+            for row_index, step in entries:
+                if prev_step is not None and step < prev_step:
+                    tab_text = f" v zavihku '{tab}'" if tab else ""
+                    errors.append(
+                        self.build_error(
+                            message=(
+                                f"Koraki niso v naraščajočem vrstnem redu{tab_text}: "
+                                f"korak {step} nastopi po koraku {prev_step}."
+                            ),
+                            context=context.with_row(row_index),
+                            column="št. Koraka",
+                            code="STEP_OUT_OF_ORDER",
+                        )
+                    )
+                prev_step = step
+
+        return errors
 

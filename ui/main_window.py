@@ -23,9 +23,15 @@ from validator_oop.core.rule_engine import RuleEngine
 from validator_oop.core.validator_engine import ValidatorEngine
 from validator_oop.excel.excel_loader import ExcelLoader
 from validator_oop.excel.report_writer import ReportWriter, WorkbookFixer
+from validator_oop.excel.management_report import write_management_report
 from validator_oop.excel.sop_loader import SOPData
 from validator_oop.rules.rule_registry import default_registry
 from validator_oop.rules.builtin import register_all
+from validator_oop.ui.catalog_ui import (
+    load_catalog_for_validation,
+    log_catalog_summary_from_report,
+    merge_catalog_summaries,
+)
 from validator_oop.utils.logger import get_logger
 from validator_oop.utils.validation_progress import record_run as record_validation_progress
 
@@ -67,6 +73,7 @@ class ValidatorApp(tk.Tk):
             import validator_oop.rules.builtin.field
             import validator_oop.rules.builtin.relational
             import validator_oop.rules.builtin.control
+            import validator_oop.rules.builtin.catalog_code_rule
         except ImportError as e:
             self._logger.error("CRITICAL: Failed to import rule modules: %s", e, exc_info=True)
             import traceback
@@ -92,8 +99,15 @@ class ValidatorApp(tk.Tk):
         self.input_var = tk.StringVar()
         self.report_var = tk.StringVar()
         self.sop_var = tk.StringVar()
+        self.catalog_razt_var = tk.StringVar()
+        self.catalog_kem_var = tk.StringVar()
         self.sheet_var = tk.StringVar()
         self.report_mode_var = tk.StringVar(value="combined")
+
+        # Last validation results (for management report)
+        self._last_issues: list[dict[str, Any]] = []
+        self._last_input_name: str = ""
+        self._last_catalog_summary: dict[str, Any] | None = None
 
         # Build UI
         self._build_ui()
@@ -141,49 +155,69 @@ class ValidatorApp(tk.Tk):
             row=5, column=2, sticky="e"
         )
 
+        ttk.Label(frm, text="Šifrant raztopin (Excel):").grid(row=6, column=0, sticky="w")
+        ttk.Entry(frm, textvariable=self.catalog_razt_var).grid(
+            row=7, column=0, columnspan=2, sticky="we"
+        )
+        ttk.Button(frm, text="Izberi...", command=self._pick_catalog_razt).grid(
+            row=7, column=2, sticky="e"
+        )
+
+        ttk.Label(frm, text="Šifrant kemikalij (Excel):").grid(row=8, column=0, sticky="w")
+        ttk.Entry(frm, textvariable=self.catalog_kem_var).grid(
+            row=9, column=0, columnspan=2, sticky="we"
+        )
+        ttk.Button(frm, text="Izberi...", command=self._pick_catalog_kem).grid(
+            row=9, column=2, sticky="e"
+        )
+
         # Report mode selection
-        ttk.Label(frm, text="Način poročila:").grid(row=6, column=0, sticky="w")
+        ttk.Label(frm, text="Način poročila:").grid(row=10, column=0, sticky="w")
         ttk.Radiobutton(
             frm,
             text="Ena skupna datoteka",
             variable=self.report_mode_var,
             value="combined",
-        ).grid(row=7, column=0, sticky="w")
+        ).grid(row=11, column=0, sticky="w")
         ttk.Radiobutton(
             frm,
             text="Ločeno poročilo za vsako datoteko",
             variable=self.report_mode_var,
             value="per_file",
-        ).grid(row=7, column=1, sticky="w")
+        ).grid(row=11, column=1, sticky="w")
 
         # Action buttons
         ttk.Button(frm, text="Zaženi validacijo", command=self._run_validation).grid(
-            row=8, column=0, sticky="w", pady=12
+            row=12, column=0, sticky="w", pady=12
         )
         ttk.Button(
             frm, text="Zaženi validacijo s SOP", command=self._run_validation_with_sop
-        ).grid(row=8, column=1, sticky="w", pady=12)
+        ).grid(row=12, column=1, sticky="w", pady=12)
         ttk.Button(
             frm, text="Primerjaj razdelke med listi", command=self._run_section_compare
-        ).grid(row=8, column=2, sticky="w", pady=12)
+        ).grid(row=12, column=2, sticky="w", pady=12)
         ttk.Button(
             frm, text="Odpri mapo poročila", command=self._open_report_folder
-        ).grid(row=8, column=3, sticky="e")
+        ).grid(row=12, column=3, sticky="e")
+
+        ttk.Button(
+            frm, text="Pripravi poročilo o validaciji", command=self._write_management_report
+        ).grid(row=13, column=0, columnspan=2, sticky="w", pady=(0, 8))
 
         # Status text area
-        ttk.Label(frm, text="Status:").grid(row=9, column=0, sticky="w")
+        ttk.Label(frm, text="Status:").grid(row=15, column=0, sticky="w")
         self.txt = tk.Text(frm, height=12, wrap="word")
-        self.txt.grid(row=10, column=0, columnspan=3, sticky="nsew")
+        self.txt.grid(row=16, column=0, columnspan=3, sticky="nsew")
         scr = ttk.Scrollbar(frm, command=self.txt.yview)
         self.txt.configure(yscrollcommand=scr.set)
-        scr.grid(row=10, column=3, sticky="ns")
+        scr.grid(row=16, column=3, sticky="ns")
 
         # Configure grid weights
         frm.columnconfigure(0, weight=1)
         frm.columnconfigure(1, weight=1)
         frm.columnconfigure(2, weight=0)
         frm.columnconfigure(3, weight=0)
-        frm.rowconfigure(10, weight=1)
+        frm.rowconfigure(16, weight=1)
 
     def _log_startup(self) -> None:
         """Log startup message."""
@@ -259,6 +293,24 @@ class ValidatorApp(tk.Tk):
         if path:
             self.sop_var.set(path)
             self.log(f"SOP datoteka: {path}")
+
+    def _pick_catalog_razt(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Izberi šifrant raztopin (Excel)",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+        )
+        if path:
+            self.catalog_razt_var.set(path)
+            self.log(f"Šifrant raztopin: {path}")
+
+    def _pick_catalog_kem(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Izberi šifrant kemikalij (Excel)",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+        )
+        if path:
+            self.catalog_kem_var.set(path)
+            self.log(f"Šifrant kemikalij: {path}")
 
     def _pick_report(self) -> None:
         """Open file/folder dialog to select output report location."""
@@ -407,8 +459,21 @@ class ValidatorApp(tk.Tk):
 
         sheet_name = self.sheet_var.get().strip()
         self.txt.delete("1.0", tk.END)
+        self._log_startup()
+
+        catalog_data = None
+        catalog_paths: dict[str, str] = {}
+        if self._config.enable_catalog_validation:
+            catalog_data, catalog_paths = load_catalog_for_validation(
+                self.catalog_razt_var.get(),
+                self.catalog_kem_var.get(),
+                log=self.log,
+            )
+        else:
+            self.log("Preverjanje šifrantov je v konfiguraciji izklopljeno.")
 
         all_issues: list[dict[str, Any]] = []
+        catalog_summaries: list[dict[str, Any]] = []
 
         if mode == "combined":
             if out_path.suffix.lower() not in {".xlsx", ".txt"}:
@@ -417,12 +482,21 @@ class ValidatorApp(tk.Tk):
                 return
 
             for in_path in in_paths:
-                issues = self._validate_single_file(in_path, sheet_name, sop_data=sop_data)
+                issues, cat_meta = self._validate_single_file(
+                    in_path,
+                    sheet_name,
+                    sop_data=sop_data,
+                    catalog_data=catalog_data,
+                    catalog_paths=catalog_paths,
+                )
                 all_issues.extend(issues)
+                if cat_meta:
+                    catalog_summaries.append(cat_meta)
                 self._record_progress(in_path, issues)
 
-            # Write combined report
-            self._write_report(out_path, all_issues)
+            self._last_catalog_summary = merge_catalog_summaries(catalog_summaries)
+            log_catalog_summary_from_report(self._last_catalog_summary, self.log)
+            self._write_report(out_path, all_issues, self._last_catalog_summary)
 
         else:
             # Per-file reports
@@ -436,13 +510,27 @@ class ValidatorApp(tk.Tk):
                 return
 
             for in_path in in_paths:
-                issues = self._validate_single_file(in_path, sheet_name, sop_data=sop_data)
+                issues, cat_meta = self._validate_single_file(
+                    in_path,
+                    sheet_name,
+                    sop_data=sop_data,
+                    catalog_data=catalog_data,
+                    catalog_paths=catalog_paths,
+                )
                 all_issues.extend(issues)
+                if cat_meta:
+                    catalog_summaries.append(cat_meta)
                 self._record_progress(in_path, issues)
 
-                # Write individual report
                 out_file = out_path / f"por_{in_path.stem}.xlsx"
-                self._write_report(out_file, issues)
+                file_summary = cat_meta or merge_catalog_summaries(catalog_summaries)
+                self._write_report(out_file, issues, file_summary)
+            self._last_catalog_summary = merge_catalog_summaries(catalog_summaries)
+            log_catalog_summary_from_report(self._last_catalog_summary, self.log)
+
+        # Store for management report
+        self._last_issues = all_issues
+        self._last_input_name = "; ".join(p.name for p in in_paths)
 
         # Show summary
         self._show_summary(all_issues, out_path, mode)
@@ -453,7 +541,9 @@ class ValidatorApp(tk.Tk):
         sheet_name: str = "",
         *,
         sop_data: SOPData | None = None,
-    ) -> list[dict[str, Any]]:
+        catalog_data=None,
+        catalog_paths: dict[str, str] | None = None,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
         """Validate a single Excel file.
 
         Args:
@@ -483,10 +573,15 @@ class ValidatorApp(tk.Tk):
                 logger=self._logger,
                 include_formulas=True,  # Required for INDEX MATCH formula parsing
                 sop_data=sop_data,
+                catalog_data=catalog_data,
+                catalog_paths=catalog_paths,
             )
 
             # Run validation
             report = engine.validate(str(in_path))
+            cat_meta = report.metadata.get("catalog_validation")
+            if cat_meta and cat_meta.get("enabled"):
+                log_catalog_summary_from_report(cat_meta, self.log)
             self.log(f"Excel uspešno prebran: {in_path}")
             
             # Log validation summary
@@ -507,7 +602,7 @@ class ValidatorApp(tk.Tk):
             for error in report.errors:
                 issues.append(self._error_to_dict(error, in_path.name))
 
-            return issues
+            return issues, cat_meta if isinstance(cat_meta, dict) else None
 
         except Exception as e:
             import traceback
@@ -518,7 +613,7 @@ class ValidatorApp(tk.Tk):
                 f"Ne morem prebrati Excel datoteke:\n{in_path}\n\n{type(e).__name__}: {e}\n\nPodrobnosti:\n{error_details}",
             )
             self.log(f"NAPAKA branja ({in_path}): {e}")
-            return []
+            return [], None
 
     def _record_progress(self, in_path: Path, issues: list[dict[str, Any]]) -> None:
         """Zapiše rezultat validacije v napredek (delež pregledanih, število napak)."""
@@ -562,18 +657,24 @@ class ValidatorApp(tk.Tk):
         self,
         out_path: Path,
         issues: list[dict[str, Any]],
+        catalog_summary: dict[str, Any] | None = None,
     ) -> None:
         """Write validation report to file.
 
         Args:
             out_path: Path to the output file.
             issues: List of issue dictionaries.
+            catalog_summary: Optional catalog validation metadata for report.
         """
         try:
             if out_path.suffix.lower() == ".xlsx":
-                self._report_writer.write_excel_report(out_path, issues)
+                self._report_writer.write_excel_report(
+                    out_path, issues, catalog_summary=catalog_summary
+                )
             else:
-                self._report_writer.write_text_report(out_path, issues)
+                self._report_writer.write_text_report(
+                    out_path, issues, catalog_summary=catalog_summary
+                )
             self.log(f"Poročilo zapisano: {out_path}")
         except Exception as e:
             messagebox.showerror("Napaka pisanja", f"Ne morem zapisati poročila:\n{e}")
@@ -618,6 +719,59 @@ class ValidatorApp(tk.Tk):
                     "Končano",
                     f"Najdene napake: {errors}\nOpozorila: {warns}\nMapa poročil:\n{out_path}",
                 )
+
+    def _write_management_report(self) -> None:
+        """Generate a Markdown management report from the last validation run."""
+        if not self._last_issues and not hasattr(self, "_last_issues"):
+            messagebox.showinfo(
+                "Info", "Najprej zaženi validacijo, nato pripravi poročilo."
+            )
+            return
+
+        if not self._last_issues:
+            messagebox.showinfo(
+                "Info",
+                "Zadnja validacija ni zaznala napak.\nPoročilo bo vsebovalo samo povzetek 'brez napak'.",
+            )
+
+        out_raw = self.report_var.get().strip()
+        if out_raw:
+            default_dir = str(Path(out_raw).parent)
+            default_name = Path(out_raw).stem + "_vodstvo.md"
+        else:
+            default_dir = ""
+            default_name = "porocilo_vodstvo.md"
+
+        save_path = filedialog.asksaveasfilename(
+            title="Shrani poročilo za vodstvo kot",
+            initialdir=default_dir,
+            initialfile=default_name,
+            defaultextension=".md",
+            filetypes=[("Markdown", "*.md"), ("Besedilna datoteka", "*.txt")],
+        )
+        if not save_path:
+            return
+
+        try:
+            write_management_report(
+                save_path,
+                self._last_issues,
+                source_filename=self._last_input_name,
+            )
+            self.log(f"Poročilo za vodstvo zapisano: {save_path}")
+            if messagebox.askyesno(
+                "Končano", f"Poročilo shranjeno:\n{save_path}\n\nOdpri datoteko?"
+            ):
+                import os, platform
+                if platform.system() == "Windows":
+                    os.startfile(save_path)  # type: ignore[attr-defined]
+                elif platform.system() == "Darwin":
+                    os.system(f'open "{save_path}"')
+                else:
+                    os.system(f'xdg-open "{save_path}"')
+        except Exception as e:
+            messagebox.showerror("Napaka", f"Ne morem zapisati poročila:\n{e}")
+            self.log(f"NAPAKA pisanja poročila za vodstvo: {e}")
 
     def _run_section_compare(self) -> None:
         """Run section comparison across sheets."""

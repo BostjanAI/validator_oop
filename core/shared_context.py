@@ -10,7 +10,10 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 
-from validator_oop.core.constants import VALIDATION_EXCLUDED_COLUMNS
+from validator_oop.core.constants import (
+    FORMULA_REF_ALLOWED_OBJECT_TYPES,
+    VALIDATION_EXCLUDED_COLUMNS,
+)
 from validator_oop.utils.helpers import (
     coerce_str,
     has_only_comma_separated_ints,
@@ -40,7 +43,8 @@ class SharedContext:
         param2_columns: Mapping of control number -> Param2 column name.
         existing_steps: Set of all valid step numbers in the sheet.
         step_allowed_for_formula_ref: Set of steps that have at least one row with
-            Tip objekta 'edit', 'formula', 'formula0' or 'formula1'.
+            Tip objekta in FORMULA_REF_ALLOWED_OBJECT_TYPES (edit, formula, formula0,
+            formula1, klictehtnice1).
         zakleni_param1_steps: Set of steps referenced by 'zaklenipolja' Param1.
         zakleni_param1_steps_by_tab: Mapping of tab -> set of steps referenced by 'zaklenipolja' Param1.
         ali_pogoj_step_locations: Mapping of step -> (row, column) for 'aliObstajaPogoj'.
@@ -216,7 +220,7 @@ class SharedContextBuilder:
             if step_num is not None:
                 ctx.existing_steps.add(step_num)
                 ctx.step_to_row_indices.setdefault(step_num, []).append(excel_row)
-                if tip_obj in {"edit", "formula", "formula0", "formula1"}:
+                if tip_obj in FORMULA_REF_ALLOWED_OBJECT_TYPES:
                     ctx.step_allowed_for_formula_ref.add(step_num)
 
             if tip_obj == "checkbox" and key:

@@ -51,6 +51,18 @@ REQUIRED_COLUMNS: List[str] = [
     "Vrednost",
     "Labela",
     "Tip objekta",
+    "Kontrola 1",
+    "Kontrola 1 - par 1",
+    "Kontrola 1 - par 2",
+    "Kontrola 2",
+    "Kontrola 2 - par 1",
+    "Kontrola 2 - par 2",
+    "Kontrola 3",
+    "Kontrola 3 - par 1",
+    "Kontrola 3 - par 2",
+    "Kontrola 4",
+    "Kontrola 4 - par 1",
+    "Kontrola 4 - par 2",
 ]
 
 # Stolpci, ki se pri validaciji ignorirajo (npr. rezerviran prazen naslovni stolpec → column_0)
@@ -59,6 +71,10 @@ VALIDATION_EXCLUDED_COLUMNS: FrozenSet[str] = frozenset({"column_0"})
 # ==============================================================================
 # ALLOWED VALUES
 # ==============================================================================
+
+FORMULA_REF_ALLOWED_OBJECT_TYPES: FrozenSet[str] = frozenset({
+    "edit", "formula", "formula0", "formula1", "klictehtnice1",
+})
 
 ALLOWED_TIP_OBJEKTA: FrozenSet[str] = frozenset({
     "edit", "checkbox", "crta",
@@ -193,6 +209,7 @@ EQUIPMENT_KEYWORDS = [
     r"vak_sušilnik", r"vak_susilnik",
     r"merilnik",
     r"naprava",
+    r"konduktometer",
 ]
 
 EQUIPMENT_REGEX = re.compile("|".join(EQUIPMENT_KEYWORDS), flags=re.IGNORECASE)
@@ -204,6 +221,7 @@ EQUIPMENT_TIP_PODATKA: FrozenSet[str] = frozenset({
     "vak_sušilnik", "vak_susilnik",
     "merilnik",
     "naprava",
+    "konduktometer",
 })
 
 # ==============================================================================
@@ -317,8 +335,10 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "FORMULA_SYNTAX": "Nepravilen zapis formule",
     "FORMULA_NO_REFERENCE": "Formula nima sklica na korake",
     "FORMULA_INVALID_REFERENCE": "Formula se sklicuje na neobstoječi korak",
-    "FORMULA_STEP_INVALID_TYPE": "Korak, na katerega se formula sklicuje, nima dovoljenega Tip objekta ('edit', 'formula', 'formula0' ali 'formula1')",
+    "FORMULA_STEP_INVALID_TYPE": "Korak, na katerega se formula sklicuje, nima dovoljenega Tip objekta ('edit', 'formula', 'formula0', 'formula1' ali 'klictehtnice1')",
     # --- Field: value ---
+    "CRTA_COLUMN_NOT_EMPTY": "Pri tipu podatka crta mora biti stolpec prazen",
+    "SPUSTNISEZNAM_VREDNOST_EMPTY": "Pri spustnem seznamu mora biti stolpec Vrednost zapolnjen",
     "COMMA_NOT_ALLOWED": "Vrednost vsebuje nedovoljeno vejico v številu",
     "SPACE_NOT_ALLOWED": "Vrednost vsebuje nedovoljen presledek",
     # --- Field: unit ---
@@ -338,8 +358,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     # --- Relational: pairs ---
     "PAIR_CHEM_WITHOUT_MASS": "Za kemikalijo manjka ustrezna masa",
     "PAIR_SOL_WITHOUT_MASS": "Za raztopino manjka ustrezna masa",
-    "PAIR_MASS_WITHOUT_OWNER": "Masa nima pripadajoče kemikalije ali raztopine",
-    "PAIR_MASS_SECTION_MISMATCH": "Ključ preverjanja za 'masa' se ne ujema z raztopino/kemikalijo",
+    "PAIR_MASS_WITHOUT_OWNER": "Masa nima pripadajoče kemikalije, raztopine ali monomerne",
+    "PAIR_MASS_SECTION_MISMATCH": "Ključ preverjanja za 'masa' se ne ujema z lastnikom (kemikalija/raztopina/monomerna)",
     "PAIR_TIME_WITHOUT_END": "Manjka končni čas",
     "PAIR_TIME_WITHOUT_START": "Manjka začetni čas",
     # --- Relational: scale ---
@@ -443,6 +463,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "SOP_MEDIUM_MISMATCH": "Medij za določeno fazo se ne ujema z medijem iz SOP-a",
     "SOP_REQUIREMENT_MISSING": "Manjka zahteva iz SOP-a",
     "SOP_LOAD_ERROR": "Napaka pri nalaganju SOP dokumenta",
+    # --- Catalog (šifranti raztopin/kemikalij) ---
+    "CATALOG_CODE_MISMATCH": "Šifra raztopine/kemikalije ni v šifrantu",
 }
 
 

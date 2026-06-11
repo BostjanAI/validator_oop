@@ -119,6 +119,20 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="GUI style: 'classic' (default), 'themed' (black/yellow) or 'qt' (PyQt6). Used when launching GUI.",
     )
 
+    parser.add_argument(
+        "--catalog-raztopine",
+        type=Path,
+        default=None,
+        help="Excel šifrant raztopin (Izvoz_sifre_razt.xlsx) za preverjanje šifer",
+    )
+
+    parser.add_argument(
+        "--catalog-kemikalije",
+        type=Path,
+        default=None,
+        help="Excel šifrant kemikalij (Izvoz_kem.xlsx) za preverjanje šifer",
+    )
+
     return parser.parse_args(args)
 
 
@@ -229,6 +243,7 @@ def main(args: list[str] | None = None) -> int:
         import validator_oop.rules.builtin.field
         import validator_oop.rules.builtin.relational
         import validator_oop.rules.builtin.control
+        import validator_oop.rules.builtin.catalog_code_rule
         logger.info("Rule modules imported successfully")
     except ImportError as e:
         logger.error("CRITICAL: Failed to import rule modules: %s", e, exc_info=True)
@@ -279,7 +294,27 @@ def main(args: list[str] | None = None) -> int:
             bypass_rules=frozenset(parsed.bypass),
             strict_mode=parsed.strict,
             include_formulas=parsed.include_formulas,
+            catalog_raztopine_path=parsed.catalog_raztopine,
+            catalog_kemikalije_path=parsed.catalog_kemikalije,
         )
+
+        catalog_data = None
+        catalog_paths: dict[str, str] = {}
+        if config.enable_catalog_validation and (
+            config.catalog_raztopine_path or config.catalog_kemikalije_path
+        ):
+            from validator_oop.excel.catalog_loader import load_catalogs
+
+            catalog_data = load_catalogs(
+                raztopine_path=config.catalog_raztopine_path,
+                kemikalije_path=config.catalog_kemikalije_path,
+            )
+            if config.catalog_raztopine_path:
+                catalog_paths["raztopina"] = str(config.catalog_raztopine_path)
+            if config.catalog_kemikalije_path:
+                catalog_paths["kemikalija"] = str(config.catalog_kemikalije_path)
+            if catalog_data:
+                logger.info("Catalogs loaded for validation: %s", ", ".join(catalog_data))
 
         # Create engines
         loader = ExcelLoader()
@@ -289,12 +324,20 @@ def main(args: list[str] | None = None) -> int:
             loader,
             logger=logger,
             include_formulas=parsed.include_formulas,
+            catalog_data=catalog_data,
+            catalog_paths=catalog_paths,
         )
 
         # Run validation
         logger.info("Validating %s", parsed.workbook)
         report = validator.validate(parsed.workbook)
         report_dict = report.to_dict()
+
+        cat_summary = report.metadata.get("catalog_validation")
+        if cat_summary and cat_summary.get("enabled"):
+            from validator_oop.excel.catalog_loader import format_catalog_summary_log_line
+
+            print(format_catalog_summary_log_line(cat_summary))
 
         # Zapiši v napredek (delež pregledanih, število napak)
         counts = report_dict.get("counts", {})
@@ -342,7 +385,11 @@ def main(args: list[str] | None = None) -> int:
         if output_path:
             if parsed.format == "excel" or (output_path and output_path.suffix.lower() == ".xlsx"):
                 report_writer = ReportWriter(logger=logger)
-                report_writer.write_excel_report(output_path, issues)
+                report_writer.write_excel_report(
+                    output_path,
+                    issues,
+                    catalog_summary=cat_summary if isinstance(cat_summary, dict) else None,
+                )
                 logger.info("Report written to %s", output_path)
             elif parsed.format == "json":
                 with open(output_path, "w", encoding="utf-8") as f:
@@ -350,7 +397,11 @@ def main(args: list[str] | None = None) -> int:
                 logger.info("Report written to %s", output_path)
             else:  # text format
                 report_writer = ReportWriter(logger=logger)
-                report_writer.write_text_report(output_path, issues)
+                report_writer.write_text_report(
+                    output_path,
+                    issues,
+                    catalog_summary=cat_summary if isinstance(cat_summary, dict) else None,
+                )
                 logger.info("Report written to %s", output_path)
 
         # Apply fixes if requested

@@ -33,6 +33,7 @@ from validator_oop.core.rule_engine import RuleEngine
 from validator_oop.core.validator_engine import ValidatorEngine
 from validator_oop.excel.excel_loader import ExcelLoader
 from validator_oop.excel.report_writer import ReportWriter, WorkbookFixer
+from validator_oop.excel.management_report import write_management_report
 from validator_oop.rules.rule_registry import default_registry
 from validator_oop.rules.builtin import register_all
 from validator_oop.utils.logger import get_logger
@@ -150,6 +151,10 @@ class MainWindowQt(QMainWindow):
         self._registry = default_registry
         self._report_writer = ReportWriter(logger=self._logger)
         self._workbook_fixer = WorkbookFixer(logger=self._logger)
+
+        # Last validation results (for management report)
+        self._last_issues: list[dict[str, Any]] = []
+        self._last_input_name: str = ""
 
         # UI Setup
         self.setWindowTitle(f"Validator IPO Receptur {VERSION}")
@@ -277,7 +282,11 @@ class MainWindowQt(QMainWindow):
         btn_compare = QPushButton("Primerjaj razdelke med listi")
         btn_compare.clicked.connect(self._run_section_compare)
         action_row.addWidget(btn_compare)
-        
+
+        btn_mgmt = QPushButton("Pripravi poročilo o validaciji")
+        btn_mgmt.clicked.connect(self._write_management_report)
+        action_row.addWidget(btn_mgmt)
+
         action_row.addStretch()
         
         btn_open = QPushButton("Odpri mapo poročila")
@@ -491,6 +500,11 @@ class MainWindowQt(QMainWindow):
                 self.progress_bar.setValue(i + 1)
 
         self.progress_bar.setVisible(False)
+
+        # Store for management report
+        self._last_issues = all_issues
+        self._last_input_name = "; ".join(p.name for p in in_paths)
+
         self._show_summary(all_issues, out_path, mode)
 
     def _validate_single_file(self, in_path: Path) -> list[dict[str, Any]]:
@@ -590,6 +604,57 @@ class MainWindowQt(QMainWindow):
             msg += f"Poročila so v mapi: {out_path}"
 
         QMessageBox.information(self, "Povzetek", msg)
+
+    def _write_management_report(self) -> None:
+        """Generate a Markdown management report from the last validation run."""
+        if not self._last_issues:
+            QMessageBox.information(
+                self,
+                "Info",
+                "Najprej zaženi validacijo, nato pripravi poročilo.",
+            )
+            return
+
+        out_raw = self.report_edit.text().strip()
+        if out_raw:
+            default_dir = str(Path(out_raw).parent)
+            default_name = Path(out_raw).stem + "_vodstvo.md"
+        else:
+            default_dir = ""
+            default_name = "porocilo_vodstvo.md"
+
+        save_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Shrani poročilo za vodstvo kot",
+            str(Path(default_dir) / default_name) if default_dir else default_name,
+            "Markdown (*.md);;Besedilna datoteka (*.txt)",
+        )
+        if not save_path:
+            return
+
+        try:
+            write_management_report(
+                save_path,
+                self._last_issues,
+                source_filename=self._last_input_name,
+            )
+            self.log(f"Poročilo za vodstvo zapisano: {save_path}")
+            reply = QMessageBox.question(
+                self,
+                "Končano",
+                f"Poročilo shranjeno:\n{save_path}\n\nOdpri datoteko?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                if platform.system() == "Windows":
+                    os.startfile(save_path)  # type: ignore[attr-defined]
+                elif platform.system() == "Darwin":
+                    os.system(f'open "{save_path}"')
+                else:
+                    os.system(f'xdg-open "{save_path}"')
+        except Exception as e:
+            QMessageBox.critical(self, "Napaka", f"Ne morem zapisati poročila:\n{e}")
+            self.log(f"NAPAKA pisanja poročila za vodstvo: {e}")
 
     def _run_section_compare(self) -> None:
         QMessageBox.information(

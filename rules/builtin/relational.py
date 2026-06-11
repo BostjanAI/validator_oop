@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+from decimal import Decimal, InvalidOperation
 from collections import defaultdict
 from typing import Iterable, Mapping, Sequence
 
@@ -10,9 +12,43 @@ from validator_oop.rules import RuleContext, SheetRule, register
 from validator_oop.utils import (
     base_key_no_trailing_number,
     extract_unit_token,
+    is_mass_owner_tip,
     is_water_key,
     split_key_number,
 )
+
+
+def _normalize_leading_decimal_token(key: str) -> str:
+    """Normalize leading decimal number in key (e.g. 0.30M -> 0.3M)."""
+    match = re.match(r"^(?P<num>\d+(?:[.,]\d+)?)(?P<rest>.*)$", key)
+    if not match:
+        return key
+
+    num_raw = match.group("num").replace(",", ".")
+    rest = match.group("rest")
+    try:
+        normalized_num = format(Decimal(num_raw).normalize(), "f")
+    except (InvalidOperation, ValueError):
+        return key
+
+    if "." in normalized_num:
+        normalized_num = normalized_num.rstrip("0").rstrip(".")
+    return f"{normalized_num}{rest}"
+
+
+def _owner_match_base(key: str) -> str:
+    """Build key base used only for owner lookup matching."""
+    return _normalize_leading_decimal_token(base_key_no_trailing_number(key))
+
+
+def _merged_mass_owner_keys(shared) -> dict[str, list[int]]:
+    """Združi ključe vseh tipov, ki lahko lastijo maso (kemikalija, raztopina, monomerna*)."""
+    merged: dict[str, list[int]] = defaultdict(list)
+    for tip, keys in shared.keys_by_type.items():
+        if is_mass_owner_tip(tip):
+            for key, rows in keys.items():
+                merged[key].extend(rows)
+    return merged
 
 
 @register
@@ -98,8 +134,7 @@ class DuplicateKeyRule(SheetRule):
                         )
                     )
 
-        kem = shared.get_keys_for_type("kemikalija")
-        raz = shared.get_keys_for_type("raztopina")
+        owner_keys = _merged_mass_owner_keys(shared)
 
         # Združimo mase po bazi ključa (brez številke na koncu)
         from validator_oop.utils import base_key_no_trailing_number
@@ -136,38 +171,20 @@ class DuplicateKeyRule(SheetRule):
                     if len(mass_pairs_in_sec) <= 1:
                         continue
 
-                    # Preveri, ali ima ta razdelek (v tem zavihku) vsaj eno 'kemikalija' ali 'raztopina' z isto bazo ključa
-                    # (lastnik je lahko v istem razdelku ali v kateremkoli prejšnjem – kemikalija lahko več razdelkov pred maso)
+                    # Preveri, ali ima ta razdelek (v tem zavihku) lastnika z isto bazo ključa
+                    # (kemikalija/raztopina/monomerna*; lastnik je lahko v istem ali kateremkoli prejšnjem razdelku)
                     has_owner = False
-
-                    # Preverimo kemikalije z isto bazo ključa (isti ali katerikoli prejšnji razdelek)
-                    for kem_key, kem_rows in kem.items():
-                        kem_base = base_key_no_trailing_number(kem_key)
-                        if kem_base == base:
-                            for rkem in kem_rows:
-                                kem_tab = tab_by_row.get(rkem, "")
-                                kem_section = section_by_row.get(rkem, 0)
-                                if kem_tab == tab and kem_section <= section:
-                                    has_owner = True
-                                    break
-                            if has_owner:
+                    for owner_key, owner_rows in owner_keys.items():
+                        if base_key_no_trailing_number(owner_key) != base:
+                            continue
+                        for row in owner_rows:
+                            if tab_by_row.get(row, "") == tab and section_by_row.get(row, 0) <= section:
+                                has_owner = True
                                 break
+                        if has_owner:
+                            break
 
-                    # Preverimo raztopine z isto bazo ključa (isti ali katerikoli prejšnji razdelek)
-                    if not has_owner:
-                        for raz_key, razt_rows in raz.items():
-                            raz_base = base_key_no_trailing_number(raz_key)
-                            if raz_base == base:
-                                for rraz in razt_rows:
-                                    raz_tab = tab_by_row.get(rraz, "")
-                                    raz_section = section_by_row.get(rraz, 0)
-                                    if raz_tab == tab and raz_section <= section:
-                                        has_owner = True
-                                        break
-                                if has_owner:
-                                    break
-
-                    # Če ima razdelek lastnika (kemikalija/raztopina), so večkratne mase dovoljene
+                    # Če ima razdelek lastnika, so večkratne mase dovoljene
                     if has_owner:
                         continue
 
@@ -186,37 +203,19 @@ class DuplicateKeyRule(SheetRule):
                 # Preverimo tudi, ali je ista baza ključa uporabljena v različnih razdelkih
                 sections_with_base = list(grouped_section.keys())
                 if len(sections_with_base) > 1:
-                    # Preverimo, ali ima vsak razdelek svojega lastnika (kemikalija/raztopina v istem ali kateremkoli prejšnjem razdelku)
+                    # Preverimo, ali ima vsak razdelek svojega lastnika v istem ali kateremkoli prejšnjem razdelku
                     all_sections_have_owner = True
                     for section in sections_with_base:
                         section_has_owner = False
-
-                        # Preverimo kemikalije z isto bazo ključa v tem ali kateremkoli prejšnjem razdelku
-                        for kem_key, kem_rows in kem.items():
-                            kem_base = base_key_no_trailing_number(kem_key)
-                            if kem_base == base:
-                                for rkem in kem_rows:
-                                    kem_tab = tab_by_row.get(rkem, "")
-                                    kem_section = section_by_row.get(rkem, 0)
-                                    if kem_tab == tab and kem_section <= section:
-                                        section_has_owner = True
-                                        break
-                                if section_has_owner:
+                        for owner_key, owner_rows in owner_keys.items():
+                            if base_key_no_trailing_number(owner_key) != base:
+                                continue
+                            for row in owner_rows:
+                                if tab_by_row.get(row, "") == tab and section_by_row.get(row, 0) <= section:
+                                    section_has_owner = True
                                     break
-
-                        # Preverimo raztopine z isto bazo ključa v tem ali kateremkoli prejšnjem razdelku
-                        if not section_has_owner:
-                            for raz_key, razt_rows in raz.items():
-                                raz_base = base_key_no_trailing_number(raz_key)
-                                if raz_base == base:
-                                    for rraz in razt_rows:
-                                        raz_tab = tab_by_row.get(rraz, "")
-                                        raz_section = section_by_row.get(rraz, 0)
-                                        if raz_tab == tab and raz_section <= section:
-                                            section_has_owner = True
-                                            break
-                                    if section_has_owner:
-                                        break
+                            if section_has_owner:
+                                break
 
                         if not section_has_owner:
                             all_sections_have_owner = False
@@ -267,10 +266,10 @@ class DuplicateKeyRule(SheetRule):
 
 @register
 class MassOwnerRule(SheetRule):
-    """Ensure every mass has a corresponding owner (kemikalija/raztopina)."""
+    """Ensure every mass has a corresponding owner (kemikalija/raztopina/monomerna)."""
 
     name = "mass_owner_rule"
-    description = "Mase morajo imeti ustrezno kemikalijo ali raztopino."
+    description = "Mase morajo imeti ustrezno kemikalijo, raztopino ali monomerno."
 
     def evaluate_sheet(
         self,
@@ -286,8 +285,6 @@ class MassOwnerRule(SheetRule):
             return []
 
         errors = []
-        kem = shared.get_keys_for_type("kemikalija")
-        raz = shared.get_keys_for_type("raztopina")
         section_by_row = shared.section_by_row
         tab_by_row = shared.tab_by_row
 
@@ -302,50 +299,39 @@ class MassOwnerRule(SheetRule):
                 continue
             
             masa_tab = tab_by_row.get(row_idx, "")
-            masa_base = base_key_no_trailing_number(masa_key)
+            masa_base = _owner_match_base(masa_key)
             
-            # Poiščimo najbližjo (najnovejšo) raztopino ali kemikalijo pred to maso z isto bazo ključa
+            # Poiščimo najbližjega lastnika (kemikalija/raztopina/monomerna*) pred maso z isto bazo ključa
             first_owner_row = None
             first_owner_key = None
             first_owner_type = None
             
             # Iteriramo nazaj od najbližje vrstice (od row_idx - 1 do row_offset)
-            # Pomembno: iščemo najbližjo (najnovejšo) raztopino/kemikalijo z isto bazo ključa
-            # Vedno najdemo najbližjo, ne glede na to, ali se ključa ujemata
-            # Ne smemo najti starejše raztopine z enakim ključem, če je pred njo najbližja z isto bazo
             for prev_idx in range(row_idx - 1, row_offset - 1, -1):
                 prev_row = rows[prev_idx - row_offset]
                 prev_tip = norm_text(coerce_str(prev_row.get("Tip podatka", "")))
                 prev_key = coerce_str(prev_row.get("Ključ preverjanja", "")).strip()
                 prev_tab = tab_by_row.get(prev_idx, "")
                 
-                # Preverimo, ali je to raztopina ali kemikalija v istem zavihku
-                if prev_tip in {"raztopina", "kemikalija"} and prev_key and prev_tab == masa_tab:
-                    # Preverimo, ali se bazi ključa ujemata
-                    prev_base = base_key_no_trailing_number(prev_key)
+                if is_mass_owner_tip(prev_tip) and prev_key and prev_tab == masa_tab:
+                    prev_base = _owner_match_base(prev_key)
                     if prev_base == masa_base:
-                        # Shranimo najbližjo raztopino/kemikalijo z isto bazo ključa
-                        # (ker iteriramo nazaj, je to prva, ki jo najdemo - najbližja)
                         first_owner_row = prev_idx
                         first_owner_key = prev_key
                         first_owner_type = prev_tip
-                        # Prekinemo takoj, ko najdemo najbližjo z isto bazo ključa
-                        # (ne glede na to, ali se ključa ujemata)
                         break
             
-            # Preverimo, ali se ključa ujemata
             if first_owner_key is None:
-                # Ni raztopine/kemikalije z isto bazo ključa pred maso
                 errors.append(
                     self.build_error(
-                        f"Za maso s ključem '{masa_key}' ne obstaja ustrezna 'kemikalija' ali 'raztopina' pred tem korakom.",
+                        f"Za maso s ključem '{masa_key}' ne obstaja ustrezna 'kemikalija', 'raztopina' ali 'monomerna' pred tem korakom.",
                         context=context.with_row(row_idx),
                         column="Ključ preverjanja",
                         code="PAIR_MASS_WITHOUT_OWNER",
                     )
                 )
             elif masa_key != first_owner_key:
-                # Ključa se ne ujemata - masa mora imeti enak ključ kot najbližja raztopina/kemikalija
+                # Ključa se ne ujemata - masa mora imeti enak ključ kot najbližji lastnik
                 errors.append(
                     self.build_error(
                         f"Vrstica {row_idx} mora imeti ključ preverjanja '{first_owner_key}' (kot vrstica {first_owner_row}, {first_owner_type}).",
@@ -469,19 +455,28 @@ class KeyNumberingRule(SheetRule):
         for data_type in self.DATA_TYPES:
             keys = shared.get_keys_for_type(data_type)
             all_keys.extend(keys.keys())
-        
+
         bases: dict[str, set[int]] = defaultdict(set)
         bare_present: dict[str, bool] = defaultdict(bool)
+        bases_with_underscore: set[str] = set()
+
+        _underscore_num = re.compile(r"_\d+$")
 
         for key in all_keys:
             base, number = split_key_number(key)
             bases[base].add(number if number > 0 else 1)
             if number == 0:
                 bare_present[base] = True
+            if _underscore_num.search(key):
+                bases_with_underscore.add(base)
 
         for base, numbers in bases.items():
             ordered = sorted(numbers)
-            if ordered and ordered[0] != 1:
+            if (
+                base in bases_with_underscore
+                and ordered
+                and ordered[0] != 1
+            ):
                 errors.append(
                     self.build_error(
                         f"Ključ '{base}…' začetek oštevilčenja ni 1 (najdeno {ordered[0]}).",
@@ -490,11 +485,13 @@ class KeyNumberingRule(SheetRule):
                         code="KEY_NUM_NOT_FROM_ONE",
                     )
                 )
+            if base not in bases_with_underscore or 1 not in numbers:
+                continue
             for n in range(1, ordered[-1] + 1):
                 if n not in numbers:
                     errors.append(
                         self.build_error(
-                            f"Ključ '{base}{n}' manjka v zaporedju (preskok).",
+                            f"Ključ '{base}_{n}' manjka v zaporedju (preskok).",
                             context=context,
                             column="Ključ preverjanja",
                             code="KEY_NUM_GAP",

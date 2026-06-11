@@ -1,0 +1,9 @@
+# Spletna plast (API) – dodatne odvisnosti poleg requirements.txt
+# Namestitev: pip install -r web/requirements-web.txt
+
+fastapi>=0.110          # HTTP API ogrodje
+uvicorn[standard]>=0.27 # ASGI strežnik
+python-multipart>=0.0.9 # podpora za nalaganje datotek (multipart/form-data)
+
+# Frontend (React, ReactDOM, Babel) je lokalno vendoran v
+# web/frontend/static/vendor – brez npm/Node.js, deluje offline.

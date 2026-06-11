@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable, Mapping, Sequence
 
 from validator_oop.core.constants import ALLOWED_CONTROLS_NORMALIZED, EXCEL_ERROR_TOKENS, NUMERIC_TOKEN_RE
@@ -15,7 +16,6 @@ from validator_oop.utils import (
     decimal_places_of_first_number,
     decimals_from_eps,
     derive_decimal_step_from_text,
-    eq_with_decimals,
     extract_unit_token,
     has_only_comma_separated_ints,
     is_equipment_row,
@@ -147,6 +147,35 @@ def _parse_number(value: str) -> float | None:
         return float(value.replace(",", "."))
     except ValueError:
         return None
+
+
+def _decimal_eq(raw: str, target: float, d_exact: int) -> bool:
+    """Primerja surovo vrednost iz Excel celice z pričakovano mejo brez napak plavajoče vejice.
+
+    Namesto round(float, d) == round(float, d) (ki pri vrednostih kot 4.95 vrne
+    napačen rezultat: round(4.95, 1) = 5.0) primerja Decimal reprezentaciji,
+    ki temeljita na dejansko vpisanem nizu in formatiranem pričakovanem nizu.
+
+    Kot varnostni mehanizem se pri majhnih razlikah (< 1e-9) vrednosti sprejmejo kot enake.
+    To pokrije primere, kjer Excel formula vrne float z napako plavajoče vejice
+    (npr. 3.340000000001 namesto 3.34), ki jo Excel sicer prikaže zaokroženo na 2 decimalki,
+    openpyxl pa jo prebere z dodatno natančnostjo. Razlika mora biti bistveno manjša od
+    najmanjšega koraka (eps ≥ 0.01), zato lažnih negativov ni.
+
+    Primer: _decimal_eq("4.95", 5.0, 1) → Decimal('4.95') == Decimal('5.0') → False ✓
+            _decimal_eq("5.0",  5.0, 1) → Decimal('5.0')  == Decimal('5.0') → True  ✓
+            _decimal_eq("4.85", 4.9, 1) → Decimal('4.85') == Decimal('4.9') → False ✓
+            _decimal_eq("3.340000000001", 3.34, 2) → abs diff < 1e-9 → True ✓
+    """
+    try:
+        raw_dec = Decimal(raw.replace(",", "."))
+        target_dec = Decimal(f"{target:.{d_exact}f}")
+        if raw_dec == target_dec:
+            return True
+        # Fallback: sprejmi vrednosti z mikroskopsko razliko (napaka plavajoče vejice iz formulnih celic)
+        return abs(raw_dec - target_dec) < Decimal("1e-9")
+    except InvalidOperation:
+        return False
 
 
 def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
@@ -434,6 +463,8 @@ class ControlContextRule(RowRule):
             return None
         is_koda_field = state.label_value == "koda"
         if state.tip_obj == "spustniseznam" or is_koda_field:
+            return None
+        if control.name_ns == "kontrolaustreznostiopremeizmase" and state.tip_obj == "klictehtnice1":
             return None
         return self._build_invalid_context_error(
             (
@@ -1358,15 +1389,25 @@ class KontrolaIntervalParamRule(RowRule):
         for control in interval_controls:
             p1 = coerce_str(row.get(control.param1_column or "", ""))
             p2 = coerce_str(row.get(control.param2_column or "", ""))
-            if not p1 and not p2:
+            if not p1:
                 errors.append(
                     self.build_error(
-                        "kontrolaInterval potrebuje vsaj en parameter (min ali max).",
+                        "kontrolaInterval potrebuje Param1 (spodnjo mejo).",
                         context=context,
                         column=control.param1_column or control.column,
                         code="CTRL_INTERVAL_PARAMS",
                     )
                 )
+            if not p2:
+                errors.append(
+                    self.build_error(
+                        "kontrolaInterval potrebuje Param2 (zgornjo mejo).",
+                        context=context,
+                        column=control.param2_column or control.column,
+                        code="CTRL_INTERVAL_PARAMS",
+                    )
+                )
+            if not p1 or not p2:
                 continue
 
             p1_val = _parse_number(p1)
@@ -1450,7 +1491,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
 
                 if op == ">":
                     # Strogo večje: Param1 mora biti ENAK xi, Param2 ≥ xi + eps
-                    if not (p1_is_num and eq_with_decimals(p1_val, xi, d_exact)):
+                    if not (p1_is_num and _decimal_eq(p1_raw, xi, d_exact)):
                         errors.append(
                             self.build_error(
                                 (
@@ -1477,7 +1518,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 elif op == ">=":
                     # Večje ali enako: Param1 = xi − eps, Param2 ≥ xi + eps
                     expected_p1 = xi - eps
-                    if not (p1_is_num and eq_with_decimals(p1_val, expected_p1, d_exact)):
+                    if not (p1_is_num and _decimal_eq(p1_raw, expected_p1, d_exact)):
                         errors.append(
                             self.build_error(
                                 (
@@ -1522,12 +1563,12 @@ class KontrolaIntervalAdvancedRule(RowRule):
                     if op == "<":
                         # Strogo manjše: Param2 = xi (MES: zavrni če vrednost >= Param2)
                         p2_required = xi
-                        p2_ok = p2_is_num and eq_with_decimals(p2_val, p2_required, d_exact)
+                        p2_ok = p2_is_num and _decimal_eq(p2_raw, p2_required, d_exact)
                         p2_msg = f"{p2_required:.{d_fmt}f}"
                     else:  # "<="
                         # Manjše ali enako: Param2 = xi + eps (MES: zavrni če vrednost > xi)
                         p2_required = xi + eps
-                        p2_ok = p2_is_num and eq_with_decimals(p2_val, p2_required, d_exact)
+                        p2_ok = p2_is_num and _decimal_eq(p2_raw, p2_required, d_exact)
                         p2_msg = f"{p2_required:.{d_fmt}f}"
                     if not p2_ok:
                         errors.append(
@@ -1569,7 +1610,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
 
                 d_fmt = max_decimals(left_req, right_req, param1_required, param2_required, p1_val, p2_val)
 
-                if not (p1_is_num and eq_with_decimals(p1_val, param1_required, d_tol)):
+                if not (p1_is_num and _decimal_eq(p1_raw, param1_required, d_tol)):
                     errors.append(
                         self.build_error(
                             (
@@ -1581,7 +1622,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                             code="CTRL_INTERVAL_PM_P1",
                         )
                     )
-                if not (p2_is_num and eq_with_decimals(p2_val, param2_required, d_tol)):
+                if not (p2_is_num and _decimal_eq(p2_raw, param2_required, d_tol)):
                     errors.append(
                         self.build_error(
                             (
@@ -1610,7 +1651,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 upper = b + eps
                 d_fmt = max_decimals(a, b, lower, upper, p1_val, p2_val)
 
-                if not (p1_is_num and eq_with_decimals(p1_val, lower, d_exact)):
+                if not (p1_is_num and _decimal_eq(p1_raw, lower, d_exact)):
                     errors.append(
                         self.build_error(
                                 (
@@ -1622,7 +1663,7 @@ class KontrolaIntervalAdvancedRule(RowRule):
                             code="CTRL_INTERVAL_P1_BOUND",
                         )
                     )
-                if not (p2_is_num and eq_with_decimals(p2_val, upper, d_exact)):
+                if not (p2_is_num and _decimal_eq(p2_raw, upper, d_exact)):
                     errors.append(
                         self.build_error(
                                 (

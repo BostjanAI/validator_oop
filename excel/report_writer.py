@@ -69,6 +69,61 @@ def _protect_with_filters(ws: Any, header_row: int = 1) -> None:
 class ReportWriter:
     """Writes validation reports to Excel and text files."""
 
+    @staticmethod
+    def _catalog_info_rows(catalog_summary: Mapping[str, Any]) -> list[tuple[str, str]]:
+        """Rows for catalog block on Povzetek sheet."""
+        if not catalog_summary.get("enabled"):
+            return [
+                ("Preverjanje šifrantov", "Ni izvedeno"),
+            ]
+        rows = [
+            ("Preverjanje šifrantov", "Da"),
+            ("Šifrant raztopin", catalog_summary.get("raztopine_path") or "—"),
+            ("Šifrant kemikalij", catalog_summary.get("kemikalije_path") or "—"),
+            (
+                "Šifer v katalogu (raztopina / kemikalija)",
+                f"{catalog_summary.get('catalog_codes_raztopina', 0)} / "
+                f"{catalog_summary.get('catalog_codes_kemikalija', 0)}",
+            ),
+            (
+                "Pregledanih vrstic (raztopina / kemikalija)",
+                f"{catalog_summary.get('rows_checked_raztopina', 0)} / "
+                f"{catalog_summary.get('rows_checked_kemikalija', 0)}",
+            ),
+            ("Napak šifer (CATALOG_CODE_MISMATCH)", catalog_summary.get("mismatches", 0)),
+            ("Status šifrantov", catalog_summary.get("status", "")),
+        ]
+        return rows
+
+    @staticmethod
+    def _write_catalog_sheet(
+        wb: Any,
+        catalog_summary: Mapping[str, Any],
+        issues: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """Dedicated sheet for catalog validation summary and šifra errors."""
+        ws = wb.create_sheet(title="Šifranti")
+        ws.append(["Parameter", "Vrednost"])
+        for label, value in ReportWriter._catalog_info_rows(catalog_summary):
+            ws.append([label, value])
+        ws.append([])
+        ws.append(["Napake šifrantov (samo CATALOG_CODE_MISMATCH)"])
+        ws.append(["List", "Vrstica", "Stolpec", "Ključ / opis"])
+        catalog_issues = [
+            i for i in issues if (i.get("code") or "") == "CATALOG_CODE_MISMATCH"
+        ]
+        if not catalog_issues:
+            ws.append(["—", "—", "—", "Ni napak šifrantov"])
+        else:
+            for issue in catalog_issues:
+                ws.append([
+                    issue.get("sheet", ""),
+                    issue.get("row", ""),
+                    issue.get("col", ""),
+                    issue.get("message", ""),
+                ])
+        _auto_fit_columns(ws)
+
     def __init__(self, *, logger: logging.Logger | None = None) -> None:
         """Initialize the report writer.
 
@@ -81,12 +136,15 @@ class ReportWriter:
         self,
         report_path: str | Path,
         issues: Sequence[Mapping[str, Any]],
+        *,
+        catalog_summary: Mapping[str, Any] | None = None,
     ) -> None:
         """Write validation issues to an Excel report.
 
         Args:
             report_path: Path to the output Excel file.
             issues: List of issue dictionaries.
+            catalog_summary: Optional metadata from catalog validation (Šifranti).
 
         Raises:
             RuntimeError: If openpyxl is not installed.
@@ -99,7 +157,9 @@ class ReportWriter:
 
         resolved_path = Path(report_path)
         self._logger.info("Writing Excel report to %s", resolved_path)
-        report_date = datetime.now().strftime("%d. %m. %Y")
+        now = datetime.now()
+        report_date = now.strftime("%d. %m. %Y")
+        report_datetime = now.strftime("%d. %m. %Y %H:%M")
 
         wb = Workbook()
 
@@ -109,18 +169,30 @@ class ReportWriter:
         # Verzija aplikacije na vrhu poročila
         ws.cell(row=1, column=1, value="Validator IPO Receptur")
         ws.cell(row=1, column=2, value=VERSION_REPORT)
-        headers = ["Datum", "List", "Vrstica", "Stolpec", "Napaka", "Opis napake"]
-        for j, h in enumerate(headers, start=1):
-            ws.cell(row=2, column=j, value=h)
 
-        if not issues:
-            ws.cell(row=3, column=1, value=report_date)
-            ws.cell(row=3, column=5, value="OK")
-            ws.cell(row=3, column=6, value="Ni najdenih strukturnih napak.")
+        if catalog_summary is not None:
+            info_rows = self._catalog_info_rows(catalog_summary)
+            for i, (label, value) in enumerate(info_rows):
+                r = 2 + i
+                ws.cell(row=r, column=1, value=label)
+                ws.cell(row=r, column=2, value=value)
+            header_row = 2 + len(info_rows) + 1
         else:
-            r = 3
+            header_row = 2
+
+        headers = ["Datum in ura", "List", "Vrstica", "Stolpec", "Napaka", "Opis napake"]
+        for j, h in enumerate(headers, start=1):
+            ws.cell(row=header_row, column=j, value=h)
+
+        data_start = header_row + 1
+        if not issues:
+            ws.cell(row=data_start, column=1, value=report_datetime)
+            ws.cell(row=data_start, column=5, value="OK")
+            ws.cell(row=data_start, column=6, value="Ni najdenih strukturnih napak.")
+        else:
+            r = data_start
             for issue in issues:
-                ws.cell(row=r, column=1, value=report_date)
+                ws.cell(row=r, column=1, value=report_datetime)
                 ws.cell(row=r, column=2, value=issue.get("sheet", ""))
                 ws.cell(row=r, column=3, value=issue.get("row", ""))
                 ws.cell(row=r, column=4, value=issue.get("col", ""))
@@ -130,10 +202,10 @@ class ReportWriter:
 
         _auto_fit_columns(ws)
         last_col = get_column_letter(ws.max_column or 1)
-        last_row = ws.max_row or 2
-        ws.auto_filter.ref = f"A2:{last_col}{last_row}"
+        last_row = ws.max_row or header_row
+        ws.auto_filter.ref = f"A{header_row}:{last_col}{last_row}"
 
-        # 2) Additional sheet with error counts by code
+        # 2) Sheet with error counts by code
         ws2 = wb.create_sheet(title="Število napak")
         ws2_headers = ["Koda", "Opis", "Število"]
         for j, h in enumerate(ws2_headers, start=1):
@@ -148,6 +220,7 @@ class ReportWriter:
                     continue
                 counts[code] = counts.get(code, 0) + 1
 
+            total = sum(counts.values())
             r2 = 2
             for code in sorted(counts.keys()):
                 ws2.cell(row=r2, column=1, value=code)
@@ -155,10 +228,45 @@ class ReportWriter:
                 ws2.cell(row=r2, column=3, value=counts[code])
                 r2 += 1
 
+            # SUM row
+            ws2.cell(row=r2, column=2, value="SKUPAJ")
+            ws2.cell(row=r2, column=3, value=total)
+
         _auto_fit_columns(ws2)
         last_col2 = get_column_letter(ws2.max_column or 1)
-        last_row2 = ws2.max_row or 1
-        ws2.auto_filter.ref = f"A1:{last_col2}{last_row2}"
+        # Auto-filter only over data rows (exclude SUM row)
+        filter_last_row = (ws2.max_row - 1) if issues else (ws2.max_row or 1)
+        ws2.auto_filter.ref = f"A1:{last_col2}{filter_last_row}"
+
+        # 3) Sheet with error counts grouped by sheet name
+        ws3 = wb.create_sheet(title="Po listih")
+        ws3_headers = ["List", "Število napak"]
+        for j, h in enumerate(ws3_headers, start=1):
+            ws3.cell(row=1, column=j, value=h)
+
+        if issues:
+            sheet_counts: dict[str, int] = {}
+            for issue in issues:
+                sheet_name = issue.get("sheet") or "(neznano)"
+                sheet_counts[sheet_name] = sheet_counts.get(sheet_name, 0) + 1
+
+            r3 = 2
+            for sheet_name in sorted(sheet_counts.keys()):
+                ws3.cell(row=r3, column=1, value=sheet_name)
+                ws3.cell(row=r3, column=2, value=sheet_counts[sheet_name])
+                r3 += 1
+
+            # SUM row
+            ws3.cell(row=r3, column=1, value="SKUPAJ")
+            ws3.cell(row=r3, column=2, value=sum(sheet_counts.values()))
+
+        _auto_fit_columns(ws3)
+        last_col3 = get_column_letter(ws3.max_column or 1)
+        filter_last_row3 = (ws3.max_row - 1) if issues else (ws3.max_row or 1)
+        ws3.auto_filter.ref = f"A1:{last_col3}{filter_last_row3}"
+
+        if catalog_summary is not None:
+            self._write_catalog_sheet(wb, catalog_summary, issues)
 
         wb.save(resolved_path)
         try:
@@ -170,6 +278,8 @@ class ReportWriter:
         self,
         report_path: str | Path,
         issues: Sequence[Mapping[str, Any]],
+        *,
+        catalog_summary: Mapping[str, Any] | None = None,
     ) -> None:
         """Write validation issues to a text report.
 
@@ -181,6 +291,11 @@ class ReportWriter:
         self._logger.info("Writing text report to %s", resolved_path)
 
         lines: list[str] = []
+        if catalog_summary is not None:
+            lines.append("=== Preverjanje šifrantov ===")
+            for label, value in self._catalog_info_rows(catalog_summary):
+                lines.append(f"{label}: {value}")
+            lines.append("")
         if not issues:
             lines.append("OK | Ni najdenih strukturnih napak.")
         else:

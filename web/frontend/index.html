@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MES Excel Validator</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <!-- Lokalno vendorane knjižnice (brez interneta / npm) -->
+  <script src="/static/vendor/react.production.min.js"></script>
+  <script src="/static/vendor/react-dom.production.min.js"></script>
+  <script src="/static/vendor/babel.min.js"></script>
+</head>
+<body>
+  <div id="root">
+    <div class="empty">
+      <div class="ic">⏳</div>
+      <p>Nalaganje aplikacije…</p>
+    </div>
+  </div>
+
+  <!-- Aplikacijska koda: Babel jo prevede v brskalniku (react + typescript preset) -->
+  <script type="text/babel" data-presets="react,typescript" src="/static/js/app.tsx"></script>
+</body>
+</html>

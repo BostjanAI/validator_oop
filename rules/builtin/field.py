@@ -29,6 +29,12 @@ from validator_oop.utils import (
 # Additional local constants not in core/constants.py
 REQUIRED_KEY_TYPES: frozenset[str] = frozenset({"kemikalija", "raztopina", "masa", "tehtnica"})
 FORMULA_OBJECT_TYPES: frozenset[str] = frozenset({"formula", "formula0", "formula1"})
+CRTA_ALLOWED_NON_EMPTY_COLUMNS: frozenset[str] = frozenset({
+    "št. Koraka",
+    "Tip podatka",
+    "Tip objekta",
+    "Zavihek",
+})
 
 
 @register
@@ -72,6 +78,17 @@ class DataObjectCompatibilityRule(RowRule):
         errors = []
 
         if tip_data not in STANDARD_TIP_PODATKA:
+            return errors
+
+        if tip_data == "masa" and tip_obj in FORMULA_OBJECT_TYPES:
+            errors.append(
+                self.build_error(
+                    "Pri tipu podatka 'masa' Tip objekta ne sme biti 'formula', 'formula0' ali 'formula1'.",
+                    context=context,
+                    column="Tip objekta",
+                    code="OBJECT_TYPE_MISMATCH",
+                )
+            )
             return errors
 
         allowed_objects = DATA_OBJECT_MAPPING.get(tip_data)
@@ -185,17 +202,102 @@ class CheckboxLabelaRule(RowRule):
 
 
 @register
+class CrtaEmptyColumnsRule(RowRule):
+    """Pri tipu podatka crta morajo biti vsi ostali stolpci prazni."""
+
+    name = "crta_empty_columns_rule"
+    description = "Pri tipu podatka 'crta' morajo biti vsi ostali stolpci prazni."
+
+    @staticmethod
+    def _is_nonempty(value: object) -> bool:
+        if value is None:
+            return False
+        try:
+            import pandas as pd
+            if pd.isna(value):
+                return False
+        except (ImportError, TypeError, ValueError):
+            pass
+        return bool(str(value).strip())
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+        if tip_data != "crta":
+            return
+
+        shared = context.shared
+        if shared:
+            columns = shared.columns or [
+                k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS
+            ]
+        else:
+            columns = [k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS]
+
+        skip = CRTA_ALLOWED_NON_EMPTY_COLUMNS | VALIDATION_EXCLUDED_COLUMNS
+        for column in columns:
+            if column in skip:
+                continue
+            if not self._is_nonempty(row.get(column)):
+                continue
+            yield self.build_error(
+                f"Pri tipu podatka 'crta' mora biti stolpec '{column}' prazen.",
+                context=context,
+                column=column,
+                code="CRTA_COLUMN_NOT_EMPTY",
+            )
+
+
+@register
+class SpustniseznamVrednostRule(RowRule):
+    """Pri spustnem seznamu mora biti stolpec Vrednost zapolnjen z oznako šifranta."""
+
+    name = "spustniseznam_vrednost_rule"
+    description = "Pri tipu objekta 'spustniseznam' mora biti stolpec 'Vrednost' zapolnjen."
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
+        if tip_obj != "spustniseznam":
+            return
+
+        vrednost = coerce_str(row.get("Vrednost", "")).strip()
+        if not vrednost:
+            yield self.build_error(
+                "Pri tipu objekta 'spustniseznam' mora biti stolpec 'Vrednost' zapolnjen (oznaka šifranta, npr. HPLC, tehtnica).",
+                context=context,
+                column="Vrednost",
+                code="SPUSTNISEZNAM_VREDNOST_EMPTY",
+            )
+
+
+@register
 class KeyValidationRule(RowRule):
     """Validate 'Ključ preverjanja'."""
 
     name = "key_validation"
     description = "Preveri format ključa in obveznost za določene tipe."
 
+    @staticmethod
+    def _key_raw(row: Mapping[str, object]) -> str:
+        """Vrednost ključa brez strip (za zaznavo presledkov na začetku/koncu)."""
+        value = row.get("Ključ preverjanja", "")
+        if value is None:
+            return ""
+        try:
+            import pandas as pd
+            if pd.isna(value):
+                return ""
+        except (ImportError, TypeError, ValueError):
+            pass
+        return str(value)
+
+    @staticmethod
+    def _has_edge_space(key: str) -> bool:
+        return bool(key) and (key[0] == " " or key[-1] == " ")
+
     def _find_invalid_char(self, key: str) -> str | None:
         """Poišče prvi nedovoljen znak v ključu in vrne njegov opis."""
         allowed_chars = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-.")
         char_descriptions = {
-            " ": "presledek",
             ",": "vejica",
             ";": "podpičje",
             ":": "dvopičje",
@@ -231,30 +333,49 @@ class KeyValidationRule(RowRule):
         }
         
         for char in key:
+            if char == " ":
+                continue
             if char not in allowed_chars:
                 return char_descriptions.get(char, f"znak '{char}'")
         return None
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         errors = []
-        key = coerce_str(row.get("Ključ preverjanja", ""))
+        key_raw = self._key_raw(row)
+        key = key_raw.strip()
         tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
 
-        if key and not KEY_PATTERN.fullmatch(key):
-            invalid_char_desc = self._find_invalid_char(key)
-            if invalid_char_desc:
-                error_msg = f"Ključ preverjanja '{key}' vsebuje nedovoljen {invalid_char_desc}."
-            else:
-                error_msg = f"Ključ preverjanja '{key}' vsebuje nedovoljene znake. Dovoljeni so samo: črke (A-Z, a-z), številke (0-9), podčrtaj (_), vezaj (-) in pika (.)."
-            
+        if key_raw and self._has_edge_space(key_raw):
             errors.append(
                 self.build_error(
-                    error_msg,
+                    f"Ključ preverjanja '{key_raw}' vsebuje presledek na začetku ali koncu.",
                     context=context,
                     column="Ključ preverjanja",
                     code="KEY_INVALID_FORMAT",
                 )
             )
+        elif key and not KEY_PATTERN.fullmatch(key):
+            invalid_char_desc = self._find_invalid_char(key)
+            if invalid_char_desc:
+                error_msg = f"Ključ preverjanja '{key}' vsebuje nedovoljen {invalid_char_desc}."
+                errors.append(
+                    self.build_error(
+                        error_msg,
+                        context=context,
+                        column="Ključ preverjanja",
+                        code="KEY_INVALID_FORMAT",
+                    )
+                )
+            elif " " not in key:
+                errors.append(
+                    self.build_error(
+                        f"Ključ preverjanja '{key}' vsebuje nedovoljene znake. "
+                        "Dovoljeni so samo: črke (A-Z, a-z), številke (0-9), podčrtaj (_), vezaj (-) in pika (.).",
+                        context=context,
+                        column="Ključ preverjanja",
+                        code="KEY_INVALID_FORMAT",
+                    )
+                )
 
         if tip_data in REQUIRED_KEY_TYPES and not key:
             errors.append(
@@ -376,13 +497,16 @@ class CommaNumberRule(RowRule):
 
 @register
 class NoSpacesRule(RowRule):
-    """Preveri, da vrednosti v vseh stolpcih (razen Navodilo in Labela) ne vsebujejo presledkov."""
+    """Preveri presledke v vmesnosti vrednosti (robni presledki niso prepovedani)."""
 
     name = "no_spaces_rule"
-    description = "V vseh stolpcih in vrsticah ne sme biti presledkov (izjemi: Navodilo, Labela)."
+    description = (
+        "V vseh stolpcih ne sme biti presledkov v vmesnosti vrednosti "
+        "(izjemi: Navodilo, Labela, Vrednost; rob pri Ključ preverjanja: key_validation)."
+    )
 
     # Stolpci, kjer so presledki vedno dovoljeni
-    EXCLUDED_COLUMNS: frozenset[str] = frozenset({"Navodilo", "Labela"})
+    EXCLUDED_COLUMNS: frozenset[str] = frozenset({"Navodilo", "Labela", "Vrednost"})
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         shared = context.shared
@@ -406,9 +530,10 @@ class NoSpacesRule(RowRule):
             except (ImportError, TypeError, ValueError):
                 pass
             raw = str(value)
-            if not raw.strip():
+            inner = raw.strip()
+            if not inner:
                 continue
-            if " " in raw:
+            if " " in inner:
                 yield self.build_error(
                     f"Vrednost v stolpcu '{column}' vsebuje presledek (ni dovoljeno).",
                     context=context,
@@ -460,7 +585,7 @@ class FormulaStepEditLabelaRule(RowRule):
     """Ensure formula-referenced steps have an allowed object type."""
 
     name = "formula_step_edit_labela_rule"
-    description = "Koraki, na katere se formula sklicuje (v stolpcu Vrednost), morajo imeti Tip objekta 'edit', 'formula', 'formula0' ali 'formula1'."
+    description = "Koraki, na katere se formula sklicuje (v stolpcu Vrednost), morajo imeti Tip objekta 'edit', 'formula', 'formula0', 'formula1' ali 'klictehtnice1'."
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
