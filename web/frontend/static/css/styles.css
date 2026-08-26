@@ -1,5 +1,5 @@
 /*
- * MES Excel Validator – Sartorius črno-rumena tema (kot PyQt6 GUI).
+ * IPO Excel Validator – Sartorius črno-rumena tema (kot PyQt6 GUI).
  * Header #000000, akcent #FFE600, ozadje #f5f5f5, Segoe UI.
  */
 
@@ -307,6 +307,94 @@ html, body {
 .empty .ic { font-size: 40px; opacity: 0.4; }
 .muted { color: var(--text-muted); font-size: 12px; }
 .error-banner { background: var(--error-soft); color: var(--error); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; border-left: 4px solid var(--error); }
+.success-banner { background: var(--success-soft); color: var(--success); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; font-size: 13px; border-left: 4px solid var(--success); }
 .spinner { width: 18px; height: 18px; border: 2px solid rgba(0,0,0,0.25); border-top-color: var(--black); border-radius: 50%; animation: spin 0.7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .catalog-note { font-size: 12px; margin-top: 8px; padding: 8px 12px; background: var(--info-soft); border-radius: var(--radius-sm); color: var(--info); }
+
+/* --------------------------- Faza 2: navigacija ------------------------ */
+
+.nav-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-btn {
+  border: 1px solid transparent; background: transparent; color: rgba(255, 255, 255, 0.75);
+  padding: 7px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.12s ease; white-space: nowrap;
+}
+.nav-btn:hover { color: #fff; border-color: rgba(255, 255, 255, 0.35); }
+.nav-btn.active { background: var(--yellow); color: var(--black); border-color: var(--yellow); }
+
+.header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.user-chip {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px; padding: 4px 6px 4px 14px; font-size: 12.5px;
+}
+.user-chip .user-name { color: #fff; font-weight: 600; }
+.user-chip .user-role {
+  background: var(--yellow); color: var(--black); font-weight: 700;
+  padding: 2px 8px; border-radius: 999px; font-size: 10.5px; text-transform: uppercase;
+}
+.user-chip .logout-btn {
+  border: none; background: transparent; color: rgba(255, 255, 255, 0.7);
+  cursor: pointer; font-size: 12px; text-decoration: underline; font-family: inherit; padding: 2px 6px;
+}
+.user-chip .logout-btn:hover { color: #fff; }
+
+/* ----------------------------- Faza 2: prijava ------------------------- */
+
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow-lg); padding: 36px 32px; width: 100%; max-width: 380px; text-align: center;
+  border-top: 4px solid var(--yellow);
+}
+.login-card h2 { margin: 6px 0 2px; font-size: 20px; }
+.login-card p { margin-top: 0; }
+.login-card .field { text-align: left; margin-top: 14px; }
+.login-card .field input {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); font-size: 14px; font-family: inherit;
+}
+.login-card .field input:focus { outline: 2px solid var(--yellow); outline-offset: -1px; }
+.login-card .btn-block { margin-top: 18px; }
+.login-logo {
+  width: 52px; height: 52px; border-radius: 10px; margin: 0 auto;
+  background: var(--black); color: var(--yellow);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px;
+}
+
+/* ------------------------ Faza 2: zgodovina, audit --------------------- */
+
+.issues-table tr.clickable { cursor: pointer; }
+.badge.changed { background: var(--warning-soft); color: var(--warning); }
+.live-badge {
+  background: var(--yellow); color: var(--black); font-size: 10.5px; font-weight: 800;
+  padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.4px;
+}
+
+/* ---------------------------- Faza 2: diff ----------------------------- */
+
+.diff-pickers { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 760px) { .diff-pickers { grid-template-columns: 1fr; } }
+.diff-side {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; background: var(--surface-2);
+}
+.diff-side-title { font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+.diff-side select {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); font-size: 13px; background: var(--surface); font-family: inherit;
+}
+.diff-side .seg { border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; }
+.diff-side .seg button {
+  border: none; background: var(--surface); padding: 7px 12px; font-size: 12px;
+  cursor: pointer; color: var(--text-muted); font-family: inherit; font-weight: 600;
+}
+.diff-side .seg button.active { background: var(--black); color: var(--yellow); }
+
+.diff-table tr.diff-added td { background: var(--success-soft); }
+.diff-table tr.diff-removed td { background: var(--error-soft); }
+.diff-table tr.diff-changed td { background: var(--warning-soft); }
+.diff-cell-change { font-size: 12px; margin-top: 3px; }
+.diff-cell-change .old { color: var(--error); text-decoration: line-through; }
+.diff-cell-change .new { color: var(--success); font-weight: 600; }

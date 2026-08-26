@@ -150,12 +150,28 @@ class TestControlContextRule:
 
     @pytest.mark.parametrize(
         "tip_podatka",
-        ["raztopina", "raztopina1", "kemikalija", "kemikalija2"],
+        [
+            "raztopina",
+            "raztopina1",
+            "kemikalija",
+            "kemikalija2",
+            "tehtnica",
+            "termometer",
+            "kopel",
+            "ph_meter",
+            "sušilnik",
+            "vak_sušilnik",
+            "merilnik",
+            "naprava",
+            "avtoklav",
+            "pipeta",
+            "konduktometer",
+        ],
     )
-    def test_aliisto_allowed_on_raztopina_or_kemikalija(
+    def test_aliisto_allowed_on_raztopina_kemikalija_or_oprema(
         self, rule: ControlContextRule, tip_podatka: str
     ) -> None:
-        """aliIsto je dovoljena pri tipu raztopina/kemikalija (vključno s pripono)."""
+        """aliIsto je dovoljena pri raztopina/kemikalija (tudi s pripono) in pri opremi."""
         rows = [
             {
                 "Tip objekta": "edit",
@@ -439,6 +455,57 @@ class TestRequiredControlsRule:
         error_codes = [e.code for e in errors]
         assert "CTRL_REQUIRED_EMPTY" not in error_codes
 
+    def test_checkbox_with_empty_control_forbidden(self, rule: RequiredControlsRule) -> None:
+        rows = [
+            {
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "kontrolaPraznoPolje",
+            },
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip objekta", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert "CTRL_CHECKBOX_EMPTY" in [e.code for e in errors]
+
+    @pytest.mark.parametrize("tip_obj", ["naslov", "crta"])
+    def test_naslov_crta_with_empty_control_forbidden(
+        self, rule: RequiredControlsRule, tip_obj: str
+    ) -> None:
+        rows = [
+            {
+                "Tip objekta": tip_obj,
+                "Kontrola-1": "kontrolaPraznoPolje",
+            },
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip objekta", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert "CTRL_EMPTY_NOT_ALLOWED" in [e.code for e in errors]
+        assert "CTRL_REQUIRED_EMPTY" not in [e.code for e in errors]
+
+    @pytest.mark.parametrize("tip_obj", ["naslov", "crta"])
+    def test_naslov_crta_without_empty_control_ok(
+        self, rule: RequiredControlsRule, tip_obj: str
+    ) -> None:
+        rows = [{"Tip objekta": tip_obj, "Kontrola-1": ""}]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip objekta", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert "CTRL_EMPTY_NOT_ALLOWED" not in [e.code for e in errors]
+        assert "CTRL_REQUIRED_EMPTY" not in [e.code for e in errors]
+
 
 class TestKontrolaIntervalParamRule:
     """Tests for KontrolaIntervalParamRule."""
@@ -626,6 +693,79 @@ class TestZakleniParamRule:
         error_codes = [e.code for e in errors]
         assert "LOCK_P1_FORMAT" in error_codes
 
+    def test_zakleni_param1_step_without_pogoj_raises_error(
+        self, rule: ZakleniParamRule
+    ) -> None:
+        """Param1 must list steps that have aliObstajaPogoj (except checkbox zaklenipolja steps)."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "6,7",
+            },
+            {
+                "št. Koraka": "6",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "5,7",
+            },
+            {
+                "št. Koraka": "7",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "5,6,27",
+            },
+            {"št. Koraka": "27", "Tip objekta": "edit", "Kontrola-1": ""},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Kontrola-1", "Kontrola-1: Par 1"]
+        ctx = builder.build(rows, columns)
+        ctx.extra["bypass_zakleni_require_pogoj_for_param1_steps"] = False
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        without = [e for e in errors if e.code == "LOCK_P1_WITHOUT_CONDITION"]
+
+        assert len(without) == 1
+        assert without[0].row_index == 4
+        assert "27" in without[0].message
+
+    def test_zakleni_param1_checkbox_steps_exempt_from_pogoj_requirement(
+        self, rule: ZakleniParamRule
+    ) -> None:
+        """Other checkbox zaklenipolja steps in Param1 do not require aliObstajaPogoj."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "6,7",
+            },
+            {
+                "št. Koraka": "6",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "5,7",
+            },
+            {
+                "št. Koraka": "7",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "5,6",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Kontrola-1", "Kontrola-1: Par 1"]
+        ctx = builder.build(rows, columns)
+        ctx.extra["bypass_zakleni_require_pogoj_for_param1_steps"] = False
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "LOCK_P1_WITHOUT_CONDITION"] == []
+
 
 class TestAliObstajaPogojCombinationRule:
     """Tests for AliObstajaPogojCombinationRule."""
@@ -787,6 +927,42 @@ class TestExpectedControlsRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert [e for e in errors if e.code == "CTRL_EXPECTED_MISSING"] == []
+
+    def test_repro_missing_controls_warns(self, rule: ExpectedControlsRule) -> None:
+        rows = [{"Tip podatka": "repro", "Kontrola-1": "", "Kontrola-2": ""}]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip podatka", "Kontrola-1", "Kontrola-2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        expected = [e for e in errors if e.code == "CTRL_EXPECTED_MISSING"]
+        assert len(expected) == 2
+        assert all(e.severity == Severity.WARNING for e in expected)
+
+    def test_repro_with_controls_no_warning(self, rule: ExpectedControlsRule) -> None:
+        rows = [
+            {
+                "Tip podatka": "repro",
+                "Kontrola-1": "kontrolaVeljavnostiRepro",
+                "Kontrola-2": "kontrolaUstreznostiRepro",
+            }
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip podatka", "Kontrola-1", "Kontrola-2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "CTRL_EXPECTED_MISSING"] == []
+
+    def test_reproodpis_missing_controls_warns(self, rule: ExpectedControlsRule) -> None:
+        rows = [{"Tip podatka": "reproodpis", "Kontrola-1": "", "Kontrola-2": ""}]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Tip podatka", "Kontrola-1", "Kontrola-2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        expected = [e for e in errors if e.code == "CTRL_EXPECTED_MISSING"]
+        assert len(expected) == 2
 
     def test_tehtnica_without_masa_value_does_not_require_ustreznost(self, rule: ExpectedControlsRule) -> None:
         """Tehtnica should not require oprema suitability if matching masa has empty Vrednost."""
@@ -1103,6 +1279,48 @@ class TestKontrolaIntervalAdvancedRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert "CTRL_INTERVAL_TARGET_P1" in [e.code for e in errors]
+
+    def test_gte_prefix_on_volume_range_rejects_too_high_param2(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """'≥ 10 - 11 CV (≥ 4000 - 4400 mL)' is a range: Param2 must be 4401, not an open ≥ 4000."""
+        rows = [
+            {
+                "Navodilo": "Prečrpano ≥ 10 - 11 CV dH2O (≥ 4000 - 4400 mL)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "3999",
+                "Kontrola-1: Par 2": "8801",
+            }
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert "CTRL_INTERVAL_P2_BOUND" in [e.code for e in errors]
+
+    def test_gte_prefix_on_volume_range_accepts_open_interval_bounds(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """Open interval for 4000–4400 mL is Param1=3999 and Param2=4401."""
+        rows = [
+            {
+                "Navodilo": "Prečrpano ≥ 10 - 11 CV dH2O (≥ 4000 - 4400 mL)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "3999",
+                "Kontrola-1: Par 2": "4401",
+            }
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
 
     def test_inequality_gte_double_value_navodilo_accepts_correct_params(
         self, rule: KontrolaIntervalAdvancedRule

@@ -361,7 +361,7 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 |-------------|----------------------|
 | `kemikalija`, `raztopina`, `zaposleni`, `monolit`, `embalaza`, `repro`, `reproodpis`, `monomerna` | `edit` |
 | `masa` | `edit`, `klictehtnice1` |
-| `tehtnica`, `termometer`, `kopel`, `pH_meter`, `sušilnik`, `vak_sušilnik`, `merilnik`, `naprava` | `edit`, `spustniseznam` |
+| `tehtnica`, `termometer`, `kopel`, `pH_meter`, `sušilnik`, `vak_sušilnik`, `merilnik`, `naprava`, `avtoklav` | `edit`, `spustniseznam` |
 | `datumcas`, `datumcaszacetek`, `datumcaskonec` | `izberidatumcas`, `gumbdatumcas` |
 | `checkbox` | `checkbox` |
 | `naslov` | `naslov` |
@@ -530,6 +530,29 @@ Te napake se nanašajo na logične odnose med vrsticami (pari masa/kemikalija, z
 
 ---
 
+#### `PAIR_KOLICINA_WITHOUT_OWNER` – Kolicina nima pripadajočega repro
+
+**Opis:** Vrstica `kolicina` nima ustrezne predhodne vrstice `repro` na istem zavihku.
+
+**Vzrok:** Manjka vrstica `repro` nad količino, ali je `repro` na drugem zavihku.
+
+**Rešitev:** Nad vsako vrstico `kolicina` mora biti vrstica `repro` z istim ključem preverjanja.
+
+---
+
+#### `PAIR_KOLICINA_KEY_MISMATCH` – Ključ količine se ne ujema z repro
+
+**Opis:** Vrstica `kolicina` nima enakega ključa preverjanja kot najbližji predhodni `repro` na istem zavihku.
+
+**Vzrok:** Ključ je ostal od kopiranja (npr. `telo_V4` namesto `telo_samec_V4`).
+
+**Rešitev:** Vrstica `kolicina` mora imeti **enak** ključ kot njen `repro`. Primer:
+- Repro: ključ `telo_samec_V4`
+- Kolicina: ključ `telo_samec_V4` ✓
+- Kolicina: ključ `telo_V4` ✗
+
+---
+
 #### `PAIR_TIME_WITHOUT_END` – Začetni čas brez končnega
 
 **Opis:** Vrstica `datumcaszacetek` nima ustrezne vrstice `datumcaskonec` z enakim ključem.
@@ -674,7 +697,7 @@ Te napake se nanašajo na pravilnost kontrol v stolpcih `Kontrola 1` do `Kontrol
 
 **Rešitev:** Dodajte `kontrolapraznopolje` v zadnji prosti kontrolni reži (npr. `Kontrola 2`, `Kontrola 3`). Ta kontrola je obvezna za vse vnosne objekte.
 
-> **Izjema:** Checkbox **ne sme** imeti `kontrolapraznopolje` – za checkbox je napaka `CTRL_CHECKBOX_EMPTY`.
+> **Izjema:** Tipi `checkbox`, `naslov` in `crta` **ne smejo** imeti `kontrolapraznopolje` – napaki `CTRL_CHECKBOX_EMPTY` oziroma `CTRL_EMPTY_NOT_ALLOWED`.
 
 ---
 
@@ -685,6 +708,16 @@ Te napake se nanašajo na pravilnost kontrol v stolpcih `Kontrola 1` do `Kontrol
 **Vzrok:** Napačen vnos ali kopiranje iz vrstice z `edit` tipom.
 
 **Rešitev:** Pri checkboxu odstranite `kontrolapraznopolje`. Namesto nje uporabite `aliobkljukan` z Param1 `DA`.
+
+---
+
+#### `CTRL_EMPTY_NOT_ALLOWED` – `naslov` ali `crta` ima nedovoljeno kontrolo `kontrolapraznopolje`
+
+**Opis:** Vrstica tipa `naslov` ali `crta` ima kontrolo `kontrolapraznopolje`, ki tam ni dovoljena.
+
+**Vzrok:** Napačen vnos ali kopiranje iz vrstice z vnosnim poljem.
+
+**Rešitev:** Pri `naslov` in `crta` odstranite `kontrolapraznopolje`. Ti tipi niso vnosna polja.
 
 ---
 

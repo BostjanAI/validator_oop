@@ -3,8 +3,8 @@
 # Zagon:   docker compose -f web/deploy/docker-compose.yml up -d --build
 # Dostop:  http://<streznik>:8080
 #
-# Za HTTPS z internim certifikatom (AD CS) odkomentiraj nginx 443 sekcijo
-# in priloži certifikat ter ključ v ./certs.
+# Za HTTPS z internim certifikatom (AD CS) glej web/deploy/HTTPS_AD_CS.md:
+# odkomentiraj nginx 8443 vrata + ./certs volume in 443 blok v nginx.conf.
 
 services:
   validator:
@@ -17,6 +17,31 @@ services:
       MES_WEB_MAX_WORKERS: "2"
       MES_WEB_MAX_UPLOAD_MB: "50"
       MES_WEB_JOB_TTL_MIN: "120"
+
+      # ----- Faza 2: avtentikacija (AD/LDAP + role) -----
+      # Vklop prijave (privzeto izklopljeno = odprt dostop kot MVP):
+      # MES_WEB_AUTH_ENABLED: "1"
+      # MES_WEB_AUTH_MODE: "mixed"            # ldap | local | mixed
+      # MES_WEB_SESSION_TTL_MIN: "480"
+      # MES_WEB_SECURE_COOKIES: "1"           # vklopi skupaj s HTTPS
+      #
+      # AD/LDAP (interni domenski kontroler):
+      # MES_WEB_LDAP_SERVER: "ldaps://dc1.podjetje.local:636"
+      # MES_WEB_LDAP_USE_SSL: "1"
+      # MES_WEB_LDAP_USER_DN: "{username}@podjetje.local"
+      # MES_WEB_LDAP_BASE_DN: "DC=podjetje,DC=local"
+      # MES_WEB_LDAP_GROUP_TEHNOLOG: "cn=mes-validator-tehnologi"
+      # MES_WEB_LDAP_GROUP_QA: "cn=mes-validator-qa"
+      # MES_WEB_LDAP_GROUP_ADMIN: "cn=mes-validator-admini"
+      # MES_WEB_LDAP_DEFAULT_ROLE: ""         # "" = brez skupine ni dostopa
+      #
+      # Lokalni fallback uporabniki (JSON s PBKDF2 hashi; glej web/README.md):
+      # MES_WEB_LOCAL_USERS_FILE: "/data/users.json"
+      # Dev fallback (samo za teste, gesla v čistopisu!):
+      # MES_WEB_DEV_USERS: "admin:spremeni-me:admin"
+
+      # ----- Faza 2: trajna zgodovina -----
+      # MES_WEB_HISTORY_TTL_DAYS: "365"       # 0 = brez samodejnega brisanja
     volumes:
       - validator_data:/data
       # Opcijsko: šifranti / SOP iz network share, samo za branje
@@ -31,7 +56,7 @@ services:
       - validator
     ports:
       - "8080:80"
-      # - "8443:443"   # HTTPS (glej nginx.conf in ./certs)
+      # - "8443:443"   # HTTPS (glej nginx.conf, HTTPS_AD_CS.md in ./certs)
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
       # - ./certs:/etc/nginx/certs:ro

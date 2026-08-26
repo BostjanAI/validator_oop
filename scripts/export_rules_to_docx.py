@@ -31,6 +31,7 @@ RULES = [
     # Relational
     ("duplicate_key_rule", "Ključi za kemikalija, raztopina, datumcaszacetek, datumcaskonec in masa morajo biti unikatni znotraj zavihka/razdelka.", "Relacijska pravila"),
     ("mass_owner_rule", "Masa mora imeti pripadajočo kemikalijo ali raztopino; ujemanje ključev med kemikalija/raztopina in masa.", "Relacijska pravila"),
+    ("repro_kolicina_owner_rule", "Kolicina mora imeti predhodni repro z enakim ključem preverjanja (par repro–kolicina).", "Relacijska pravila"),
     ("time_pair_rule", "Par datumcaszacetek / datumcaskonec: za začetni čas mora obstajati končni in obratno.", "Relacijska pravila"),
     ("key_numbering_rule", "Oštevilčenje ključev (base1, base2, …) brez vrzeli in brez podvajanja 'base' + 'base1'.", "Relacijska pravila"),
     ("tehtnica_masa_pair_rule", "Povezava tehtnica–masa in ustrezne vrednosti.", "Relacijska pravila"),
@@ -38,7 +39,7 @@ RULES = [
     # Control
     ("unknown_controls_rule", "Ime kontrole mora biti med dovoljenimi (kontrolaPraznoPolje, kontrolaIntervala, kontrolaCasa, zaklenipolja, itd.).", "Kontrolna pravila"),
     ("control_context_rule", "Kontrola mora biti v ustreznem kontekstu glede na Tip podatka / Tip objekta (npr. kontrola kemikalije samo pri kemikalija).", "Kontrolna pravila"),
-    ("required_controls_rule", "Obvezna kontrola za prazno polje kjer je potrebna; pri checkboxu ne sme biti kontrola praznega polja.", "Kontrolna pravila"),
+    ("required_controls_rule", "Obvezna kontrola za prazno polje kjer je potrebna; pri checkboxu, naslovu in črti ne sme biti kontrola praznega polja.", "Kontrolna pravila"),
     ("expected_controls_rule", "Pričakovane kontrole glede na tip (npr. kemikalija: kontrola veljavnosti in ustreznosti; masa: kontrola mase, interval, razlika).", "Kontrolna pravila"),
     ("zakleni_param_rule", "Parametri za zaklenipolja: Param1 = koraki z aliObstajaPogoj; za checkbox obvezna kontrola praznega polja (ali obratno glede na konfiguracijo).", "Kontrolna pravila"),
     ("aliobstajapogoj_combo_rule", "Pravilna kombinacija aliObstajaPogoj (Param1 = ključi, Param2 = 0/1) in vrednost polja, ko je pogoj izpolnjen.", "Kontrolna pravila"),

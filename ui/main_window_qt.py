@@ -33,11 +33,16 @@ from validator_oop.core.rule_engine import RuleEngine
 from validator_oop.core.validator_engine import ValidatorEngine
 from validator_oop.excel.excel_loader import ExcelLoader
 from validator_oop.excel.report_writer import ReportWriter, WorkbookFixer
-from validator_oop.excel.management_report import write_management_report
 from validator_oop.rules.rule_registry import default_registry
 from validator_oop.rules.builtin import register_all
 from validator_oop.utils.logger import get_logger
 from validator_oop.utils.validation_progress import record_run as record_validation_progress
+from validator_oop.ui.input_files import (
+    discover_recipe_workbooks,
+    filter_workbooks_with_required_columns,
+    format_no_valid_workbooks_message,
+    merge_unique_paths,
+)
 
 if TYPE_CHECKING:
     from validator_oop.core.error import ValidationError
@@ -152,10 +157,6 @@ class MainWindowQt(QMainWindow):
         self._report_writer = ReportWriter(logger=self._logger)
         self._workbook_fixer = WorkbookFixer(logger=self._logger)
 
-        # Last validation results (for management report)
-        self._last_issues: list[dict[str, Any]] = []
-        self._last_input_name: str = ""
-
         # UI Setup
         self.setWindowTitle(f"Validator IPO Receptur {VERSION}")
         self.resize(900, 600)
@@ -221,6 +222,10 @@ class MainWindowQt(QMainWindow):
         btn_browse = QPushButton("Izberi...")
         btn_browse.clicked.connect(self._pick_input)
         input_row.addWidget(btn_browse)
+
+        btn_browse_folder = QPushButton("Izberi mapo...")
+        btn_browse_folder.clicked.connect(self._pick_input_folder)
+        input_row.addWidget(btn_browse_folder)
         
         btn_clear = QPushButton("Počisti seznam")
         btn_clear.clicked.connect(self._clear_input_list)
@@ -283,10 +288,6 @@ class MainWindowQt(QMainWindow):
         btn_compare.clicked.connect(self._run_section_compare)
         action_row.addWidget(btn_compare)
 
-        btn_mgmt = QPushButton("Pripravi poročilo o validaciji")
-        btn_mgmt.clicked.connect(self._write_management_report)
-        action_row.addWidget(btn_mgmt)
-
         action_row.addStretch()
         
         btn_open = QPushButton("Odpri mapo poročila")
@@ -335,7 +336,7 @@ class MainWindowQt(QMainWindow):
             self,
             "Izberi eno ali več Excel datotek (recepture)",
             "",
-            "Excel files (*.xlsx *.xls);;All files (*.*)"
+            "Excel files (*.xlsx *.xlsm *.xls);;All files (*.*)"
         )
         if not paths:
             return
@@ -362,6 +363,41 @@ class MainWindowQt(QMainWindow):
             self.log("Izbrane datoteke:")
             for p in deduped:
                 self.log(f"  - {p}")
+
+    def _pick_input_folder(self) -> None:
+        """Open folder dialog and add all Excel files (except inside `staro`)."""
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Izberi mapo z Excel datotekami (mapa 'staro' se preskoči)"
+        )
+        if not folder:
+            return
+        self._append_excel_files_from_folders([Path(folder)], source_label=f"mape: {folder}")
+
+    def _append_excel_files_from_folders(
+        self,
+        folders: list[Path],
+        *,
+        source_label: str,
+    ) -> None:
+        """Append recipe workbooks from folders; skip `staro` and non-recipe Excel files."""
+        existing_raw = self.input_edit.text().strip()
+        existing_parts = [
+            p.strip() for p in existing_raw.replace("\n", ";").split(";") if p.strip()
+        ]
+
+        discovered = discover_recipe_workbooks(
+            folders,
+            self._loader,
+            log=self.log,
+        )
+        deduped = merge_unique_paths(existing_parts, discovered)
+        self.input_edit.setText("; ".join(deduped))
+
+        if not discovered and not existing_parts:
+            self.log(
+                f"V {source_label} ni najdenih Excel receptur z zahtevanimi stolpci."
+            )
 
     def _pick_report(self) -> None:
         mode_combined = self.rb_combined.isChecked()
@@ -413,7 +449,27 @@ class MainWindowQt(QMainWindow):
         parts = [
             p.strip() for p in raw_in.replace("\n", ";").split(";") if p.strip()
         ]
-        in_paths = [Path(p) for p in parts]
+        non_dir_paths: list[Path] = []
+        folder_inputs: list[Path] = []
+        for p in parts:
+            parsed = Path(p)
+            if parsed.is_dir():
+                folder_inputs.append(parsed)
+            else:
+                non_dir_paths.append(parsed)
+
+        if folder_inputs:
+            self._append_excel_files_from_folders(
+                folder_inputs,
+                source_label="ročno vnesenih map",
+            )
+            updated = self.input_edit.text().strip()
+            parts = [
+                p.strip() for p in updated.replace("\n", ";").split(";") if p.strip()
+            ]
+            non_dir_paths = [Path(p) for p in parts]
+
+        in_paths = non_dir_paths
 
         if not in_paths:
             QMessageBox.critical(self, "Napaka", "Ni veljavnih poti do vhodnih datotek.")
@@ -451,6 +507,19 @@ class MainWindowQt(QMainWindow):
         in_paths = self._parse_input_paths()
         if in_paths is None:
             return
+
+        filter_result = filter_workbooks_with_required_columns(
+            in_paths,
+            self._loader,
+            log=self.log,
+        )
+        if not filter_result.valid:
+            dialog_msg, log_msg = format_no_valid_workbooks_message(filter_result)
+            QMessageBox.information(self, "Info", dialog_msg)
+            self.log(log_msg)
+            return
+
+        in_paths = filter_result.valid
 
         out_path, mode = self._validate_output_path()
         if out_path is None:
@@ -500,10 +569,6 @@ class MainWindowQt(QMainWindow):
                 self.progress_bar.setValue(i + 1)
 
         self.progress_bar.setVisible(False)
-
-        # Store for management report
-        self._last_issues = all_issues
-        self._last_input_name = "; ".join(p.name for p in in_paths)
 
         self._show_summary(all_issues, out_path, mode)
 
@@ -605,63 +670,63 @@ class MainWindowQt(QMainWindow):
 
         QMessageBox.information(self, "Povzetek", msg)
 
-    def _write_management_report(self) -> None:
-        """Generate a Markdown management report from the last validation run."""
-        if not self._last_issues:
-            QMessageBox.information(
-                self,
-                "Info",
-                "Najprej zaženi validacijo, nato pripravi poročilo.",
-            )
+    def _run_section_compare(self) -> None:
+        in_paths = self._parse_input_paths()
+        if not in_paths:
             return
+        in_path = in_paths[0]
 
         out_raw = self.report_edit.text().strip()
-        if out_raw:
-            default_dir = str(Path(out_raw).parent)
-            default_name = Path(out_raw).stem + "_vodstvo.md"
-        else:
-            default_dir = ""
-            default_name = "porocilo_vodstvo.md"
-
-        save_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Shrani poročilo za vodstvo kot",
-            str(Path(default_dir) / default_name) if default_dir else default_name,
-            "Markdown (*.md);;Besedilna datoteka (*.txt)",
-        )
-        if not save_path:
+        if not out_raw:
+            QMessageBox.critical(self, "Napaka", "Najprej izberi pot za izhodno poročilo.")
+            self.log("NAPAKA: Manjka pot za poročilo.")
+            return
+        out_path = Path(out_raw)
+        if out_path.suffix.lower() not in {".xlsx", ".txt"}:
+            QMessageBox.critical(self, "Napaka", "Poročilo mora biti .xlsx ali .txt")
+            self.log("NAPAKA: Poročilo mora biti .xlsx ali .txt")
             return
 
+        self.log(f"Berem (primerjava razdelkov): {in_path} ...")
         try:
-            write_management_report(
-                save_path,
-                self._last_issues,
-                source_filename=self._last_input_name,
+            from validator_oop.excel.section_compare import (
+                compare_sections,
+                write_section_compare_report,
             )
-            self.log(f"Poročilo za vodstvo zapisano: {save_path}")
-            reply = QMessageBox.question(
-                self,
-                "Končano",
-                f"Poročilo shranjeno:\n{save_path}\n\nOdpri datoteko?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                if platform.system() == "Windows":
-                    os.startfile(save_path)  # type: ignore[attr-defined]
-                elif platform.system() == "Darwin":
-                    os.system(f'open "{save_path}"')
-                else:
-                    os.system(f'xdg-open "{save_path}"')
-        except Exception as e:
-            QMessageBox.critical(self, "Napaka", f"Ne morem zapisati poročila:\n{e}")
-            self.log(f"NAPAKA pisanja poročila za vodstvo: {e}")
 
-    def _run_section_compare(self) -> None:
-        QMessageBox.information(
-            self,
-            "Info",
-            "Primerjava razdelkov še ni implementirana v novi arhitekturi (PyQt6)."
-        )
+            result = compare_sections(in_path)
+            self.log(
+                f"Primerjani listi: {', '.join(result.sheets)} "
+                f"(referenčni: {result.base_sheet})"
+            )
+            for issue in result.issues:
+                self.log(
+                    f"  [{issue['severity'].upper()}] {issue['code']} "
+                    f"({issue['sheet']}:{issue['row']}): {issue['message']}"
+                )
+            write_section_compare_report(result, out_path)
+            self.log(f"Poročilo primerjave: {out_path}")
+
+            if result.is_match:
+                QMessageBox.information(
+                    self,
+                    "Primerjava razdelkov",
+                    f"Razdelki se ujemajo med listi.\nPoročilo:\n{out_path}",
+                )
+            else:
+                counts = result.counts
+                QMessageBox.warning(
+                    self,
+                    "Primerjava razdelkov",
+                    f"Najdene razlike: {counts.get('error', 0)} "
+                    f"(opozoril: {counts.get('warning', 0)})\nPoročilo:\n{out_path}",
+                )
+        except ValueError as e:
+            QMessageBox.critical(self, "Napaka", str(e))
+            self.log(f"NAPAKA primerjave razdelkov: {e}")
+        except Exception as e:
+            QMessageBox.critical(self, "Napaka", f"Napaka pri primerjavi razdelkov:\n{e}")
+            self.log(f"NAPAKA primerjave razdelkov: {e}")
 
 
 def run_app_qt() -> None:

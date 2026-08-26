@@ -2,8 +2,13 @@
 # Namestitev: pip install -r web/requirements-web.txt
 
 fastapi>=0.110          # HTTP API ogrodje
-uvicorn[standard]>=0.27 # ASGI strežnik
+uvicorn[standard]>=0.27 # ASGI strežnik (vključuje websockets za real-time napredek)
 python-multipart>=0.0.9 # podpora za nalaganje datotek (multipart/form-data)
+
+# Faza 2: AD/LDAP avtentikacija (opcijsko – potrebno samo pri
+# MES_WEB_AUTH_MODE=ldap ali mixed z AD strežnikom)
+ldap3>=2.9
 
 # Frontend (React, ReactDOM, Babel) je lokalno vendoran v
 # web/frontend/static/vendor – brez npm/Node.js, deluje offline.
+# Zgodovina/audit/seje: SQLite prek stdlib sqlite3 (brez dodatnih odvisnosti).

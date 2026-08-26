@@ -1,18 +1,53 @@
 /*
- * MES Excel Validator – spletni vmesnik (React, brez build koraka).
+ * IPO Excel Validator – spletni vmesnik (React, brez build koraka).
  * Komunicira z FastAPI backendom; vsa validacijska logika je na strežniku
  * (obstoječi ValidatorEngine). Ta datoteka je samo predstavitvena plast.
+ *
+ * Faza 2: prijava (AD/LDAP ali lokalni uporabnik), zgodovina validacij,
+ * primerjava razdelkov med listi, diff dveh verzij recepture, audit trail
+ * in napredek v realnem času (WebSocket s fallbackom na polling).
  */
 
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
 /* ----------------------------- API klient ------------------------------ */
 
+async function apiFetch(url, options) {
+  const res = await fetch(url, options);
+  if (res.status === 401) {
+    // Seja je potekla → obvesti aplikacijo, da pokaže prijavo
+    window.dispatchEvent(new Event("mes-unauthorized"));
+    const err = await res.json().catch(() => ({ detail: "Prijava je obvezna." }));
+    throw new Error(err.detail || "Prijava je obvezna.");
+  }
+  return res;
+}
+
 const API = {
   async getRules() {
-    const res = await fetch("/api/rules");
+    const res = await apiFetch("/api/rules");
     if (!res.ok) throw new Error("Napaka pri nalaganju pravil");
     return res.json();
+  },
+  async me() {
+    const res = await fetch("/api/auth/me");
+    if (!res.ok) throw new Error("Napaka pri preverjanju prijave");
+    return res.json();
+  },
+  async login(username, password) {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Prijava ni uspela" }));
+      throw new Error(err.detail || "Prijava ni uspela");
+    }
+    return res.json();
+  },
+  async logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
   },
   async startValidation(recipes, config, optional) {
     const fd = new FormData();
@@ -21,7 +56,7 @@ const API = {
     if (optional.sop) fd.append("sop", optional.sop, optional.sop.name);
     if (optional.raztopine) fd.append("catalog_raztopine", optional.raztopine, optional.raztopine.name);
     if (optional.kemikalije) fd.append("catalog_kemikalije", optional.kemikalije, optional.kemikalije.name);
-    const res = await fetch("/api/validate", { method: "POST", body: fd });
+    const res = await apiFetch("/api/validate", { method: "POST", body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: "Napaka pri zagonu validacije" }));
       throw new Error(err.detail || "Napaka pri zagonu validacije");
@@ -29,12 +64,12 @@ const API = {
     return res.json();
   },
   async jobStatus(jobId) {
-    const res = await fetch(`/api/jobs/${jobId}`);
+    const res = await apiFetch(`/api/jobs/${jobId}`);
     if (!res.ok) throw new Error("Napaka pri branju stanja");
     return res.json();
   },
   async jobResults(jobId) {
-    const res = await fetch(`/api/jobs/${jobId}/results`);
+    const res = await apiFetch(`/api/jobs/${jobId}/results`);
     if (!res.ok) throw new Error("Napaka pri branju rezultatov");
     return res.json();
   },
@@ -43,6 +78,66 @@ const API = {
   },
   combinedReportUrl(jobId, filename) {
     return `/api/jobs/${jobId}/report/${encodeURIComponent(filename)}`;
+  },
+  wsJobUrl(jobId) {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    return `${proto}://${location.host}/api/ws/jobs/${jobId}`;
+  },
+  async history(limit, offset) {
+    const res = await apiFetch(`/api/history?limit=${limit}&offset=${offset}`);
+    if (!res.ok) throw new Error("Napaka pri nalaganju zgodovine");
+    return res.json();
+  },
+  async historyDetail(jobId) {
+    const res = await apiFetch(`/api/history/${jobId}`);
+    if (!res.ok) throw new Error("Napaka pri nalaganju vnosa zgodovine");
+    return res.json();
+  },
+  historyReportUrl(jobId, fileIndex, filename) {
+    return `/api/history/${jobId}/files/${fileIndex}/report/${encodeURIComponent(filename)}`;
+  },
+  historyCombinedReportUrl(jobId, filename) {
+    return `/api/history/${jobId}/report/${encodeURIComponent(filename)}`;
+  },
+  async sectionCompare(file) {
+    const fd = new FormData();
+    fd.append("recipe", file, file.name);
+    const res = await apiFetch("/api/section-compare", { method: "POST", body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Primerjava razdelkov ni uspela" }));
+      throw new Error(err.detail || "Primerjava razdelkov ni uspela");
+    }
+    return res.json();
+  },
+  async diff(sideA, sideB) {
+    const fd = new FormData();
+    if (sideA.file) fd.append("file_a", sideA.file, sideA.file.name);
+    if (sideA.historyId) {
+      fd.append("history_a", sideA.historyId);
+      fd.append("history_a_file", sideA.historyFile);
+    }
+    if (sideB.file) fd.append("file_b", sideB.file, sideB.file.name);
+    if (sideB.historyId) {
+      fd.append("history_b", sideB.historyId);
+      fd.append("history_b_file", sideB.historyFile);
+    }
+    const res = await apiFetch("/api/diff", { method: "POST", body: fd });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: "Primerjava verzij ni uspela" }));
+      throw new Error(err.detail || "Primerjava verzij ni uspela");
+    }
+    return res.json();
+  },
+  async audit(limit, offset, username, action) {
+    const params = new URLSearchParams({ limit, offset });
+    if (username) params.set("username", username);
+    if (action) params.set("action", action);
+    const res = await apiFetch(`/api/audit?${params}`);
+    if (!res.ok) {
+      if (res.status === 403) throw new Error("Nimaš pravic za vpogled v revizijsko sled.");
+      throw new Error("Napaka pri nalaganju revizijske sledi");
+    }
+    return res.json();
   },
 };
 
@@ -59,6 +154,16 @@ function bytesToHuman(n) {
   if (n < 1024) return n + " B";
   if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
   return (n / (1024 * 1024)).toFixed(1) + " MB";
+}
+
+function formatDateTime(iso) {
+  if (!iso) return "";
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("sl-SI") + " " + d.toLocaleTimeString("sl-SI", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
 }
 
 /* --------------------------- File picker ------------------------------- */
@@ -251,7 +356,7 @@ function ConfigCard({ config, set, rules, codes }) {
         <CheckRow checked={config.enable_catalog_validation} onChange={() => toggle("enable_catalog_validation")}
           label="Preverjanje šifrantov" desc="Preveri šifre kemikalij/raztopin proti naloženim šifrantom" />
         <CheckRow checked={config.apply_fixes} onChange={() => toggle("apply_fixes")}
-          label="Samodejni popravki (auto-fix)" desc="Ustvari popravljeno kopijo recepture (faza 2)" />
+          label="Samodejni popravki (auto-fix)" desc="Ustvari popravljeno kopijo recepture" />
 
         <div style={{ marginTop: 8 }}>
           <Collapsible title="Napredno – zaklenipolja zastavice">
@@ -313,11 +418,14 @@ function CheckRow({ checked, onChange, label, desc }) {
 
 /* ----------------------------- Run card -------------------------------- */
 
-function RunCard({ canRun, phase, onRun, status }) {
+function RunCard({ canRun, phase, onRun, status, live }) {
   const running = phase === "running";
   return (
     <div className="card">
-      <div className="card-head"><h2><span className="step">3</span> Validacija</h2></div>
+      <div className="card-head">
+        <h2><span className="step">3</span> Validacija</h2>
+        {running && live && <span className="live-badge" title="Napredek v realnem času (WebSocket)">⚡ v živo</span>}
+      </div>
       <div className="card-body">
         <button className="btn btn-primary btn-block" disabled={!canRun || running} onClick={onRun}>
           {running ? <><span className="spinner"></span> Validacija poteka…</> : "▶ Zaženi validacijo"}
@@ -350,7 +458,7 @@ function RunCard({ canRun, phase, onRun, status }) {
 
 /* --------------------------- Results panel ----------------------------- */
 
-function ResultsPanel({ results, jobId, onReset }) {
+function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("all");
   const [fileFilter, setFileFilter] = useState("all");
@@ -406,7 +514,7 @@ function ResultsPanel({ results, jobId, onReset }) {
   return (
     <div className="card">
       <div className="card-head">
-        <h2>📊 Rezultati validacije</h2>
+        <h2>{title || "📊 Rezultati validacije"}</h2>
         <span className="muted">{filtered.length} prikazanih / {allIssues.length} skupaj</span>
       </div>
       <div className="card-body">
@@ -431,7 +539,7 @@ function ResultsPanel({ results, jobId, onReset }) {
             <div className="downloads">
               {results.combined_reports.map((rep) => (
                 <a key={rep.kind} className="btn btn-sm"
-                  href={API.combinedReportUrl(jobId, rep.filename)} download>
+                  href={combinedUrlFn(rep.filename)} download>
                   ⬇ {rep.label}
                 </a>
               ))}
@@ -439,7 +547,7 @@ function ResultsPanel({ results, jobId, onReset }) {
           </div>
         )}
 
-        <DownloadSection results={results} jobId={jobId} />
+        <DownloadSection results={results} reportUrlFn={reportUrlFn} />
 
         <div className="toolbar">
           <input type="text" placeholder="🔎 Iskanje po sporočilu, listu, kodi…"
@@ -657,7 +765,7 @@ function nextSort(sort, key) {
   return null; // tretji klik: brez razvrščanja
 }
 
-function DownloadSection({ results, jobId }) {
+function DownloadSection({ results, reportUrlFn }) {
   return (
     <div style={{ marginBottom: 18 }}>
       {(results.files || []).map((fr) => (
@@ -685,7 +793,7 @@ function DownloadSection({ results, jobId }) {
                 <div className="downloads">
                   {(fr.reports || []).map((rep) => (
                     <a key={rep.kind} className="btn btn-sm"
-                      href={API.reportUrl(jobId, fr.index, rep.filename)} download>
+                      href={reportUrlFn(fr.index, rep.filename)} download>
                       ⬇ {rep.label}
                     </a>
                   ))}
@@ -706,7 +814,58 @@ function DownloadSection({ results, jobId }) {
   );
 }
 
-/* ------------------------------- App ----------------------------------- */
+/* --------------------------- Pogled: prijava --------------------------- */
+
+function LoginView({ onLogin }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setBusy(true);
+    try {
+      const status = await API.login(username, password);
+      onLogin(status);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="login-wrap">
+      <form className="login-card" onSubmit={submit}>
+        <div className="login-logo">IPO</div>
+        <h2>IPO Excel Validator</h2>
+        <p className="muted">Prijava z domenskim (AD) ali lokalnim računom</p>
+        {error && <div className="error-banner">⚠ {error}</div>}
+        <div className="field">
+          <label>Uporabniško ime</label>
+          <input
+            type="text" autoFocus autoComplete="username"
+            value={username} onChange={(e) => setUsername(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label>Geslo</label>
+          <input
+            type="password" autoComplete="current-password"
+            value={password} onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <button className="btn btn-primary btn-block" type="submit" disabled={busy || !username || !password}>
+          {busy ? <><span className="spinner"></span> Prijavljanje…</> : "Prijava"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* -------------------------- Pogled: validacija ------------------------- */
 
 const DEFAULT_CONFIG = {
   strict_mode: false,
@@ -715,7 +874,7 @@ const DEFAULT_CONFIG = {
   enable_catalog_validation: true,
   apply_fixes: false,
   bypass_zakleni_require_empty_for_checkbox: true,
-  bypass_zakleni_require_pogoj_for_param1_steps: true,
+  bypass_zakleni_require_pogoj_for_param1_steps: false,
   bypass_zakleni_inverse_pogoj_requirement: false,
   bypass_rules: new Set(),
   bypass_codes: new Set(),
@@ -753,8 +912,7 @@ function storeConfig(config) {
   } catch { /* localStorage ni na voljo – ignoriramo */ }
 }
 
-function App() {
-  const [catalog, setCatalog] = useState({ rules: [], codes: [], version: "" });
+function ValidateView({ catalog }) {
   const [files, setFiles] = useState({ recipes: [], sop: null, raztopine: null, kemikalije: null });
   const [config, setConfig] = useState(loadStoredConfig);
   const [phase, setPhase] = useState("idle");
@@ -762,11 +920,10 @@ function App() {
   const [status, setStatus] = useState(null);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
+  const [live, setLive] = useState(false);
   const pollRef = useRef(null);
-
-  useEffect(() => {
-    API.getRules().then(setCatalog).catch((e) => setError(e.message));
-  }, []);
+  const wsRef = useRef(null);
+  const finishedRef = useRef(false);
 
   useEffect(() => { storeConfig(config); }, [config]);
 
@@ -776,12 +933,81 @@ function App() {
   const stopPolling = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
   };
+  const closeWs = () => {
+    if (wsRef.current) {
+      try { wsRef.current.close(); } catch { /* ignore */ }
+      wsRef.current = null;
+    }
+    setLive(false);
+  };
+
+  const finish = async (job_id) => {
+    if (finishedRef.current) return;
+    finishedRef.current = true;
+    stopPolling();
+    closeWs();
+    try {
+      const res = await API.jobResults(job_id);
+      setResults(res);
+      setPhase("done");
+    } catch (e) {
+      setError(e.message);
+      setPhase("idle");
+    }
+  };
+
+  const startPolling = (job_id) => {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const st = await API.jobStatus(job_id);
+        setStatus(st);
+        if (st.state === "done" || st.state === "error") {
+          await finish(job_id);
+        }
+      } catch (e) {
+        stopPolling();
+        setError(e.message);
+        setPhase("idle");
+      }
+    }, 700);
+  };
+
+  /* Napredek v realnem času: najprej WebSocket, ob napaki fallback na polling. */
+  const startProgress = (job_id) => {
+    let opened = false;
+    try {
+      const ws = new WebSocket(API.wsJobUrl(job_id));
+      wsRef.current = ws;
+      ws.onopen = () => { opened = true; setLive(true); };
+      ws.onmessage = (ev) => {
+        try {
+          const st = JSON.parse(ev.data);
+          setStatus(st);
+          if (st.state === "done" || st.state === "error") finish(job_id);
+        } catch { /* neveljaven okvir – ignoriramo */ }
+      };
+      ws.onerror = () => {
+        if (!finishedRef.current) startPolling(job_id);
+        setLive(false);
+      };
+      ws.onclose = () => {
+        if (!finishedRef.current && !pollRef.current) startPolling(job_id);
+        setLive(false);
+      };
+      // Če se WS ne odpre v 2 s, začnemo polling (WS ostane kot dopolnilo)
+      setTimeout(() => { if (!opened && !finishedRef.current) startPolling(job_id); }, 2000);
+    } catch {
+      startPolling(job_id);
+    }
+  };
 
   const onRun = async () => {
     setError(null);
     setResults(null);
     setStatus(null);
     setPhase("running");
+    finishedRef.current = false;
     const payload = {
       ...config,
       bypass_rules: Array.from(config.bypass_rules),
@@ -792,32 +1018,19 @@ function App() {
         sop: files.sop, raztopine: files.raztopine, kemikalije: files.kemikalije,
       });
       setJobId(job_id);
-      pollRef.current = setInterval(async () => {
-        try {
-          const st = await API.jobStatus(job_id);
-          setStatus(st);
-          if (st.state === "done" || st.state === "error") {
-            stopPolling();
-            const res = await API.jobResults(job_id);
-            setResults(res);
-            setPhase("done");
-          }
-        } catch (e) {
-          stopPolling();
-          setError(e.message);
-          setPhase("idle");
-        }
-      }, 700);
+      startProgress(job_id);
     } catch (e) {
       setError(e.message);
       setPhase("idle");
     }
   };
 
-  useEffect(() => () => stopPolling(), []);
+  useEffect(() => () => { stopPolling(); closeWs(); }, []);
 
   const onReset = () => {
     stopPolling();
+    closeWs();
+    finishedRef.current = false;
     setResults(null);
     setStatus(null);
     setJobId(null);
@@ -830,40 +1043,694 @@ function App() {
 
   return (
     <>
+      {error && <div className="error-banner">⚠ {error}</div>}
+      <div className="grid">
+        <div>
+          <UploadCard state={files} set={setFilesPartial} />
+          <ConfigCard config={config} set={setConfigPartial} rules={catalog.rules} codes={catalog.codes} />
+          <RunCard canRun={canRun} phase={phase} onRun={onRun} status={status} live={live} />
+        </div>
+        <div>
+          {results ? (
+            <ResultsPanel
+              results={results}
+              reportUrlFn={(idx, name) => API.reportUrl(jobId, idx, name)}
+              combinedUrlFn={(name) => API.combinedReportUrl(jobId, name)}
+              onReset={onReset}
+            />
+          ) : (
+            <div className="card">
+              <div className="card-body">
+                <div className="empty">
+                  <div className="ic">📋</div>
+                  <p>{phase === "running" ? "Validacija poteka…" : "Naloži recepture in zaženi validacijo za prikaz rezultatov."}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* -------------------------- Pogled: zgodovina -------------------------- */
+
+function HistoryView() {
+  const [data, setData] = useState(null);
+  const [offset, setOffset] = useState(0);
+  const [error, setError] = useState(null);
+  const [selected, setSelected] = useState(null);   // job_id
+  const [detail, setDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const limit = 25;
+
+  const load = async (off) => {
+    setError(null);
+    try {
+      const res = await API.history(limit, off);
+      setData(res);
+      setOffset(off);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  useEffect(() => { load(0); }, []);
+
+  const open = async (jobId) => {
+    setSelected(jobId);
+    setDetail(null);
+    setLoadingDetail(true);
+    try {
+      setDetail(await API.historyDetail(jobId));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  if (selected) {
+    return (
+      <div>
+        <div className="toolbar" style={{ marginBottom: 14 }}>
+          <button className="btn btn-sm" onClick={() => { setSelected(null); setDetail(null); }}>← Nazaj na zgodovino</button>
+          {detail && (
+            <span className="muted">
+              {formatDateTime(detail.record.created_at)} · {detail.record.username || "(neznan uporabnik)"}
+            </span>
+          )}
+        </div>
+        {loadingDetail && <div className="card"><div className="card-body"><div className="empty"><div className="ic">⏳</div><p>Nalaganje…</p></div></div></div>}
+        {detail && detail.results && (
+          <ResultsPanel
+            title="📊 Rezultati validacije (zgodovina)"
+            results={detail.results}
+            reportUrlFn={(idx, name) => API.historyReportUrl(selected, idx, name)}
+            combinedUrlFn={(name) => API.historyCombinedReportUrl(selected, name)}
+          />
+        )}
+        {detail && !detail.results && (
+          <div className="card"><div className="card-body">
+            <div className="empty"><div className="ic">🗂</div><p>Podrobni rezultati za ta vnos niso več na voljo (na voljo je samo povzetek).</p></div>
+            <HistorySummary record={detail.record} />
+          </div></div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>🗂 Zgodovina validacij</h2>
+        {data && <span className="muted">{data.total} vnosov</span>}
+      </div>
+      <div className="card-body">
+        {error && <div className="error-banner">⚠ {error}</div>}
+        {!data ? (
+          <div className="empty"><div className="ic">⏳</div><p>Nalaganje…</p></div>
+        ) : data.records.length === 0 ? (
+          <div className="empty"><div className="ic">🗂</div><p>Zgodovina je prazna. Zaženi prvo validacijo.</p></div>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table className="issues-table">
+                <thead>
+                  <tr>
+                    <th>Datum in ura</th>
+                    <th>Uporabnik</th>
+                    <th style={{ width: 90 }}>Datoteke</th>
+                    <th style={{ width: 90 }}>Napake</th>
+                    <th style={{ width: 90 }}>Opozorila</th>
+                    <th style={{ width: 110 }}>Rezultat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.records.map((r) => (
+                    <tr key={r.job_id} className="clickable" onClick={() => open(r.job_id)} title="Klikni za podrobnosti">
+                      <td>{formatDateTime(r.created_at)}</td>
+                      <td className="muted">{r.username || "—"}</td>
+                      <td>{r.total_files}</td>
+                      <td style={{ color: r.errors ? "var(--error)" : "inherit", fontWeight: r.errors ? 700 : 400 }}>{r.errors}</td>
+                      <td>{r.warnings}</td>
+                      <td>
+                        <span className={classNames("badge", r.invalid_files === 0 && r.state === "done" ? "valid" : "invalid")}>
+                          {r.state !== "done" ? "napaka" : r.invalid_files === 0 ? "veljavno" : `${r.invalid_files} neveljavnih`}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="toolbar" style={{ marginTop: 12, justifyContent: "space-between" }}>
+              <button className="btn btn-sm" disabled={offset === 0} onClick={() => load(Math.max(0, offset - limit))}>← Novejši</button>
+              <span className="muted">{offset + 1}–{Math.min(offset + limit, data.total)} od {data.total}</span>
+              <button className="btn btn-sm" disabled={offset + limit >= data.total} onClick={() => load(offset + limit)}>Starejši →</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function HistorySummary({ record }) {
+  return (
+    <div style={{ marginTop: 12 }}>
+      {(record.files || []).map((f, i) => (
+        <div className="file-result" key={i}>
+          <div className="fr-head">
+            <span className="fr-name">
+              📄 {f.filename}
+              <span className={classNames("badge", f.is_valid ? "valid" : "invalid")}>
+                {f.is_valid ? "veljavno" : "neveljavno"}
+              </span>
+            </span>
+            <span className="muted">
+              {(f.counts && f.counts.error) || 0} napak · {(f.counts && f.counts.warning) || 0} opozoril
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* --------------------- Pogled: primerjava razdelkov -------------------- */
+
+function SectionsView() {
+  const [file, setFile] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  const run = async () => {
+    setError(null);
+    setResult(null);
+    setBusy(true);
+    try {
+      setResult(await API.sectionCompare(file));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="grid">
+      <div>
+        <div className="card">
+          <div className="card-head"><h2>📑 Primerjava razdelkov med listi</h2></div>
+          <div className="card-body">
+            <p className="muted" style={{ marginTop: 0 }}>
+              Naloži recepturo z vsaj dvema listoma (npr. <code>Receptura</code> in <code>Receptura_2</code>).
+              Primerjajo se število razdelkov, naslovi, število korakov in besedila navodil.
+            </p>
+            <FilePicker
+              accept=".xlsx,.xlsm"
+              files={file ? [file] : []}
+              onChange={(f) => setFile(f)}
+              label={file ? `📄 ${file.name}` : "Povleci recepturo sem ali klikni za izbiro"}
+              hint="Podprto: .xlsx, .xlsm (ena datoteka)"
+            />
+            <button className="btn btn-primary btn-block" style={{ marginTop: 14 }}
+              disabled={!file || busy} onClick={run}>
+              {busy ? <><span className="spinner"></span> Primerjava poteka…</> : "▶ Primerjaj razdelke"}
+            </button>
+            {error && <div className="error-banner" style={{ marginTop: 12 }}>⚠ {error}</div>}
+          </div>
+        </div>
+        {result && (
+          <div className="card">
+            <div className="card-head"><h2>Razdelki po listih</h2></div>
+            <div className="card-body">
+              {result.sheets.map((sheet) => (
+                <Collapsible key={sheet} title={`${sheet}${sheet === result.base_sheet ? " (referenčni)" : ""} — ${result.sections[sheet].length} razdelkov`}>
+                  <table className="issues-table" style={{ marginBottom: 10 }}>
+                    <thead>
+                      <tr><th style={{ width: 40 }}>#</th><th>Naslov</th><th style={{ width: 80 }}>Vrstica</th><th style={{ width: 80 }}>Korakov</th></tr>
+                    </thead>
+                    <tbody>
+                      {result.sections[sheet].map((s) => (
+                        <tr key={s.index + "-" + s.start_row}>
+                          <td>{s.index}</td>
+                          <td>{s.title || <span className="muted">(brez naslova)</span>}</td>
+                          <td>{s.start_row}</td>
+                          <td>{s.step_count}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </Collapsible>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      <div>
+        {result ? (
+          <div className="card">
+            <div className="card-head">
+              <h2>Rezultat primerjave</h2>
+              <span className="muted">{result.filename}</span>
+            </div>
+            <div className="card-body">
+              {result.is_match ? (
+                <div className="success-banner">✓ Razdelki se ujemajo med listi ({result.sheets.join(", ")}).</div>
+              ) : (
+                <div className="error-banner">
+                  ✗ Najdene razlike: {result.counts.error || 0} (opozoril: {result.counts.warning || 0})
+                </div>
+              )}
+              {result.issues.length > 0 && (
+                <table className="issues-table" style={{ marginTop: 12 }}>
+                  <thead>
+                    <tr><th style={{ width: 70 }}>Resnost</th><th>List</th><th style={{ width: 60 }}>Vrstica</th><th>Koda</th><th>Sporočilo</th></tr>
+                  </thead>
+                  <tbody>
+                    {result.issues.map((iss, i) => (
+                      <tr key={i}>
+                        <td><span className={classNames("sev-pill", iss.severity)}>{iss.severity}</span></td>
+                        <td>{iss.sheet}</td>
+                        <td>{iss.row}</td>
+                        <td className="code-cell"><code>{iss.code}</code></td>
+                        <td>{iss.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="card">
+            <div className="card-body">
+              <div className="empty">
+                <div className="ic">📑</div>
+                <p>Naloži recepturo in zaženi primerjavo razdelkov za prikaz rezultatov.</p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------- Pogled: diff verzij ------------------------- */
+
+function DiffSidePicker({ label, side, setSide, history }) {
+  const record = history.find((r) => r.job_id === side.historyId);
+  return (
+    <div className="diff-side">
+      <div className="diff-side-title">{label}</div>
+      <div className="seg" style={{ marginBottom: 10, display: "inline-flex" }}>
+        <button className={classNames(side.mode === "upload" && "active")}
+          onClick={() => setSide({ mode: "upload", file: null, historyId: "", historyFile: "" })}>Naloži datoteko</button>
+        <button className={classNames(side.mode === "history" && "active")}
+          onClick={() => setSide({ mode: "history", file: null, historyId: "", historyFile: "" })}>Iz zgodovine</button>
+      </div>
+      {side.mode === "upload" ? (
+        <FilePicker
+          accept=".xlsx,.xlsm"
+          files={side.file ? [side.file] : []}
+          onChange={(f) => setSide({ ...side, file: f })}
+          label={side.file ? `📄 ${side.file.name}` : "Izberi datoteko"}
+          hint=".xlsx / .xlsm"
+        />
+      ) : (
+        <div>
+          <div className="field">
+            <label>Validacija iz zgodovine</label>
+            <select value={side.historyId}
+              onChange={(e) => setSide({ ...side, historyId: e.target.value, historyFile: "" })}>
+              <option value="">— izberi —</option>
+              {history.map((r) => (
+                <option key={r.job_id} value={r.job_id}>
+                  {formatDateTime(r.created_at)} · {(r.files || []).map((f) => f.filename).join(", ").slice(0, 60)}
+                </option>
+              ))}
+            </select>
+          </div>
+          {record && (
+            <div className="field">
+              <label>Datoteka</label>
+              <select value={side.historyFile}
+                onChange={(e) => setSide({ ...side, historyFile: e.target.value })}>
+                <option value="">— izberi —</option>
+                {(record.files || []).map((f) => (
+                  <option key={f.filename} value={f.filename}>{f.filename}</option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DiffView() {
+  const emptySide = { mode: "upload", file: null, historyId: "", historyFile: "" };
+  const [sideA, setSideA] = useState(emptySide);
+  const [sideB, setSideB] = useState(emptySide);
+  const [history, setHistory] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    API.history(100, 0).then((res) => setHistory(res.records)).catch(() => setHistory([]));
+  }, []);
+
+  const sideReady = (s) =>
+    (s.mode === "upload" && s.file) || (s.mode === "history" && s.historyId && s.historyFile);
+
+  const run = async () => {
+    setError(null);
+    setResult(null);
+    setBusy(true);
+    try {
+      setResult(await API.diff(
+        sideA.mode === "upload" ? { file: sideA.file } : { historyId: sideA.historyId, historyFile: sideA.historyFile },
+        sideB.mode === "upload" ? { file: sideB.file } : { historyId: sideB.historyId, historyFile: sideB.historyFile },
+      ));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div>
+      <div className="card">
+        <div className="card-head"><h2>🔀 Primerjava dveh verzij recepture</h2></div>
+        <div className="card-body">
+          <div className="diff-pickers">
+            <DiffSidePicker label="Verzija A (starejša)" side={sideA} setSide={setSideA} history={history} />
+            <DiffSidePicker label="Verzija B (novejša)" side={sideB} setSide={setSideB} history={history} />
+          </div>
+          <button className="btn btn-primary btn-block" style={{ marginTop: 14 }}
+            disabled={!sideReady(sideA) || !sideReady(sideB) || busy} onClick={run}>
+            {busy ? <><span className="spinner"></span> Primerjava poteka…</> : "▶ Primerjaj verziji"}
+          </button>
+          {error && <div className="error-banner" style={{ marginTop: 12 }}>⚠ {error}</div>}
+        </div>
+      </div>
+
+      {result && <DiffResult result={result} />}
+    </div>
+  );
+}
+
+function DiffResult({ result }) {
+  const s = result.summary;
+  const changedSheets = result.sheets.filter((sd) => sd.has_changes);
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>Rezultat primerjave</h2>
+        <span className="muted">{result.file_a} ⟷ {result.file_b}</span>
+      </div>
+      <div className="card-body">
+        {!result.has_changes ? (
+          <div className="success-banner">✓ Verziji sta identični (po vsebini listov).</div>
+        ) : (
+          <div className="summary-tiles" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+            <div className="tile static"><div className="num" style={{ color: "var(--success)" }}>+{s.rows_added}</div><div className="lbl">Dodane vrstice</div></div>
+            <div className="tile static"><div className="num" style={{ color: "var(--error)" }}>−{s.rows_removed}</div><div className="lbl">Odstranjene vrstice</div></div>
+            <div className="tile static"><div className="num" style={{ color: "var(--warning)" }}>{s.rows_changed}</div><div className="lbl">Spremenjene vrstice</div></div>
+          </div>
+        )}
+
+        {changedSheets.map((sd) => (
+          <Collapsible key={sd.sheet} defaultOpen={changedSheets.length === 1}
+            title={
+              sd.status === "added" ? `List '${sd.sheet}' — nov v verziji B`
+              : sd.status === "removed" ? `List '${sd.sheet}' — odstranjen v verziji B`
+              : `List '${sd.sheet}' — +${sd.rows_added.length} / −${sd.rows_removed.length} / ~${sd.rows_changed.length}`
+            }>
+            {sd.status === "common" && (
+              <div style={{ overflowX: "auto" }}>
+                {(sd.columns_added.length > 0 || sd.columns_removed.length > 0) && (
+                  <div className="muted" style={{ marginBottom: 8 }}>
+                    {sd.columns_added.length > 0 && <>Dodani stolpci: {sd.columns_added.join(", ")}. </>}
+                    {sd.columns_removed.length > 0 && <>Odstranjeni stolpci: {sd.columns_removed.join(", ")}.</>}
+                  </div>
+                )}
+                <table className="issues-table diff-table">
+                  <thead>
+                    <tr><th style={{ width: 90 }}>Sprememba</th><th style={{ width: 90 }}>Vrstica</th><th>Vsebina</th></tr>
+                  </thead>
+                  <tbody>
+                    {sd.rows_added.map((r, i) => (
+                      <tr key={"a" + i} className="diff-added">
+                        <td><span className="badge valid">dodana</span></td>
+                        <td>B:{r.row}</td>
+                        <td>{r.preview}</td>
+                      </tr>
+                    ))}
+                    {sd.rows_removed.map((r, i) => (
+                      <tr key={"r" + i} className="diff-removed">
+                        <td><span className="badge invalid">odstranjena</span></td>
+                        <td>A:{r.row}</td>
+                        <td>{r.preview}</td>
+                      </tr>
+                    ))}
+                    {sd.rows_changed.map((r, i) => (
+                      <tr key={"c" + i} className="diff-changed">
+                        <td><span className="badge changed">spremenjena</span></td>
+                        <td>A:{r.row_a} → B:{r.row_b}</td>
+                        <td>
+                          <div className="muted" style={{ marginBottom: 4 }}>{r.preview}</div>
+                          {r.changes.map((c, j) => (
+                            <div key={j} className="diff-cell-change">
+                              <strong>{c.column}:</strong>{" "}
+                              <span className="old">{c.old || "(prazno)"}</span>{" → "}
+                              <span className="new">{c.new || "(prazno)"}</span>
+                            </div>
+                          ))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Collapsible>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------- Pogled: audit ---------------------------- */
+
+const AUDIT_ACTION_LABELS = {
+  prijava: "Prijava",
+  prijava_neuspesna: "Neuspešna prijava",
+  odjava: "Odjava",
+  validacija_zagnana: "Validacija zagnana",
+  validacija_zakljucena: "Validacija zaključena",
+  prenos_porocila: "Prenos poročila",
+  primerjava_razdelkov: "Primerjava razdelkov",
+  diff_receptur: "Primerjava verzij",
+};
+
+function AuditView() {
+  const [data, setData] = useState(null);
+  const [offset, setOffset] = useState(0);
+  const [username, setUsername] = useState("");
+  const [action, setAction] = useState("");
+  const [error, setError] = useState(null);
+  const limit = 50;
+
+  const load = async (off, user, act) => {
+    setError(null);
+    try {
+      const res = await API.audit(limit, off, user, act);
+      setData(res);
+      setOffset(off);
+    } catch (e) {
+      setError(e.message);
+      setData(null);
+    }
+  };
+
+  useEffect(() => { load(0, "", ""); }, []);
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <h2>🛡 Revizijska sled (audit trail)</h2>
+        {data && <span className="muted">{data.total} vnosov</span>}
+      </div>
+      <div className="card-body">
+        {error && <div className="error-banner">⚠ {error}</div>}
+        <div className="toolbar">
+          <input type="text" placeholder="Uporabnik…" value={username}
+            onChange={(e) => setUsername(e.target.value)} style={{ maxWidth: 200 }} />
+          <select value={action} onChange={(e) => setAction(e.target.value)}>
+            <option value="">Vsa dejanja</option>
+            {Object.entries(AUDIT_ACTION_LABELS).map(([k, v]) => (
+              <option key={k} value={k}>{v}</option>
+            ))}
+          </select>
+          <button className="btn btn-sm" onClick={() => load(0, username, action)}>Filtriraj</button>
+        </div>
+        {!data ? (
+          !error && <div className="empty"><div className="ic">⏳</div><p>Nalaganje…</p></div>
+        ) : data.entries.length === 0 ? (
+          <div className="empty"><div className="ic">🛡</div><p>Ni vnosov revizijske sledi.</p></div>
+        ) : (
+          <>
+            <div style={{ overflowX: "auto" }}>
+              <table className="issues-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: 150 }}>Čas</th>
+                    <th style={{ width: 130 }}>Uporabnik</th>
+                    <th style={{ width: 80 }}>Rola</th>
+                    <th style={{ width: 170 }}>Dejanje</th>
+                    <th>Podrobnosti</th>
+                    <th style={{ width: 110 }}>IP</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.entries.map((e) => (
+                    <tr key={e.id}>
+                      <td>{formatDateTime(e.ts)}</td>
+                      <td>{e.username || "—"}</td>
+                      <td className="muted">{e.role || "—"}</td>
+                      <td>{AUDIT_ACTION_LABELS[e.action] || e.action}</td>
+                      <td className="muted">{e.detail}</td>
+                      <td className="muted">{e.ip || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="toolbar" style={{ marginTop: 12, justifyContent: "space-between" }}>
+              <button className="btn btn-sm" disabled={offset === 0}
+                onClick={() => load(Math.max(0, offset - limit), username, action)}>← Novejši</button>
+              <span className="muted">{offset + 1}–{Math.min(offset + limit, data.total)} od {data.total}</span>
+              <button className="btn btn-sm" disabled={offset + limit >= data.total}
+                onClick={() => load(offset + limit, username, action)}>Starejši →</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------- App ----------------------------------- */
+
+const VIEWS = [
+  { id: "validate", label: "Validacija", icon: "✓" },
+  { id: "history", label: "Zgodovina", icon: "🗂" },
+  { id: "sections", label: "Razdelki", icon: "📑" },
+  { id: "diff", label: "Diff verzij", icon: "🔀" },
+  { id: "audit", label: "Audit", icon: "🛡", minRole: "qa" },
+];
+
+function roleAllows(user, minRole) {
+  if (!minRole) return true;
+  if (!user) return false;
+  const rank = { tehnolog: 0, qa: 1, admin: 2 };
+  return (rank[user.role] ?? -1) >= (rank[minRole] ?? 99);
+}
+
+function App() {
+  const [auth, setAuth] = useState(null);   // null = še ne vemo; {auth_enabled, user}
+  const [catalog, setCatalog] = useState({ rules: [], codes: [], version: "" });
+  const [view, setView] = useState("validate");
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    API.me().then(setAuth).catch((e) => setError(e.message));
+  }, []);
+
+  useEffect(() => {
+    const onUnauthorized = () => setAuth((a) => (a && a.auth_enabled ? { ...a, user: null } : a));
+    window.addEventListener("mes-unauthorized", onUnauthorized);
+    return () => window.removeEventListener("mes-unauthorized", onUnauthorized);
+  }, []);
+
+  const loggedIn = auth && (!auth.auth_enabled || auth.user);
+
+  useEffect(() => {
+    if (loggedIn) {
+      API.getRules().then(setCatalog).catch((e) => setError(e.message));
+    }
+  }, [loggedIn]);
+
+  const onLogout = async () => {
+    await API.logout();
+    setAuth((a) => ({ ...a, user: null }));
+    setView("validate");
+  };
+
+  if (!auth) {
+    return (
+      <div className="empty" style={{ paddingTop: 120 }}>
+        <div className="ic">⏳</div>
+        <p>Nalaganje aplikacije…</p>
+        {error && <div className="error-banner" style={{ maxWidth: 420, margin: "12px auto" }}>⚠ {error}</div>}
+      </div>
+    );
+  }
+
+  if (auth.auth_enabled && !auth.user) {
+    return <LoginView onLogin={(status) => setAuth(status)} />;
+  }
+
+  const user = auth.user;
+  const visibleViews = VIEWS.filter((v) => roleAllows(user, v.minRole));
+
+  return (
+    <>
       <header className="app-header">
         <div className="brand">
-          <div className="logo">MES</div>
+          <div className="logo">IPO</div>
           <div>
-            <h1>MES Excel Validator</h1>
+            <h1>IPO Excel Validator</h1>
             <p className="subtitle">Validacija IPO receptur — nalaganje, konfiguracija in poročila v brskalniku</p>
           </div>
         </div>
-        {catalog.version && <span className="ver">{catalog.version}</span>}
+        <nav className="nav-tabs">
+          {visibleViews.map((v) => (
+            <button key={v.id}
+              className={classNames("nav-btn", view === v.id && "active")}
+              onClick={() => setView(v.id)}>
+              {v.icon} {v.label}
+            </button>
+          ))}
+        </nav>
+        <div className="header-right">
+          {catalog.version && <span className="ver">{catalog.version}</span>}
+          {auth.auth_enabled && user && (
+            <div className="user-chip" title={`Vir: ${user.source}`}>
+              <span className="user-name">{user.display_name}</span>
+              <span className="user-role">{user.role_label}</span>
+              <button className="logout-btn" onClick={onLogout} title="Odjava">Odjava</button>
+            </div>
+          )}
+        </div>
       </header>
 
       <div className="container">
         {error && <div className="error-banner">⚠ {error}</div>}
-        <div className="grid">
-          <div>
-            <UploadCard state={files} set={setFilesPartial} />
-            <ConfigCard config={config} set={setConfigPartial} rules={catalog.rules} codes={catalog.codes} />
-            <RunCard canRun={canRun} phase={phase} onRun={onRun} status={status} />
-          </div>
-          <div>
-            {results ? (
-              <ResultsPanel results={results} jobId={jobId} onReset={onReset} />
-            ) : (
-              <div className="card">
-                <div className="card-body">
-                  <div className="empty">
-                    <div className="ic">📋</div>
-                    <p>{phase === "running" ? "Validacija poteka…" : "Naloži recepture in zaženi validacijo za prikaz rezultatov."}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        {view === "validate" && <ValidateView catalog={catalog} />}
+        {view === "history" && <HistoryView />}
+        {view === "sections" && <SectionsView />}
+        {view === "diff" && <DiffView />}
+        {view === "audit" && <AuditView />}
       </div>
     </>
   );

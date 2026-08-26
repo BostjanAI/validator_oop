@@ -151,8 +151,9 @@ def load_catalog(
         cols: dict[str, int] = {}
         for cell in ws[1]:
             v = _norm(cell.value)
-            if v:
-                cols[v] = cell.column
+            col = cell.column
+            if v and col is not None:
+                cols[v] = col
         max_row = ws.max_row or 0
 
         if COL_SIFRA not in cols:

@@ -1,0 +1,30 @@
+# Testna MySQL baza za opcijske integracijske teste (marker "mysql").
+#
+# Zagon:
+#   docker compose -f tests/docker-compose.mysql.yml up -d
+#
+# Nato nastavi okolje in poženi teste:
+#   set MES_DB_HOST=127.0.0.1          (PowerShell: $env:MES_DB_HOST="127.0.0.1")
+#   set MES_DB_PORT=33061
+#   set MES_DB_NAME=mes_test
+#   set MES_DB_USER=mes_test
+#   set MES_DB_PASSWORD=mes_test_pw
+#   pytest -m mysql
+#
+# Poverilnice so SAMO za lokalno testno bazo – nikoli za produkcijo.
+services:
+  mysql-test:
+    image: mysql:8.0
+    container_name: validator_oop_mysql_test
+    environment:
+      MYSQL_ROOT_PASSWORD: root_test_pw
+      MYSQL_DATABASE: mes_test
+      MYSQL_USER: mes_test
+      MYSQL_PASSWORD: mes_test_pw
+    ports:
+      - "33061:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10

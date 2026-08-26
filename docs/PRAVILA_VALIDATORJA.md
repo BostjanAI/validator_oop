@@ -1,6 +1,6 @@
 # Pravila validatorja – pregled in opis
 
-Validator OOP izvaja **40 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
+Validator OOP izvaja **41 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
 
 ---
 
@@ -109,7 +109,7 @@ Preverja, da vrstice tipa ločnik ne vsebujejo podatkov v drugih stolpcih.
 
 | | |
 |---|---|
-| **Preverja** | Kadar je `Tip podatka` = `crta`, morajo biti prazni vsi stolpci razen `št. Koraka`, `Tip podatka`, `Tip objekta` in `Zavihek` |
+| **Preverja** | Kadar je `Tip objekta` = `crta`, morajo biti prazni vsi stolpci razen `št. Koraka`, `Tip podatka` in `Tip objekta` |
 | **Napaka** | `CRTA_COLUMN_NOT_EMPTY` – stolpec vsebuje vrednost, čeprav mora biti prazen pri ločniku |
 
 ---
@@ -260,6 +260,18 @@ Preverja, da je tehtnica ustrezne razreda glede na vrednost mase.
 
 ---
 
+### 3.7 Par repro/kolicina
+
+Preverja, da ima vsaka vrstica `kolicina` predhodno vrstico `repro` z enakim ključem preverjanja (enako kot par raztopina/masa).
+
+| | |
+|---|---|
+| **Preverja** | Vsaka vrstica `kolicina` mora imeti najbližjo predhodno vrstico `repro` na istem zavihku; ključ količine mora biti enak ključu tega repro |
+| **Napake** | `PAR_KOLICINA_BREZ_LASTNIKA` – kolicina nima predhodnega repro |
+| | `PAR_KOLICINA_NAPACEN_KLJUC` – ključ količine se ne ujema s ključem repro |
+
+---
+
 ## 4. Pravila kontrol (`control`)
 
 ### 4.1 Neznana kontrola
@@ -279,7 +291,7 @@ Preverja, ali je kontrola dovoljena glede na tip podatka, tip objekta, Labelo in
 
 | | |
 |---|---|
-| **Preverja** | `aliobkljukan` le pri checkboxu; kontrole opreme pri dropdownu, Labeli `koda` ali tipih/ključih opreme; `aliisto` le pri `kemikalija`/`raztopina`; `kontrolacasa` le pri `datumcaskonec`; raztopinske kontrole potrebujejo ujemajoč ključ in parametre |
+| **Preverja** | `aliobkljukan` le pri checkboxu; kontrole opreme pri dropdownu, Labeli `koda` ali tipih/ključih opreme; `aliisto` le pri `kemikalija`/`raztopina`/oprema; `kontrolacasa` le pri `datumcaskonec`; raztopinske kontrole potrebujejo ujemajoč ključ in parametre |
 | **Napake** | `KONTROLA_NAPACEN_KONTEKST` – kontrola ni dovoljena v tem kontekstu |
 | | `RAZTOPINA_*` – napake pri raztopinskih kontrolah |
 
@@ -291,9 +303,10 @@ Preverja, da ima vsako vnosno polje kontrolo `kontrolapraznopolje`.
 
 | | |
 |---|---|
-| **Preverja** | Tipi `edit`, `spustniseznam`, `izberidatumcas`, `gumbdatumcas`, `memo` morajo imeti `kontrolapraznopolje`, razen če so vsi kontrolni reži zasedeni ali je prisotna `zaklenipolja`; checkbox ne sme imeti prazno-polje kontrole |
+| **Preverja** | Tipi `edit`, `spustniseznam`, `izberidatumcas`, `gumbdatumcas`, `memo` morajo imeti `kontrolapraznopolje`, razen če so vsi kontrolni reži zasedeni ali je prisotna `zaklenipolja`; tipi `checkbox`, `naslov` in `crta` ne smejo imeti prazno-polje kontrole |
 | **Napake** | `KONTROLA_ZAHTEVANO_PRAZNO` – manjka `kontrolapraznopolje` |
 | | `KONTROLA_CHECKBOX_PRAZNO` – checkbox ima nedovoljeno kontrolo `kontrolapraznopolje` |
+| | `KONTROLA_PRAZNO_NI_DOVOLJENO` – `naslov` ali `crta` ima nedovoljeno kontrolo `kontrolapraznopolje` |
 | | `KONTROLA_ZAKLENI_BREZ_PRAZNO` – zaklenjeno polje nima `kontrolapraznopolje` |
 
 ---

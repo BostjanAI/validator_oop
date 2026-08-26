@@ -88,7 +88,7 @@ ALLOWED_TIP_OBJEKTA: FrozenSet[str] = frozenset({
 STANDARD_TIP_PODATKA: FrozenSet[str] = frozenset({
     "kemikalija", "masa", "embalaza",
     "datumcas", "datumcaszacetek", "datumcaskonec",
-    "tehtnica", "termometer", "kopel", "pH_meter", "sušilnik", "vak_sušilnik", "merilnik", "naprava",
+    "tehtnica", "termometer", "kopel", "pH_meter", "sušilnik", "vak_sušilnik", "merilnik", "naprava", "avtoklav",
     "zaposleni",
     "summasa", "masakonec",
     "monomerna", "monolit", "raztopina",
@@ -115,6 +115,7 @@ DATA_OBJECT_MAPPING: Dict[str, FrozenSet[str]] = {
     "vak_sušilnik": frozenset({"edit", "spustniseznam"}),
     "merilnik": frozenset({"edit", "spustniseznam"}),
     "naprava": frozenset({"edit", "spustniseznam"}),
+    "avtoklav": frozenset({"edit", "spustniseznam"}),
     "summasa": frozenset({"edit", "formula", "formula0", "formula1"}),
     "masakonec": frozenset({"edit"}),
     "datumcas": frozenset({"gumbdatumcas", "izberidatumcas"}),
@@ -129,7 +130,27 @@ DATA_OBJECT_MAPPING: Dict[str, FrozenSet[str]] = {
 
 # Types that require Labela = 'koda'
 LABELA_KODA_TYPES: FrozenSet[str] = frozenset({
-    "kemikalija", "zaposleni", "monolit", "repro", "reproodpis"
+    "kemikalija", "raztopina", "embalaza",
+    "zaposleni", "monolit", "repro", "reproodpis",
+})
+
+# Pričakovane vrednosti Labela (po norm_text) glede na Tip podatka
+LABELA_NAZIV_OPREME_VALUE: str = "naziv opreme"
+LABELA_DATUM_CAS_VALUE: str = "datum/čas"
+LABELA_DATETIME_OBJECT_TYPES: FrozenSet[str] = frozenset({
+    "izberidatumcas", "gumbdatumcas",
+})
+LABELA_MASS_TYPES: FrozenSet[str] = frozenset({"masa"})
+
+# Tipi / konteksti, kjer mora biti Ključ preverjanja obvezen (NAV-157 §8.2)
+REQUIRED_KEY_TYPES: FrozenSet[str] = frozenset({
+    "kemikalija", "raztopina", "masa",
+})
+REQUIRED_KEY_TIME_TYPES: FrozenSet[str] = frozenset({
+    "datumcaszacetek", "datumcaskonec",
+})
+REQUIRED_KEY_CHECKBOX_CONDITION_CONTROLS: FrozenSet[str] = frozenset({
+    "aliobstajapogoj", "aliobstajapogoj_ali", "zaklenipolja",
 })
 
 # Dovoljeni vrednosti Labela za Tip objekta checkbox (po normalizaciji: lowercase, collapse spaces)
@@ -209,6 +230,7 @@ EQUIPMENT_KEYWORDS = [
     r"vak_sušilnik", r"vak_susilnik",
     r"merilnik",
     r"naprava",
+    r"avtoklav",
     r"konduktometer",
 ]
 
@@ -221,6 +243,7 @@ EQUIPMENT_TIP_PODATKA: FrozenSet[str] = frozenset({
     "vak_sušilnik", "vak_susilnik",
     "merilnik",
     "naprava",
+    "avtoklav",
     "konduktometer",
 })
 
@@ -327,17 +350,22 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "OBJECT_TYPE_MISMATCH": "Tip objekta ne ustreza tipu podatka",
     # --- Field: label ---
     "LABEL_MUST_BE_KODA": "Labela mora biti 'koda'",
+    "LABEL_MUST_BE_NAZIV_OPREME": "Labela mora biti 'naziv opreme'",
+    "LABEL_MUST_BE_DATUM_CAS": "Labela mora biti 'datum/čas'",
+    "LABEL_MUST_BE_UNIT": "Labela mora vsebovati enoto (npr. g, mL, kg)",
     "LABEL_CHECKBOX_FORMAT": "Pri tipu objekta checkbox mora biti Labela 'DA (kljukica)' ali 'DA (kljukica)/NE (prazno)'",
     # --- Field: key ---
     "KEY_INVALID_FORMAT": "Nepravilen zapis ključa",
-    "KEY_REQUIRED": "Manjka ključ preverjanja za kemikalijo/raztopino/maso/tehtnico",
+    "KEY_REQUIRED": "Manjka ključ preverjanja (obvezen za kemikalijo, raztopino, maso, opremo, časovni par ali checkbox s pogojem)",
     # --- Field: formula ---
     "FORMULA_SYNTAX": "Nepravilen zapis formule",
     "FORMULA_NO_REFERENCE": "Formula nima sklica na korake",
     "FORMULA_INVALID_REFERENCE": "Formula se sklicuje na neobstoječi korak",
     "FORMULA_STEP_INVALID_TYPE": "Korak, na katerega se formula sklicuje, nima dovoljenega Tip objekta ('edit', 'formula', 'formula0', 'formula1' ali 'klictehtnice1')",
     # --- Field: value ---
-    "CRTA_COLUMN_NOT_EMPTY": "Pri tipu podatka crta mora biti stolpec prazen",
+    "CRTA_COLUMN_NOT_EMPTY": "Pri tipu objekta crta mora biti stolpec prazen",
+    "NASLOV_COLUMN_NOT_EMPTY": "Pri naslovu mora biti stolpec prazen (dovoljena sta le št. Koraka, Navodilo ter identifikator tipa)",
+    "MASS_WATER_SHOULD_BE_VOLUME": "Tip podatka ne sme biti 'masa' pri ključu dH2O",
     "SPUSTNISEZNAM_VREDNOST_EMPTY": "Pri spustnem seznamu mora biti stolpec Vrednost zapolnjen",
     "COMMA_NOT_ALLOWED": "Vrednost vsebuje nedovoljeno vejico v številu",
     "SPACE_NOT_ALLOWED": "Vrednost vsebuje nedovoljen presledek",
@@ -360,8 +388,11 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "PAIR_SOL_WITHOUT_MASS": "Za raztopino manjka ustrezna masa",
     "PAIR_MASS_WITHOUT_OWNER": "Masa nima pripadajoče kemikalije, raztopine ali monomerne",
     "PAIR_MASS_SECTION_MISMATCH": "Ključ preverjanja za 'masa' se ne ujema z lastnikom (kemikalija/raztopina/monomerna)",
+    "PAIR_KOLICINA_WITHOUT_OWNER": "Kolicina nima pripadajočega repro pred tem korakom",
+    "PAIR_KOLICINA_KEY_MISMATCH": "Ključ preverjanja za 'kolicina' se ne ujema z lastnikom (repro)",
     "PAIR_TIME_WITHOUT_END": "Manjka končni čas",
     "PAIR_TIME_WITHOUT_START": "Manjka začetni čas",
+    "PAIR_TIME_ORDER": "Korak začetka mora biti manjši od koraka konca (isti ključ)",
     # --- Relational: scale ---
     "SCALE_VALUE_TOO_HIGH": "Nepravilna vrednost pri tehtnici (masa >= 10)",
     "SCALE_VALUE_TOO_LOW": "Nepravilna vrednost pri tehtnici (masa < 10)",
@@ -369,6 +400,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     # --- Control: general ---
     "CTRL_REQUIRED_EMPTY": "Manjka kontrola za prazno polje",
     "CTRL_CHECKBOX_EMPTY": "Checkbox ne sme imeti kontrole prazno polje",
+    "CTRL_EMPTY_NOT_ALLOWED": "Tip objekta ne sme imeti kontrole prazno polje",
     "CTRL_EXPECTED_MISSING": "Manjka pričakovana kontrola",
     "CTRL_UNKNOWN": "Neznano ime kontrole",
     "CTRL_INVALID_CONTEXT": "Kontrola je v napačnem kontekstu",
@@ -439,6 +471,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     # --- Section ---
     "SECTION_STEP_COUNT_MISMATCH": "Razdelek ima različno število korakov med listi",
     "SECTION_INSTRUCTION_MISMATCH": "Razdelek ima različno besedilo navodil med listi",
+    "SECTION_COUNT_MISMATCH": "Različno število razdelkov med listi",
+    "SECTION_TITLE_MISMATCH": "Razdelek ima različen naslov med listi",
     # --- SOP ---
     "SOP_IPO_MISMATCH": "Ključ preverjanja se ne ujema z IPO šifro iz SOP-a",
     "SOP_IPO_NOT_ALLOWED": "Ključ preverjanja ni dovoljen v SOP-u (ni v seznamu IPO šifer)",

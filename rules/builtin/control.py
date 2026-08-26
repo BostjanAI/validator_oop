@@ -46,8 +46,9 @@ SPECIFIC_TYPE_CONTROLS = {
     "kontrolaprazneembalaze": {"embalaza"},
 }
 
-EQUIPMENT_TYPES = {"tehtnica", "termometer", "kopel", "ph_meter", "sušilnik", "susilnik", "vak_sušilnik", "vak_susilnik", "naprava"}
+EQUIPMENT_TYPES = {"tehtnica", "termometer", "kopel", "ph_meter", "sušilnik", "susilnik", "vak_sušilnik", "vak_susilnik", "naprava", "avtoklav"}
 INPUT_OBJECT_TYPES = {"edit", "spustniseznam", "izberidatumcas", "gumbdatumcas", "memo"}
+EMPTY_CONTROL_FORBIDDEN_OBJECT_TYPES = {"checkbox", "naslov", "crta"}
 
 EXPECTED_CONTROLS = {
     "kemikalija": [["kontrolaveljavnostikemikalije"], ["kontrolaustreznostikemikalije"]],
@@ -63,8 +64,10 @@ EXPECTED_CONTROLS = {
     "vak_sušilnik": [["kontrolaveljavnostiopreme"]],
     "vak_susilnik": [["kontrolaveljavnostiopreme"]],
     "naprava": [["kontrolaveljavnostiopreme"]],
+    "avtoklav": [["kontrolaveljavnostiopreme"]],
     "monolit": [["kontrolaveljavnostimonolita"], ["kontrolaustreznostimonolita"]],
     "raztopina": [["kontrolaveljavnostiraztopine"], ["kontrolaustreznostiraztopine"]],
+    "repro": [["kontrolaveljavnostirepro"], ["kontrolaustreznostirepro"]],
 }
 
 ZAKLENI_CONTROL = "zaklenipolja"
@@ -196,6 +199,22 @@ def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
                 inequality_op = raw_op
             inequality_value = float(simple_match.group(2).replace(",", "."))
             inequality_step = inequality_step or derive_decimal_step_from_text(navodilo)
+
+    # "≥ 10 - 11 CV (≥ 4000 - 4400 mL)" is a closed range, not an unbounded ≥.
+    # If the inequality value is one of the range endpoints, keep the range and drop ≥/<.
+    if (
+        range_min is not None
+        and range_max is not None
+        and inequality_op is not None
+        and inequality_value is not None
+        and (
+            abs(inequality_value - range_min) < 1e-9
+            or abs(inequality_value - range_max) < 1e-9
+        )
+    ):
+        inequality_op = None
+        inequality_value = None
+        inequality_step = None
 
     return NumericNavodiloParse(
         raw=navodilo,
@@ -632,12 +651,16 @@ class ControlContextRule(RowRule):
     ):
         if control.name_ns != "aliisto":
             return None
-        if state.tip_data.startswith("raztopina") or state.tip_data.startswith("kemikalija"):
+        if (
+            state.tip_data.startswith("raztopina")
+            or state.tip_data.startswith("kemikalija")
+            or is_equipment_tip(state.tip_data_raw)
+        ):
             return None
         return self._build_invalid_context_error(
             (
                 f"Kontrola '{control.raw_name}' je dovoljena samo pri tipu podatka "
-                f"'raztopina' ali 'kemikalija'."
+                f"'raztopina', 'kemikalija' ali oprema."
             ),
             context=context,
             column=control.column,
@@ -694,13 +717,23 @@ class RequiredControlsRule(RowRule):
                 )
             )
 
-        if tip_obj == "checkbox" and has_empty_control and not has_lock_control:
+        if (
+            tip_obj in EMPTY_CONTROL_FORBIDDEN_OBJECT_TYPES
+            and has_empty_control
+            and not (tip_obj == "checkbox" and has_lock_control)
+        ):
+            if tip_obj == "checkbox":
+                message = "Checkbox ne sme imeti 'kontrolaPraznoPolje'."
+                code = "CTRL_CHECKBOX_EMPTY"
+            else:
+                message = f"Tip objekta '{tip_obj}' ne sme imeti 'kontrolaPraznoPolje'."
+                code = "CTRL_EMPTY_NOT_ALLOWED"
             errors.append(
                 self.build_error(
-                    "Checkbox ne sme imeti 'kontrolaPraznoPolje'.",
+                    message,
                     context=context,
                     column="(Kontrole)",
-                    code="CTRL_CHECKBOX_EMPTY",
+                    code=code,
                 )
             )
 
@@ -758,6 +791,7 @@ class ExpectedControlsRule(RowRule):
         )
         self._append_expected_for_monolit(errors, controls, tip_data, tip_data_raw, context)
         self._append_expected_for_raztopina(errors, controls, tip_data, tip_data_raw, context)
+        self._append_expected_for_repro(errors, controls, tip_data, tip_data_raw, context)
         return errors
 
     def _warn_if_missing_any(
@@ -928,6 +962,22 @@ class ExpectedControlsRule(RowRule):
             errors, controls, ["kontrolaustreznostiraztopine"], "Raztopina – pričakovana kontrola ustreznosti", tip_data_raw, context
         )
 
+    def _append_expected_for_repro(
+        self,
+        errors: list,
+        controls: Sequence[ControlInstance],
+        tip_data: str,
+        tip_data_raw: str,
+        context: RuleContext,
+    ) -> None:
+        if not (tip_data == "repro" or tip_data == "reproodpis"):
+            return
+        for needed, label in (
+            (["kontrolaveljavnostirepro"], "Repro – pričakovana kontrola veljavnosti"),
+            (["kontrolaustreznostirepro"], "Repro – pričakovana kontrola ustreznosti"),
+        ):
+            self._warn_if_missing_any(errors, controls, needed, label, tip_data_raw, context)
+
 
 @register
 class ZakleniParamRule(RowRule):
@@ -978,8 +1028,9 @@ class ZakleniParamRule(RowRule):
             # Interpret Param1 as list of step numbers
             require_pogoj = not shared.extra.get(
                 "bypass_zakleni_require_pogoj_for_param1_steps",
-                True,
+                False,
             )
+            zakleni_checkbox_steps = getattr(shared, "zakleni_checkbox_steps", set())
             for token in value.split(","):
                 step = int(token.strip())
                 if step not in shared.existing_steps:
@@ -991,7 +1042,11 @@ class ZakleniParamRule(RowRule):
                             code="LOCK_P1_STEP_MISSING",
                         )
                     )
-                elif require_pogoj and "aliobstajapogoj" not in shared.step_to_controls.get(step, set()):
+                elif (
+                    require_pogoj
+                    and step not in zakleni_checkbox_steps
+                    and "aliobstajapogoj" not in shared.step_to_controls.get(step, set())
+                ):
                     errors.append(
                         self.build_error(
                             f"Korak {step} mora imeti kontrolo 'aliObstajaPogoj'.",

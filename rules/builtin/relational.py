@@ -11,9 +11,11 @@ from validator_oop.core.error import Severity
 from validator_oop.rules import RuleContext, SheetRule, register
 from validator_oop.utils import (
     base_key_no_trailing_number,
+    coerce_str,
     extract_unit_token,
     is_mass_owner_tip,
     is_water_key,
+    norm_text,
     split_key_number,
 )
 
@@ -344,6 +346,73 @@ class MassOwnerRule(SheetRule):
 
 
 @register
+class ReproKolicinaOwnerRule(SheetRule):
+    """Ensure every kolicina has a preceding repro with the same key."""
+
+    name = "repro_kolicina_owner_rule"
+    description = "Kolicina mora imeti predhodni repro z enakim ključem preverjanja."
+
+    def evaluate_sheet(
+        self,
+        rows: Sequence[Mapping[str, object]],
+        context: RuleContext,
+        *,
+        row_offset: int = 2,
+    ) -> Iterable:
+        from validator_oop.utils import coerce_str, norm_text
+
+        shared = context.shared
+        if not shared:
+            return []
+
+        errors = []
+        tab_by_row = shared.tab_by_row
+
+        for row_idx, row in enumerate(rows, start=row_offset):
+            tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+            if tip_data != "kolicina":
+                continue
+
+            kolicina_key = coerce_str(row.get("Ključ preverjanja", "")).strip()
+            kolicina_tab = tab_by_row.get(row_idx, "")
+
+            owner_row = None
+            owner_key = None
+            for prev_idx in range(row_idx - 1, row_offset - 1, -1):
+                prev_row = rows[prev_idx - row_offset]
+                prev_tip = norm_text(coerce_str(prev_row.get("Tip podatka", "")))
+                prev_tab = tab_by_row.get(prev_idx, "")
+                if prev_tab != kolicina_tab:
+                    continue
+                if prev_tip == "repro":
+                    owner_row = prev_idx
+                    owner_key = coerce_str(prev_row.get("Ključ preverjanja", "")).strip()
+                    break
+
+            if owner_row is None:
+                if not kolicina_key:
+                    continue
+                errors.append(
+                    self.build_error(
+                        f"Za kolicino s ključem '{kolicina_key}' ne obstaja ustrezen 'repro' pred tem korakom.",
+                        context=context.with_row(row_idx),
+                        column="Ključ preverjanja",
+                        code="PAIR_KOLICINA_WITHOUT_OWNER",
+                    )
+                )
+            elif kolicina_key != owner_key:
+                errors.append(
+                    self.build_error(
+                        f"Vrstica {row_idx} mora imeti ključ preverjanja '{owner_key}' (kot vrstica {owner_row}, repro).",
+                        context=context.with_row(row_idx),
+                        column="Ključ preverjanja",
+                        code="PAIR_KOLICINA_KEY_MISMATCH",
+                    )
+                )
+        return errors
+
+
+@register
 class TimePairRule(SheetRule):
     """Ensure datumcaszacetek/datumcaskonec pairs exist and keys are unique."""
 
@@ -426,6 +495,80 @@ class TimePairRule(SheetRule):
                     )
                 )
 
+        return errors
+
+
+def _parse_step_number(row: Mapping[str, object]) -> int | None:
+    step_val = coerce_str(row.get("št. Koraka", ""))
+    if not step_val:
+        return None
+    try:
+        return int(step_val)
+    except ValueError:
+        return None
+
+
+@register
+class TimeOrderRule(SheetRule):
+    """Ensure datumcaszacetek precedes datumcaskonec by step number for the same key."""
+
+    name = "time_order_rule"
+    description = "Korak datumcaszacetek mora imeti manjšo številko koraka kot datumcaskonec (isti ključ)."
+
+    def evaluate_sheet(
+        self,
+        rows: Sequence[Mapping[str, object]],
+        context: RuleContext,
+        *,
+        row_offset: int = 2,
+    ) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+
+        tab_by_row = shared.tab_by_row
+        grouped: dict[tuple[str, str], dict[str, list[tuple[int, int | None]]]] = defaultdict(
+            lambda: {"start": [], "end": []}
+        )
+
+        for idx, row in enumerate(rows):
+            excel_row = idx + row_offset
+            tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+            if tip_data not in {"datumcaszacetek", "datumcaskonec"}:
+                continue
+            key = coerce_str(row.get("Ključ preverjanja", "")).strip()
+            if not key:
+                continue
+            tab = tab_by_row.get(excel_row, "")
+            step = _parse_step_number(row)
+            bucket = "start" if tip_data == "datumcaszacetek" else "end"
+            grouped[(tab, key)][bucket].append((excel_row, step))
+
+        errors = []
+        for (tab, key), parts in grouped.items():
+            starts = parts["start"]
+            ends = parts["end"]
+            if len(starts) != 1 or len(ends) != 1:
+                continue
+            start_row, start_step = starts[0]
+            end_row, end_step = ends[0]
+            if start_step is None or end_step is None:
+                continue
+            if start_step >= end_step:
+                tab_info = f" v zavihku '{tab}'" if tab else ""
+                errors.append(
+                    self.build_error(
+                        (
+                            f"Korak začetka ({start_step}) mora biti manjši od koraka konca ({end_step}) "
+                            f"za ključ '{key}'{tab_info}."
+                        ),
+                        context=context.with_row(end_row),
+                        column="št. Koraka",
+                        code="PAIR_TIME_ORDER",
+                        severity=Severity.WARNING,
+                        payload={"start_row": start_row, "end_row": end_row, "key": key, "tab": tab},
+                    )
+                )
         return errors
 
 

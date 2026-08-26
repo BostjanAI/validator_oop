@@ -47,6 +47,8 @@ class SharedContext:
             formula1, klictehtnice1).
         zakleni_param1_steps: Set of steps referenced by 'zaklenipolja' Param1.
         zakleni_param1_steps_by_tab: Mapping of tab -> set of steps referenced by 'zaklenipolja' Param1.
+        zakleni_checkbox_steps: Set of step numbers that are checkbox rows with 'zaklenipolja'
+            (exempt from aliObstajaPogoj requirement when listed in another zaklenipolja Param1).
         ali_pogoj_step_locations: Mapping of step -> (row, column) for 'aliObstajaPogoj'.
         ali_pogoj_step_locations_by_tab: Mapping of tab -> step -> list[(row, column)] for 'aliObstajaPogoj'.
         extra: Additional arbitrary pre-computed data.
@@ -84,6 +86,7 @@ class SharedContext:
     # zaklenipolja specific
     zakleni_param1_steps: set[int] = field(default_factory=set)
     zakleni_param1_steps_by_tab: dict[str, set[int]] = field(default_factory=dict)
+    zakleni_checkbox_steps: set[int] = field(default_factory=set)
     ali_pogoj_step_locations: dict[int, tuple[int, str]] = field(default_factory=dict)
     ali_pogoj_step_locations_by_tab: dict[str, dict[int, list[tuple[int, str]]]] = field(default_factory=dict)
     keys_by_zakleni_step: dict[int, set[str]] = field(default_factory=dict)
@@ -267,6 +270,8 @@ class SharedContextBuilder:
             ctrl_num = ctx.control_numbers.get(ctrl_col, 0) or 0
 
             if ctrl_name_ns == "zaklenipolja":
+                if step_num is not None and norm_text(coerce_str(row.get("Tip objekta", ""))) == "checkbox":
+                    ctx.zakleni_checkbox_steps.add(step_num)
                 self._scan_zakleni_control(ctx, row, tab, ctrl_num, key_here)
             elif ctrl_name_ns == "aliobstajapogoj" and step_num is not None:
                 self._scan_aliobstajapogoj_control(ctx, row, excel_row, tab, step_num, ctrl_col, ctrl_num)

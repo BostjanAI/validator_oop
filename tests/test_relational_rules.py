@@ -9,13 +9,16 @@ from typing import Any
 
 import pytest
 
+from validator_oop.core.error import Severity
 from validator_oop.core.shared_context import SharedContextBuilder
 from validator_oop.rules.builtin.relational import (
     DuplicateKeyRule,
     KeyNumberingRule,
     MassOwnerRule,
+    ReproKolicinaOwnerRule,
     TehtnicaMasaPairRule,
     TehtnicaVrednostFromFormulaRule,
+    TimeOrderRule,
     TimePairRule,
 )
 
@@ -248,6 +251,75 @@ class TestMassOwnerRule:
         assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
 
 
+class TestReproKolicinaOwnerRule:
+    """Tests for ReproKolicinaOwnerRule."""
+
+    @pytest.fixture
+    def rule(self) -> ReproKolicinaOwnerRule:
+        return ReproKolicinaOwnerRule()
+
+    def _run(self, rule: ReproKolicinaOwnerRule, rows: list[dict[str, Any]]):
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka"])
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    def test_kolicina_with_matching_repro_passes(self, rule: ReproKolicinaOwnerRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "telo_samec_V4", "Tip podatka": "repro"},
+            {"Ključ preverjanja": "telo_samec_V4", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert [e.code for e in errors] == []
+
+    def test_two_kolicina_rows_after_repro_pass(self, rule: ReproKolicinaOwnerRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "oring", "Tip podatka": "repro"},
+            {"Ključ preverjanja": "oring", "Tip podatka": "kolicina"},
+            {"Ključ preverjanja": "oring", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert [e.code for e in errors] == []
+
+    def test_kolicina_key_mismatch_raises_error(self, rule: ReproKolicinaOwnerRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "telo_samec_V4", "Tip podatka": "repro"},
+            {"Ključ preverjanja": "telo_V4", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        mismatch = [e for e in errors if e.code == "PAIR_KOLICINA_KEY_MISMATCH"]
+        assert len(mismatch) == 1
+        assert "telo_samec_V4" in mismatch[0].message
+
+    def test_kolicina_without_repro_raises_error(self, rule: ReproKolicinaOwnerRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "telo_V4", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert "PAIR_KOLICINA_WITHOUT_OWNER" in [e.code for e in errors]
+
+    def test_empty_kolicina_key_with_repro_raises_mismatch(
+        self, rule: ReproKolicinaOwnerRule
+    ) -> None:
+        rows = [
+            {"Ključ preverjanja": "frita_V4", "Tip podatka": "repro"},
+            {"Ključ preverjanja": "", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert "PAIR_KOLICINA_KEY_MISMATCH" in [e.code for e in errors]
+
+    def test_repro_on_other_tab_is_not_owner(self, rule: ReproKolicinaOwnerRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "oring", "Tip podatka": "repro", "Zavihek": "A"},
+            {"Ključ preverjanja": "oring", "Tip podatka": "kolicina", "Zavihek": "B"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka", "Zavihek"])
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert "PAIR_KOLICINA_WITHOUT_OWNER" in [e.code for e in errors]
+
+
 class TestTimePairRule:
     """Tests for TimePairRule."""
 
@@ -386,6 +458,52 @@ class TestTimePairRule:
 
         error_codes = [e.code for e in errors]
         assert "KEY_DUP_TIME_PAIR" not in error_codes
+
+
+class TestTimeOrderRule:
+    """Tests for TimeOrderRule."""
+
+    @pytest.fixture
+    def rule(self) -> TimeOrderRule:
+        return TimeOrderRule()
+
+    def test_start_before_end_passes(self, rule: TimeOrderRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaszacetek", "št. Koraka": "10"},
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaskonec", "št. Koraka": "20"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka", "št. Koraka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "PAIR_TIME_ORDER"] == []
+
+    def test_start_after_end_warns(self, rule: TimeOrderRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaszacetek", "št. Koraka": "30"},
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaskonec", "št. Koraka": "20"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka", "št. Koraka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        order_errors = [e for e in errors if e.code == "PAIR_TIME_ORDER"]
+        assert len(order_errors) == 1
+        assert order_errors[0].severity == Severity.WARNING
+
+    def test_equal_steps_warns(self, rule: TimeOrderRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaszacetek", "št. Koraka": "15"},
+            {"Ključ preverjanja": "T1", "Tip podatka": "datumcaskonec", "št. Koraka": "15"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka", "št. Koraka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert any(e.code == "PAIR_TIME_ORDER" for e in errors)
 
 
 class TestKeyNumberingRule:

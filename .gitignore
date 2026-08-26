@@ -5,6 +5,9 @@ __pycache__/
 venv/
 .venv/
 
+# Poverilnice za MES/MySQL (nikoli v git; glej .env.example)
+.env
+
 .pytest_cache/
 .coverage
 .coverage.*

@@ -38,6 +38,26 @@ python -m validator_oop receptura.xlsx --verbose
 python -m validator_oop receptura.xlsx --apply-fixes
 ```
 
+### MES/MySQL vir (opcijsko)
+
+Validacija receptur neposredno iz MES MySQL baze in shranjevanje rezultatov
+nazaj v bazo. Zahteva `pip install -r requirements-db.txt` in konfigurirane
+`MES_DB_*` spremenljivke (glej `.env.example` in `docs/SQL_integracija_notes.md`).
+
+```bash
+# Seznam receptur iz MES baze
+python -m validator_oop --list-recipes
+
+# Validacija recepture iz baze
+python -m validator_oop --db-source --recipe-id 123
+
+# Validacija + shranjevanje rezultatov v MySQL (validation_runs/validation_findings)
+python -m validator_oop --db-source --recipe-id 123 --db-save-results
+
+# JSON poročilo in lasten mapping MES stolpcev
+python -m validator_oop --db-source --recipe-id 123 --format json -o report.json --db-mapping mapping.json
+```
+
 ### GUI uporaba
 ```bash
 # Klasični GUI
@@ -329,7 +349,7 @@ config = ValidatorConfig(
     
     # Bypass flagi za specifične situacije
     bypass_zakleni_require_empty_for_checkbox=True,
-    bypass_zakleni_require_pogoj_for_param1_steps=True,
+    bypass_zakleni_require_pogoj_for_param1_steps=False,
     bypass_zakleni_inverse_pogoj_requirement=False,
     
     # SOP validacija

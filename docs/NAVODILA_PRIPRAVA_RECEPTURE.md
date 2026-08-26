@@ -224,6 +224,7 @@ Vsi spodnji stolpci **morajo biti prisotni** v glavi lista (1. vrstica):
 | `vak_sušilnik` | Vakuumski sušilnik (oprema) | `naziv opreme` → `spustniseznam` |
 | `merilnik` | Merilnik (oprema) | `naziv opreme` → `spustniseznam` |
 | `naprava` | Naprava (oprema) | `naziv opreme` → `spustniseznam` |
+| `avtoklav` | Avtoklav (oprema) | `naziv opreme` → `spustniseznam` |
 | `checkbox` | Polje za kljukico | `DA (kljukica)` ali `DA (kljukica)/NE (prazno)` |
 | `datumcaszacetek` | Datum in čas začetka | `datum/čas` |
 | `datumcaskonec` | Datum in čas konca | `datum/čas` |

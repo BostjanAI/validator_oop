@@ -1,0 +1,7 @@
+# MES/MySQL integracija - opcijske odvisnosti
+# Namesti SAMO, če validator bere/piše v MES MySQL bazo:
+#   pip install -r requirements-db.txt
+#
+# Osnovna (desktop/Excel) namestitev teh paketov NE potrebuje.
+
+mysql-connector-python>=8.0.0   # uradni MySQL driver (lazy import v db/connection.py)

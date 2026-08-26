@@ -4,7 +4,7 @@ Ne vsebuje validacijske logike. Za vsako naloženo recepturo:
 1. zgradi ``ValidatorConfig`` iz uporabnikove konfiguracije,
 2. konstruira ``ValidatorEngine`` (z opcijskim SOP in šifranti),
 3. zažene ``validate()`` in pretvori rezultat v API obliko,
-4. generira poročila (Excel, JSON, TXT, management .md, opcijsko auto-fix).
+4. generira poročila (Excel, JSON, TXT, opcijsko auto-fix).
 """
 
 from __future__ import annotations
@@ -18,7 +18,6 @@ from validator_oop.core import RuleEngine, ValidatorConfig, ValidatorEngine
 from validator_oop.core.constants import translate_code
 from validator_oop.excel import ExcelLoader
 from validator_oop.excel.report_writer import ReportWriter, WorkbookFixer
-from validator_oop.excel.management_report import write_management_report
 from validator_oop.rules import default_registry
 
 from .rules_catalog import _ensure_registered
@@ -122,7 +121,6 @@ class ValidationService:
         "excel": "Excel poročilo (.xlsx)",
         "json": "JSON poročilo (.json)",
         "txt": "Besedilno poročilo (.txt)",
-        "management": "Management poročilo (.md)",
         "autofix": "Popravljena receptura (.xlsx)",
     }
 
@@ -183,6 +181,74 @@ class ValidationService:
             catalog_validation=catalog_summary if isinstance(catalog_summary, dict) else None,
             issues=ui_issues,
             reports=reports,
+        )
+
+    def validate_db_recipe(
+        self,
+        *,
+        index: int,
+        recipe_id: int,
+        config: ValidationConfigIn,
+        output_dir: Path,
+        save_results: bool = False,
+    ) -> FileResult:
+        """Validira recepturo neposredno iz MES MySQL baze.
+
+        Vir podatkov je ``MySQLLoader`` (vrne ``LoadedWorkbook``), validacija
+        in poročila pa tečejo skozi isto infrastrukturo kot pri Excel viru.
+        SOP/šifranti in auto-fix pri DB viru niso podprti (ni datoteke).
+        """
+        # Lazy import: db paket je opcijski (MySQL driver ni osnovna odvisnost)
+        from validator_oop.db import DBConfig, MySQLLoader, MySQLReportWriter, load_mapping
+
+        output_dir.mkdir(parents=True, exist_ok=True)
+        validator_config = build_config(config)
+
+        db_config = DBConfig.from_env()
+        mapping = load_mapping(db_config.mapping_file)
+        loader = MySQLLoader(db_config, mapping, logger_=logger)
+        loaded = loader.load_recipe(recipe_id)
+
+        rule_engine = RuleEngine(default_registry, config=validator_config, logger=logger)
+        engine = ValidatorEngine(rule_engine, ExcelLoader(), logger=logger)
+        report = engine.validate_loaded(loaded)
+        report_dict = report.to_dict()
+
+        db_run_id: int | None = None
+        if save_results:
+            writer = MySQLReportWriter(db_config, logger_=logger)
+            db_run_id = writer.save(
+                report,
+                recipe_id=recipe_id,
+                config=validator_config,
+            )
+
+        counts = {str(k): int(v) for k, v in report_dict.get("counts", {}).items()}
+        counts_by_code = {str(k): int(v) for k, v in report_dict.get("counts_by_code", {}).items()}
+        issues_writer = _issues_for_writer(report_dict)
+
+        filename = f"MES_receptura_{recipe_id}"
+        ui_issues, counts_by_sheet = self._build_ui_issues(report_dict, filename)
+
+        reports = self._write_reports(
+            recipe_path=output_dir / f"{filename}.xlsx",  # samo za poimenovanje poročil
+            output_dir=output_dir,
+            report_dict=report_dict,
+            issues_writer=issues_writer,
+            catalog_summary=None,
+            apply_fixes=False,  # auto-fix zahteva izvorno Excel datoteko
+        )
+
+        return FileResult(
+            index=index,
+            filename=filename,
+            is_valid=bool(report_dict.get("is_valid", False)),
+            counts=counts,
+            counts_by_code=counts_by_code,
+            counts_by_sheet=counts_by_sheet,
+            issues=ui_issues,
+            reports=reports,
+            db_run_id=db_run_id,
         )
 
     def _build_ui_issues(
@@ -248,14 +314,6 @@ class ValidationService:
             refs.append(ReportRef(kind="txt", label=self.REPORT_LABELS["txt"], filename=txt_path.name))
         except Exception as exc:
             logger.warning("TXT poročilo ni uspelo: %s", exc)
-
-        # Management (.md)
-        md_path = output_dir / f"{stem}_management.md"
-        try:
-            write_management_report(md_path, issues_writer, source_filename=recipe_path.name)
-            refs.append(ReportRef(kind="management", label=self.REPORT_LABELS["management"], filename=md_path.name))
-        except Exception as exc:
-            logger.warning("Management poročilo ni uspelo: %s", exc)
 
         # Auto-fix (opcijsko)
         if apply_fixes:
@@ -327,15 +385,5 @@ class ValidationService:
             refs.append(ReportRef(kind="txt", label="Skupno TXT poročilo (.txt)", filename=txt_path.name))
         except Exception as exc:
             logger.warning("Skupno TXT poročilo ni uspelo: %s", exc)
-
-        md_path = output_dir / f"{stem}_management.md"
-        try:
-            source = ", ".join(fr.filename for fr in results)
-            write_management_report(md_path, issues_writer, source_filename=source)
-            refs.append(
-                ReportRef(kind="management", label="Skupno management poročilo (.md)", filename=md_path.name)
-            )
-        except Exception as exc:
-            logger.warning("Skupno management poročilo ni uspelo: %s", exc)
 
         return refs

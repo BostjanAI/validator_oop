@@ -1,161 +1,171 @@
-# SQL Integracija — Notes iz pogovora (13. 3. 2026)
+# MES/MySQL integracija — dokumentacija
 
-## Kontekst
+> Prvotni zapiski (13. 3. 2026) so nadgrajeni v dokumentacijo implementiranega
+> sloja `db/` (julij 2026). Implementirana je **Možnost C**: MySQL kot vir
+> receptur IN kot cilj za rezultate validacije.
 
-Validator OOP trenutno deluje kot standalone desktop orodje, ki bere `.xlsx` datoteke.
-MES sistem podjetja uporablja **MySQL** bazo podatkov (PHP 7+ / Linux / Apache / phpMyAdmin).
-
-Cilj: integracija validatorja z obstoječim MES MySQL sistemom.
-
----
-
-## Trenutni tok podatkov (brez SQL)
+## Arhitektura
 
 ```
-.xlsx → ExcelLoader → WorkbookParser → list[dict] → RuleEngine → ValidationReport → .xlsx/.json
+MySQL (recipe data) → MySQLLoader → LoadedWorkbook → ValidatorEngine/RuleEngine
+                                                            │
+                                                            ▼
+                                                     ValidationReport
+                                                       │         │
+                                              MySQL (results)  .xlsx/.json (opcijsko)
 ```
 
----
+Ključno: `MySQLLoader.load_recipe()` vrne **isti objekt kot `ExcelLoader`**
+(`LoadedWorkbook`), zato pravila (`rules/`), `RuleEngine` in `SharedContext`
+ostajajo popolnoma nespremenjeni. Validacija teče prek obstoječega
+`ValidatorEngine.validate_loaded()`.
 
-## Možnosti integracije
+- `row_offset = 2`: prvi korak recepture se v poročilih izpiše kot "vrstica 2",
+  enako kot pri Excel viru z glavo v vrstici 1 (konsistentne lokacije napak).
+- SOP compliance deluje tudi za SQL vir: `validate_loaded()` zdaj podaja
+  `all_workbook_data`/`all_workbook_headers` (privzeto iz `LoadedWorkbook`,
+  povratno združljivo).
 
-### Možnost A — SQL kot VIR podatkov (namesto Excel)
+## Namestitev
 
-Nov `MySQLLoader` razred, ki vrne `list[dict]` — isti format kot `WorkbookParser`.
-`RuleEngine` in vsa pravila ostanejo **brez sprememb**.
-
-```
-MySQL (recipe data) → MySQLLoader → list[dict] → RuleEngine → ValidationReport
-```
-
-### Možnost B — SQL kot CILJ (shranjevanje rezultatov)
-
-`ValidationReport.to_dict()` že vrne serializirano strukturo — primerno za SQL INSERT.
-PHP aplikacija nato prikaže rezultate iz MySQL tabele.
-
-### Možnost C — Oboje (priporočeno za produkcijo)
-
-```
-MySQL (recipe data) → MySQLLoader → RuleEngine → ValidationReport → MySQL (results)
-                                                                   → .xlsx (opcijsko)
-```
-
----
-
-## Kaj je potrebno
-
-### 1. Python driver
+MySQL driver je **opcijska** odvisnost (lazy import) — brez njega Excel/CLI/
+GUI/web upload delujejo naprej.
 
 ```bash
-pip install mysql-connector-python
+pip install -r requirements-db.txt   # mysql-connector-python
 ```
 
-### 2. Dostop do MySQL (od MES admina)
+## Konfiguracija (env / .env)
 
-- Host (IP naslov strežnika)
-- Port (privzeto `3306`)
-- Ime baze
-- Uporabnik (priporočeno: read-only user)
-- Geslo
+Poverilnice samo prek okoljskih spremenljivk ali `.env` datoteke
+(`.env` je v `.gitignore`; predloga je `.env.example`).
 
-### 3. Razumeti strukturo MySQL tabel
+| Env | Privzeto | Opis |
+|---|---|---|
+| `MES_DB_HOST` | — | host MySQL strežnika (obvezno) |
+| `MES_DB_PORT` | `3306` | port |
+| `MES_DB_NAME` | — | ime baze (obvezno) |
+| `MES_DB_USER` | — | uporabnik za branje (priporočeno **read-only**) |
+| `MES_DB_PASSWORD` | — | geslo (nikoli v git, se ne logira) |
+| `MES_DB_RESULTS_USER` | = `MES_DB_USER` | ločen write user za rezultate (opcijsko) |
+| `MES_DB_RESULTS_PASSWORD` | — | geslo za results userja |
+| `MES_DB_MAPPING_FILE` | — | pot do JSON mapping datoteke (opcijsko) |
+| `MES_DB_CHARSET` | `utf8mb4` | charset |
+| `MES_DB_CONNECT_TIMEOUT` | `10` | timeout povezave (s) |
+| `MES_DB_SSL_CA` | — | CA certifikat za TLS (opcijsko) |
+| `MES_WEB_ENABLE_DB` | `0` | `1` = vklopi web endpointe `/api/db/*` |
 
-Ključni korak: ugotoviti katere MySQL tabele in stolpci ustrezajo headerjem, ki jih validator pričakuje:
-`št. Koraka`, `Navodilo`, `Tip podatka`, `Tip objekta`, `Labela`, `Koda`, itd.
+## Mapping MES stolpcev → validator glave
 
-To se preveri v **phpMyAdmin** ali z `DESCRIBE table_name;`.
+Realna MES shema **ni zašita v kodo**. Privzeti profil (tabela `recipe_steps`,
+stolpci `step_number`, `instruction`, …) se lahko v celoti prepiše prek JSON
+datoteke — glej `db/README.md` za format in primer. Manjkajoča preslikava za
+katero od `REQUIRED_COLUMNS` javi `MappingError` s seznamom manjkajočih.
 
----
+Transformacije vrednosti: `NULL → ""` (nastavljivo), trim nizov (privzeto
+vklopljen), opcijski cast na `str`/`int`/`float` po stolpcu.
 
-## Primer MySQLLoader
+**TODO(shema):** privzeti profil potrdi z MES adminom (phpMyAdmin,
+`DESCRIBE tabela;`) in razlike zapiši v mapping JSON.
+
+## Rezultati v MySQL
+
+DDL: `db/schema.sql` (idempotenten). Ustvarjanje/preverba:
+
+```bash
+python -m validator_oop.db.migrate
+```
+
+Tabeli:
+
+- `validation_runs` — glava zagona (recipe_id, is_valid, števci po resnosti,
+  verzija validatorja, arhiviran config JSON, timestamp),
+- `validation_findings` — posamezne napake (sheet, row_index, col, rule_name,
+  code, severity, message, payload JSON), FK na run z `ON DELETE CASCADE`.
+
+`MySQLReportWriter.save(report, recipe_id=…)` zapiše run + findinge v **eni
+transakciji** (rollback ob napaki) in vrne `run_id`. Privzeto vsak `save()`
+ustvari **nov run** (ohranja se celotna zgodovina validacij); z
+`replace_existing=True` se prejšnji runi za isto recepturo prej izbrišejo.
+
+## Uporaba
+
+### CLI
+
+```bash
+python -m validator_oop --list-recipes                          # seznam receptur
+python -m validator_oop --db-source --recipe-id 123             # validacija iz baze
+python -m validator_oop --db-source --recipe-id 123 --db-save-results   # + zapis v MySQL
+python -m validator_oop --db-source --recipe-id 123 --format json -o porocilo.json
+python -m validator_oop --db-source --recipe-id 123 --db-mapping mapping.json
+```
+
+Brez `--db-source` je Excel tok popolnoma nespremenjen. Manjkajoč driver ali
+konfiguracija vrneta jasno slovensko napako in exit code 2.
+
+### Programsko
 
 ```python
-import mysql.connector
+from validator_oop.db import DBConfig, MySQLLoader, MySQLReportWriter, load_mapping
 
-class MySQLLoader:
-    def __init__(self, host, port, database, user, password):
-        self.conn = mysql.connector.connect(
-            host=host,
-            port=port,
-            database=database,
-            user=user,
-            password=password
-        )
+db_cfg = DBConfig.from_env()
+loader = MySQLLoader(db_cfg, load_mapping(db_cfg.mapping_file))
 
-    def load_recipe(self, recipe_id: int) -> dict[str, list[dict]]:
-        cursor = self.conn.cursor(dictionary=True)
-        cursor.execute("""
-            SELECT * FROM recipe_steps
-            WHERE recipe_id = %s
-            ORDER BY step_number
-        """, (recipe_id,))
-        rows = cursor.fetchall()
+loaded = loader.load_recipe(123)          # LoadedWorkbook
+report = validator.validate_loaded(loaded)
 
-        # MAPPING: MySQL stolpci → validator header imena
-        mapped_rows = []
-        for row in rows:
-            mapped_rows.append({
-                "št. Koraka":  row["step_number"],
-                "Navodilo":    row["instruction"],
-                "Tip podatka": row["data_type"],
-                "Tip objekta": row["object_type"],
-                # ... ostali stolpci — treba dopolniti glede na dejansko shemo
-            })
-
-        return {"Sheet1": mapped_rows}
+run_id = MySQLReportWriter(db_cfg).save(report, recipe_id=123)
 ```
 
----
+### Web (`MES_WEB_ENABLE_DB=1`)
 
-## Tabela za shranjevanje rezultatov v MySQL
-
-```sql
-CREATE TABLE validation_results (
-    id            INT AUTO_INCREMENT PRIMARY KEY,
-    recipe_id     INT NOT NULL,
-    validated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_valid      TINYINT(1),
-    error_count   INT,
-    warning_count INT,
-    sheet         VARCHAR(100),
-    row_index     INT,
-    rule_name     VARCHAR(100),
-    code          VARCHAR(50),
-    severity      VARCHAR(20),
-    message       TEXT,
-    INDEX (recipe_id),
-    INDEX (validated_at)
-);
-```
-
----
-
-## Minimalne spremembe v obstoječi kodi
-
-| Datoteka | Sprememba |
+| Endpoint | Opis |
 |---|---|
-| `db/sql_loader.py` | Nov razred `MySQLLoader` |
-| `db/sql_report_writer.py` | Nov razred `MySQLReportWriter` |
-| `core/config.py` | Dodaj `db_url: str \| None = None` |
-| `core/validator_engine.py` | if/else za Excel vs SQL loader |
-| `rules/` + `core/rule_engine.py` | **Nobenih sprememb** |
+| `GET /api/db/health` | stanje povezave na MES bazo (brez poverilnic v odgovoru) |
+| `GET /api/db/recipes?limit=&offset=&q=` | seznam receptur iz baze |
+| `POST /api/db/validate` | body `{recipe_id, config, save_results}` → `job_id` (202) |
 
----
+Validacija teče skozi **obstoječo** job/report infrastrukturo (`jobs.py`,
+`service.py`) — zamenjan je samo korak nalaganja. Rezultati in prenosi
+poročil so na voljo prek obstoječih `/api/jobs/*` endpointov. Ob vklopljeni
+avtentikaciji (Web Faza 2) `save_results` zahteva vlogo QA/admin.
 
-## Naslednji koraki
+Opombe za DB vir: SOP/šifranti in auto-fix niso podprti (ni izvorne Excel
+datoteke).
 
-1. Pridobi dostop do MySQL od MES admina (host, port, baza, user, pass)
-2. Poglej tabele v phpMyAdmin — najdi tabelo z recipe koraki
-3. Primerjaj MySQL stolpce z `REQUIRED_COLUMNS` iz `core/constants.py`
-4. Napiši mapping MySQL stolpcev → validator header imen
-5. Implementiraj `MySQLLoader`
+## Varnost
 
----
+- Parametrizirane poizvedbe povsod; `recipe_id` validiran kot integer.
+- Imena tabel/stolpcev iz mapping datoteke se validirajo (samo `[A-Za-z0-9_]`).
+- Least privilege: read-only user za branje, ločen write user za rezultate.
+- Gesla se ne logirajo in niso v repr/odgovorih API-ja.
+- Opcijski TLS (`MES_DB_SSL_CA`).
+- Aplikacija in MES baza naj bosta v internem omrežju (brez javnega dostopa);
+  pri Docker deploymentu MySQL port ne sme biti izpostavljen navzven.
 
-## Arhitekturna prednost
+## Testiranje
 
-Validator je že SQL-friendly:
-- `RuleEngine` in pravila **ne vedo nič o viru podatkov** — delajo samo z `list[dict]`
-- `ValidationReport.to_dict()` je že primeren za SQL INSERT
-- `ValidatorConfig` se enostavno razširi z DB connection parametri
-- `SharedContext` deluje enako z MySQL podatki kot z Excel podatki
+```bash
+pytest tests/test_db_integration.py tests/test_web_db.py    # mocki, brez žive baze
+```
+
+Opcijski integracijski test z živo bazo (marker `mysql`, privzeto preskočen):
+
+```bash
+docker compose -f tests/docker-compose.mysql.yml up -d
+$env:MES_DB_HOST="127.0.0.1"; $env:MES_DB_PORT="33061"
+$env:MES_DB_NAME="mes_test"; $env:MES_DB_USER="mes_test"; $env:MES_DB_PASSWORD="mes_test_pw"
+pytest -m mysql
+```
+
+Ekvivalenčni test (`TestExcelSqlEquivalence`) dokazuje, da ista receptura kot
+Excel in kot SQL vir vrne **identičen** seznam napak.
+
+## Kaj je treba potrditi z MES adminom
+
+1. Dostop: host, port, ime baze, read-only user + geslo (in po želji ločen
+   write user za rezultate).
+2. Realno shemo tabel s koraki receptur (`DESCRIBE`), da se pripravi JSON
+   mapping (imena tabel/stolpcev, order-by, meta tabela receptur).
+3. Ali MES loči variante recepture (→ `source.sheet_column` v mappingu).
+4. Dovoljenje za tabeli `validation_runs`/`validation_findings` (migrate).

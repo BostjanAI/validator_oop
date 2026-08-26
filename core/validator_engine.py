@@ -220,7 +220,10 @@ class ValidatorEngine:
             loaded.values, loaded.headers
         )
 
-        # Run validation on filtered sheets only
+        # Run validation on filtered sheets only.
+        # Pass original (unfiltered) data for SOP compliance rule – same as
+        # validate(); defaults from the LoadedWorkbook keep this backward
+        # compatible for any data source (Excel or SQL loader).
         errors = self._rule_engine.run(
             filtered_values,
             workbook_name=source_path.name if loaded.source_path else None,
@@ -228,6 +231,8 @@ class ValidatorEngine:
             workbook_values=loaded.raw_workbook_values if self._include_formulas else None,
             workbook_formulas=loaded.raw_workbook_formulas if self._include_formulas else None,
             parsed_formulas=loaded.formulas if self._include_formulas else None,
+            all_workbook_data=loaded.values,
+            all_workbook_headers=loaded.headers,
         )
 
         meta_sheets = filtered_values if filtered_values else loaded.values

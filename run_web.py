@@ -25,7 +25,7 @@ def _ensure_importable() -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="MES Excel Validator – spletni strežnik")
+    parser = argparse.ArgumentParser(description="IPO Excel Validator – spletni strežnik")
     parser.add_argument("--host", default="127.0.0.1", help="Naslov (privzeto 127.0.0.1)")
     parser.add_argument("--port", type=int, default=8000, help="Vrata (privzeto 8000)")
     parser.add_argument("--reload", action="store_true", help="Razvojni način z auto-reload")

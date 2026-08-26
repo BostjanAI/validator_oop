@@ -11,7 +11,14 @@ from validator_oop.core.constants import (
     FORMULA_REF,
     KEY_PATTERN,
     LABELA_CHECKBOX_ALLOWED,
+    LABELA_DATETIME_OBJECT_TYPES,
+    LABELA_DATUM_CAS_VALUE,
     LABELA_KODA_TYPES,
+    LABELA_MASS_TYPES,
+    LABELA_NAZIV_OPREME_VALUE,
+    REQUIRED_KEY_CHECKBOX_CONDITION_CONTROLS,
+    REQUIRED_KEY_TIME_TYPES,
+    REQUIRED_KEY_TYPES,
     STANDARD_TIP_PODATKA,
     VALIDATION_EXCLUDED_COLUMNS,
 )
@@ -21,20 +28,47 @@ from validator_oop.utils import (
     coerce_str,
     extract_unit_token,
     extract_unit_token_near_number,
+    is_equipment_tip,
     looks_like_number_with_commas,
     norm_control_name,
     norm_text,
 )
 
 # Additional local constants not in core/constants.py
-REQUIRED_KEY_TYPES: frozenset[str] = frozenset({"kemikalija", "raztopina", "masa", "tehtnica"})
 FORMULA_OBJECT_TYPES: frozenset[str] = frozenset({"formula", "formula0", "formula1"})
+# Pri crta je dovoljena vrednost le v št. Koraka; Tip podatka/Tip objekta sta
+# identifikatorja vrstice in se ne preverjata kot vsebinski stolpci.
 CRTA_ALLOWED_NON_EMPTY_COLUMNS: frozenset[str] = frozenset({
     "št. Koraka",
     "Tip podatka",
     "Tip objekta",
-    "Zavihek",
 })
+NASLOV_ALLOWED_NON_EMPTY_COLUMNS: frozenset[str] = frozenset({
+    "št. Koraka",
+    "Navodilo",
+    "Tip podatka",
+    "Tip objekta",
+})
+
+
+def _is_dh2o_key(key: str) -> bool:
+    """True, če je baza ključa dH2O (npr. dH2O, dH2O_1, dH2O1)."""
+    if not key:
+        return False
+    base = re.sub(r"[_\-\.\s]*\d+$", "", key.strip(), flags=re.IGNORECASE)
+    return base.lower() == "dh2o"
+
+
+def _cell_is_nonempty(value: object) -> bool:
+    if value is None:
+        return False
+    try:
+        import pandas as pd
+        if pd.isna(value):
+            return False
+    except (ImportError, TypeError, ValueError):
+        pass
+    return bool(str(value).strip())
 
 
 @register
@@ -107,18 +141,23 @@ class DataObjectCompatibilityRule(RowRule):
 
 @register
 class LabelRequirementsRule(RowRule):
-    """Validate label requirements (koda in unit matching)."""
+    """Validate label requirements (koda, oprema, datum/čas, enote)."""
 
     name = "label_requirements"
-    description = "Pravila za 'Labela' (koda in enote)."
+    description = "Pravila za 'Labela' glede na Tip podatka (koda, oprema, datum/čas, enote)."
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         errors = []
 
-        tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+        tip_data_raw = coerce_str(row.get("Tip podatka", ""))
+        tip_data = norm_text(tip_data_raw)
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
         labela_raw = coerce_str(row.get("Labela", ""))
         labela_norm = norm_text(labela_raw)
         navodilo_raw = coerce_str(row.get("Navodilo", ""))
+
+        if not tip_data:
+            return errors
 
         if tip_data in LABELA_KODA_TYPES and labela_norm != "koda":
             errors.append(
@@ -129,6 +168,35 @@ class LabelRequirementsRule(RowRule):
                     code="LABEL_MUST_BE_KODA",
                 )
             )
+        elif tip_obj == "spustniseznam" and labela_norm != LABELA_NAZIV_OPREME_VALUE:
+            errors.append(
+                self.build_error(
+                    "Pri tipu objekta 'spustniseznam' mora biti Labela = 'naziv opreme'.",
+                    context=context,
+                    column="Labela",
+                    code="LABEL_MUST_BE_NAZIV_OPREME",
+                )
+            )
+        elif tip_obj in LABELA_DATETIME_OBJECT_TYPES and labela_norm != LABELA_DATUM_CAS_VALUE:
+            errors.append(
+                self.build_error(
+                    f"Pri tipu objekta '{tip_obj}' mora biti Labela = 'datum/čas'.",
+                    context=context,
+                    column="Labela",
+                    code="LABEL_MUST_BE_DATUM_CAS",
+                )
+            )
+        elif tip_data in LABELA_MASS_TYPES:
+            label_unit = extract_unit_token(labela_raw)
+            if not label_unit:
+                errors.append(
+                    self.build_error(
+                        "Za tip podatka 'masa' mora Labela vsebovati enoto (npr. g, mL, kg).",
+                        context=context,
+                        column="Labela",
+                        code="LABEL_MUST_BE_UNIT",
+                    )
+                )
 
         # Try to extract unit near number first, fallback to any unit if not found
         label_unit = extract_unit_token_near_number(labela_raw)
@@ -203,26 +271,14 @@ class CheckboxLabelaRule(RowRule):
 
 @register
 class CrtaEmptyColumnsRule(RowRule):
-    """Pri tipu podatka crta morajo biti vsi ostali stolpci prazni."""
+    """Pri tipu objekta crta morajo biti vsi ostali stolpci prazni."""
 
     name = "crta_empty_columns_rule"
-    description = "Pri tipu podatka 'crta' morajo biti vsi ostali stolpci prazni."
-
-    @staticmethod
-    def _is_nonempty(value: object) -> bool:
-        if value is None:
-            return False
-        try:
-            import pandas as pd
-            if pd.isna(value):
-                return False
-        except (ImportError, TypeError, ValueError):
-            pass
-        return bool(str(value).strip())
+    description = "Pri tipu objekta 'crta' morajo biti vsi ostali stolpci prazni (razen št. Koraka)."
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
-        tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
-        if tip_data != "crta":
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
+        if tip_obj != "crta":
             return
 
         shared = context.shared
@@ -237,14 +293,71 @@ class CrtaEmptyColumnsRule(RowRule):
         for column in columns:
             if column in skip:
                 continue
-            if not self._is_nonempty(row.get(column)):
+            if not _cell_is_nonempty(row.get(column)):
                 continue
             yield self.build_error(
-                f"Pri tipu podatka 'crta' mora biti stolpec '{column}' prazen.",
+                f"Pri tipu objekta 'crta' mora biti stolpec '{column}' prazen.",
                 context=context,
                 column=column,
                 code="CRTA_COLUMN_NOT_EMPTY",
             )
+
+
+@register
+class NaslovEmptyColumnsRule(RowRule):
+    """Pri naslovu smejo biti zapolnjena le polji št. Koraka in Navodilo."""
+
+    name = "naslov_empty_columns_rule"
+    description = "Pri naslovu smejo biti zapolnjena le polji 'št. Koraka' in 'Navodilo'."
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
+        tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+        if tip_obj != "naslov" and tip_data != "naslov":
+            return
+
+        shared = context.shared
+        if shared:
+            columns = shared.columns or [
+                k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS
+            ]
+        else:
+            columns = [k for k in row.keys() if k not in VALIDATION_EXCLUDED_COLUMNS]
+
+        skip = NASLOV_ALLOWED_NON_EMPTY_COLUMNS | VALIDATION_EXCLUDED_COLUMNS
+        for column in columns:
+            if column in skip:
+                continue
+            if not _cell_is_nonempty(row.get(column)):
+                continue
+            yield self.build_error(
+                f"Pri naslovu mora biti stolpec '{column}' prazen (dovoljena sta le 'št. Koraka' in 'Navodilo').",
+                context=context,
+                column=column,
+                code="NASLOV_COLUMN_NOT_EMPTY",
+            )
+
+
+@register
+class WaterNotMasaRule(RowRule):
+    """Opozori, če je ključ dH2O uporabljen s tipom podatka masa."""
+
+    name = "water_not_masa_rule"
+    description = "Tip podatka ne sme biti 'masa', če je ključ preverjanja dH2O."
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        if norm_text(coerce_str(row.get("Tip podatka", ""))) != "masa":
+            return
+        key = coerce_str(row.get("Ključ preverjanja", "")).strip()
+        if not _is_dh2o_key(key):
+            return
+        yield self.build_error(
+            "Tip podatka ne sme biti 'masa', če je ključ preverjanja dH2O. Uporabite tip 'volumen' z enoto mL.",
+            context=context,
+            column="Tip podatka",
+            code="MASS_WATER_SHOULD_BE_VOLUME",
+            severity=Severity.WARNING,
+        )
 
 
 @register
@@ -339,11 +452,47 @@ class KeyValidationRule(RowRule):
                 return char_descriptions.get(char, f"znak '{char}'")
         return None
 
+    @staticmethod
+    def _row_has_condition_control(row: Mapping[str, object], context: RuleContext) -> bool:
+        """Ali vrstica vsebuje kontrolo pogoja (aliObstajaPogoj ali zaklenipolja)."""
+        shared = context.shared
+        if shared and shared.control_columns:
+            columns = shared.control_columns
+        else:
+            columns = [
+                column
+                for column in row.keys()
+                if column.lower().startswith("kontrola") and "par" not in column.lower()
+            ]
+
+        for column in columns:
+            name_ns = norm_control_name(coerce_str(row.get(column, "")))
+            if name_ns in REQUIRED_KEY_CHECKBOX_CONDITION_CONTROLS:
+                return True
+        return False
+
+    @staticmethod
+    def _requires_key(row: Mapping[str, object], context: RuleContext) -> tuple[bool, str]:
+        tip_data_raw = coerce_str(row.get("Tip podatka", ""))
+        tip_data = norm_text(tip_data_raw)
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
+
+        if tip_data in REQUIRED_KEY_TYPES:
+            return True, tip_data
+        if is_equipment_tip(tip_data_raw):
+            display = tip_data_raw.strip() or tip_data
+            return True, display
+        if tip_data in REQUIRED_KEY_TIME_TYPES:
+            return True, tip_data
+        if tip_data == "checkbox" or tip_obj == "checkbox":
+            if KeyValidationRule._row_has_condition_control(row, context):
+                return True, "checkbox s pogojem"
+        return False, ""
+
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         errors = []
         key_raw = self._key_raw(row)
         key = key_raw.strip()
-        tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
 
         if key_raw and self._has_edge_space(key_raw):
             errors.append(
@@ -377,10 +526,13 @@ class KeyValidationRule(RowRule):
                     )
                 )
 
-        if tip_data in REQUIRED_KEY_TYPES and not key:
+        requires_key, type_label = self._requires_key(row, context)
+        if requires_key and not key:
             errors.append(
                 self.build_error(
-                    "Za tipe 'kemikalija', 'raztopina', 'masa' in 'tehtnica' mora biti nastavljen 'Ključ preverjanja'.",
+                    (
+                        f"Za tip podatka '{type_label}' mora biti nastavljen 'Ključ preverjanja'."
+                    ),
                     context=context,
                     column="Ključ preverjanja",
                     code="KEY_REQUIRED",

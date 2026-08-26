@@ -267,6 +267,33 @@ class TestSharedContextBuilder:
         assert 1 in ctx.keys_by_zakleni_step
         assert 2 in ctx.keys_by_zakleni_step
 
+    def test_build_zakleni_checkbox_steps(self, builder: SharedContextBuilder) -> None:
+        """Checkbox rows with zaklenipolja are tracked for Param1 exemptions."""
+        rows = [
+            {
+                "št. Koraka": "5",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "6",
+            },
+            {
+                "št. Koraka": "6",
+                "Tip objekta": "checkbox",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "5",
+            },
+            {
+                "št. Koraka": "10",
+                "Tip objekta": "edit",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "11",
+            },
+        ]
+        columns = ["št. Koraka", "Tip objekta", "Kontrola-1", "Kontrola-1: Par 1"]
+        ctx = builder.build(rows, columns)
+
+        assert ctx.zakleni_checkbox_steps == {5, 6}
+
     def test_build_step_to_controls(self, builder: SharedContextBuilder) -> None:
         """Test step to controls mapping."""
         rows = [

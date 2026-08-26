@@ -44,7 +44,7 @@ class ValidatorConfig:
     stop_on_first_error: bool = False
     # Zaklenipolja-specific bypass flags (matching original MES_validator.py behavior)
     bypass_zakleni_require_empty_for_checkbox: bool = True
-    bypass_zakleni_require_pogoj_for_param1_steps: bool = True
+    bypass_zakleni_require_pogoj_for_param1_steps: bool = False
     bypass_zakleni_inverse_pogoj_requirement: bool = False
     # SOP validation settings
     sop_data_path: Path | None = None
@@ -113,7 +113,7 @@ class ValidatorConfig:
                 "bypass_zakleni_require_empty_for_checkbox", True
             ),
             bypass_zakleni_require_pogoj_for_param1_steps=data.get(
-                "bypass_zakleni_require_pogoj_for_param1_steps", True
+                "bypass_zakleni_require_pogoj_for_param1_steps", False
             ),
             bypass_zakleni_inverse_pogoj_requirement=data.get(
                 "bypass_zakleni_inverse_pogoj_requirement", False

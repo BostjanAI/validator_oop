@@ -123,7 +123,7 @@ class TestEndToEnd:
         assert isinstance(fr["is_valid"], bool)
         # Poročila so generirana in prenosljiva
         kinds = {r["kind"] for r in fr["reports"]}
-        assert {"excel", "json", "txt", "management"} <= kinds
+        assert {"excel", "json", "txt"} <= kinds
         for rep in fr["reports"]:
             dl = client.get(f"/api/jobs/{job_id}/files/0/report/{rep['filename']}")
             assert dl.status_code == 200, rep["filename"]
@@ -151,7 +151,7 @@ class TestEndToEnd:
         results = client.get(f"/api/jobs/{job_id}/results").json()
         assert len(results["files"]) == 2
         combined = results["combined_reports"]
-        assert {"excel", "json", "txt", "management"} <= {r["kind"] for r in combined}
+        assert {"excel", "json", "txt"} <= {r["kind"] for r in combined}
         for rep in combined:
             dl = client.get(f"/api/jobs/{job_id}/report/{rep['filename']}")
             assert dl.status_code == 200, rep["filename"]

@@ -16,7 +16,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from .schemas import (
     FileResult,
@@ -39,6 +39,8 @@ class JobFile:
     state: str = "queued"
     error: str | None = None
     result: FileResult | None = None
+    # MES/MySQL vir: id recepture v bazi (path je takrat samo placeholder)
+    recipe_id: int | None = None
 
 
 @dataclass
@@ -57,6 +59,10 @@ class Job:
     finished_at: float | None = None
     combined_reports: list[ReportRef] = field(default_factory=list)
     lock: threading.Lock = field(default_factory=threading.Lock)
+    # Faza 2: lastnik joba (prijavljen uporabnik) za zgodovino in dostop
+    owner: str = ""
+    # MES/MySQL vir: shrani rezultate v validation_runs/validation_findings
+    save_results: bool = False
 
     @property
     def total_files(self) -> int:
@@ -70,12 +76,20 @@ class Job:
 class JobManager:
     """Sprejema jobe, jih izvaja v ozadju in hrani rezultate."""
 
-    def __init__(self, *, max_workers: int = 2, jobs_dir: Path) -> None:
+    def __init__(
+        self,
+        *,
+        max_workers: int = 2,
+        jobs_dir: Path,
+        on_complete: Callable[[Job], None] | None = None,
+    ) -> None:
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="mes-val")
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
         self._jobs_dir = jobs_dir
         self._service = ValidationService()
+        # Faza 2: hook ob zaključku joba (npr. trajna zgodovina + audit)
+        self._on_complete = on_complete
 
     def create_job(
         self,
@@ -85,6 +99,7 @@ class JobManager:
         sop_file: tuple[str, bytes] | None = None,
         catalog_raztopine: tuple[str, bytes] | None = None,
         catalog_kemikalije: tuple[str, bytes] | None = None,
+        owner: str = "",
     ) -> str:
         """Ustvari job, shrani naložene datoteke in ga uvrsti v izvajanje."""
         job_id = uuid.uuid4().hex
@@ -112,6 +127,46 @@ class JobManager:
             sop_path=sop_path,
             catalog_raztopine_path=razt_path,
             catalog_kemikalije_path=kem_path,
+            owner=owner,
+        )
+        with self._lock:
+            self._jobs[job_id] = job
+
+        self._executor.submit(self._run_job, job_id)
+        return job_id
+
+    def create_db_job(
+        self,
+        *,
+        config: ValidationConfigIn,
+        recipe_id: int,
+        save_results: bool = False,
+        owner: str = "",
+    ) -> str:
+        """Ustvari job z virom iz MES MySQL baze (namesto naloženih datotek).
+
+        Validacija in poročila tečejo skozi isto job infrastrukturo kot pri
+        uploadu – zamenjan je samo korak nalaganja (MySQLLoader).
+        """
+        job_id = uuid.uuid4().hex
+        output_dir = self._jobs_dir / job_id
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        job_files = [
+            JobFile(
+                index=0,
+                filename=f"MES_receptura_{recipe_id}",
+                path=output_dir / "input" / "db",  # placeholder, datoteke ni
+                recipe_id=int(recipe_id),
+            )
+        ]
+        job = Job(
+            job_id=job_id,
+            output_dir=output_dir,
+            config=config,
+            files=job_files,
+            owner=owner,
+            save_results=save_results,
         )
         with self._lock:
             self._jobs[job_id] = job
@@ -153,15 +208,24 @@ class JobManager:
                 job_file.state = "running"
                 job.message = f"Validacija: {job_file.filename}"
             try:
-                result = self._service.validate_file(
-                    index=job_file.index,
-                    recipe_path=job_file.path,
-                    config=job.config,
-                    output_dir=reports_dir / f"{job_file.index}",
-                    sop_data=sop_data,
-                    catalog_data=catalog_data,
-                    catalog_paths=catalog_paths,
-                )
+                if job_file.recipe_id is not None:
+                    result = self._service.validate_db_recipe(
+                        index=job_file.index,
+                        recipe_id=job_file.recipe_id,
+                        config=job.config,
+                        output_dir=reports_dir / f"{job_file.index}",
+                        save_results=job.save_results,
+                    )
+                else:
+                    result = self._service.validate_file(
+                        index=job_file.index,
+                        recipe_path=job_file.path,
+                        config=job.config,
+                        output_dir=reports_dir / f"{job_file.index}",
+                        sop_data=sop_data,
+                        catalog_data=catalog_data,
+                        catalog_paths=catalog_paths,
+                    )
                 with job.lock:
                     job_file.result = result
                     job_file.state = "done"
@@ -190,6 +254,13 @@ class JobManager:
             job.state = "done"
             job.message = "Zaključeno."
             job.finished_at = time.time()
+
+        # Faza 2: hook za trajno zgodovino / audit (izven job locka)
+        if self._on_complete is not None:
+            try:
+                self._on_complete(job)
+            except Exception:  # pragma: no cover - defenzivno
+                logger.exception("on_complete hook za job %s ni uspel.", job_id)
 
     def get_job(self, job_id: str) -> Job | None:
         with self._lock:

@@ -133,6 +133,39 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Excel šifrant kemikalij (Izvoz_kem.xlsx) za preverjanje šifer",
     )
 
+    # --- MES / MySQL integracija (opcijsko; zahteva requirements-db.txt) ---
+    parser.add_argument(
+        "--db-source",
+        action="store_true",
+        help="Validiraj recepturo neposredno iz MES MySQL baze (namesto Excel)",
+    )
+
+    parser.add_argument(
+        "--recipe-id",
+        type=int,
+        default=None,
+        help="ID recepture v MES bazi (skupaj z --db-source)",
+    )
+
+    parser.add_argument(
+        "--db-save-results",
+        action="store_true",
+        help="Shrani rezultate validacije v MySQL (tabeli validation_runs/validation_findings)",
+    )
+
+    parser.add_argument(
+        "--list-recipes",
+        action="store_true",
+        help="Izpiši seznam receptur iz MES baze (id, ime, verzija, datum)",
+    )
+
+    parser.add_argument(
+        "--db-mapping",
+        type=Path,
+        default=None,
+        help="Pot do JSON mapping datoteke (prepiše MES_DB_MAPPING_FILE)",
+    )
+
     return parser.parse_args(args)
 
 
@@ -204,6 +237,115 @@ def format_report_summary(report: Mapping[str, Any]) -> str:
     )
 
 
+def run_db_cli(parsed: argparse.Namespace, logger: Any) -> int:
+    """Handle the MES/MySQL CLI flow (--db-source / --list-recipes).
+
+    Args:
+        parsed: Parsed CLI arguments.
+        logger: Logger instance.
+
+    Returns:
+        Exit code (0 = valid, 1 = validation errors, 2 = runtime error).
+    """
+    # Windows konzola (cp1252) ne pozna vseh šumnikov (npr. č) – brez tega
+    # bi izpis slovenskih sporočil/imen stolpcev padel z UnicodeEncodeError.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(errors="replace")
+            except Exception:
+                pass
+
+    # Lazy import: db paket je opcijski sloj; brez MySQL driverja Excel tok
+    # deluje naprej (jasna napaka pride šele ob dejanski povezavi).
+    try:
+        from validator_oop.db import (
+            DBConfig,
+            DBError,
+            MySQLLoader,
+            MySQLReportWriter,
+            load_mapping,
+        )
+    except ImportError as e:
+        print(f"Napaka: db modulov ni mogoče uvoziti: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        db_config = DBConfig.from_env()
+        if parsed.db_mapping:
+            db_config.mapping_file = parsed.db_mapping
+        mapping = load_mapping(db_config.mapping_file)
+        loader = MySQLLoader(db_config, mapping, logger_=logger)
+
+        # --list-recipes: samo izpis seznama receptur
+        if parsed.list_recipes:
+            recipes = loader.list_recipes(limit=100)
+            if not recipes:
+                print("V MES bazi ni receptur.")
+                return 0
+            print(f"{'ID':>8}  {'Ime':<40} {'Verzija':<10} Datum")
+            print("-" * 80)
+            for r in recipes:
+                print(f"{r.recipe_id:>8}  {r.name:<40} {r.version:<10} {r.date}")
+            return 0
+
+        if parsed.recipe_id is None:
+            print("Napaka: --db-source zahteva --recipe-id <ID>.", file=sys.stderr)
+            return 2
+
+        # Registracija pravil in sestava engina (kot Excel tok)
+        register_all()
+        config = ValidatorConfig(
+            bypass_rules=frozenset(parsed.bypass),
+            strict_mode=parsed.strict,
+        )
+        rule_engine = RuleEngine(default_registry, config=config, logger=logger)
+        validator = ValidatorEngine(rule_engine, ExcelLoader(), logger=logger)
+
+        logger.info("Validacija recepture id=%s iz MES baze", parsed.recipe_id)
+        loaded = loader.load_recipe(parsed.recipe_id)
+        report = validator.validate_loaded(loaded)
+        report_dict = report.to_dict()
+
+        # Shrani rezultate nazaj v MySQL, če je zahtevano
+        if parsed.db_save_results:
+            writer = MySQLReportWriter(db_config, logger_=logger)
+            run_id = writer.save(
+                report,
+                recipe_id=parsed.recipe_id,
+                config=config,
+            )
+            print(f"Rezultati shranjeni v MySQL (run_id={run_id}).")
+
+        # Izpis / zapis poročila
+        if parsed.output:
+            with open(parsed.output, "w", encoding="utf-8") as f:
+                json.dump(report_dict, f, indent=2, ensure_ascii=False)
+            logger.info("Report written to %s", parsed.output)
+
+        if parsed.format == "json":
+            print(json.dumps(report_dict, indent=2, ensure_ascii=False))
+        elif parsed.format == "text":
+            print(format_report_text(report_dict))
+        else:  # summary / excel (Excel poročilo pri DB viru ni smiselno)
+            print(format_report_summary(report_dict))
+
+        return 1 if report.has_errors() else 0
+
+    except DBError as e:
+        logger.error("MES/MySQL napaka: %s", e)
+        print(f"Napaka: {e}", file=sys.stderr)
+        return 2
+    except ValueError as e:
+        logger.error("Neveljavna konfiguracija: %s", e)
+        print(f"Napaka: {e}", file=sys.stderr)
+        return 2
+    except Exception as e:
+        logger.exception("DB validacija ni uspela: %s", e)
+        print(f"Napaka: {e}", file=sys.stderr)
+        return 2
+
+
 def main(args: list[str] | None = None) -> int:
     """Main entry point.
 
@@ -252,6 +394,12 @@ def main(args: list[str] | None = None) -> int:
         return 2
     
     parsed = parse_args(args)
+
+    # MES/MySQL vir (opcijsko): --db-source / --list-recipes ne zaganjata GUI
+    if parsed.db_source or parsed.list_recipes:
+        db_logger = setup_logger("validator", 10 if parsed.verbose else 20)
+        db_logger.addHandler(file_handler)
+        return run_db_cli(parsed, db_logger)
 
     # Launch GUI if no workbook specified or --gui flag used
     if parsed.workbook is None or parsed.gui:

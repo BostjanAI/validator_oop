@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .recipe_workbook import workbook_has_required_columns
 from .workbook_parser import WorkbookParser
 
 try:  # pragma: no cover - optional dependency during scaffolding
@@ -189,6 +190,13 @@ class ExcelLoader:
                 wb_formulas.close()
 
         return result
+
+    def has_required_columns(self, workbook_path: str | Path) -> bool:
+        """Return True if workbook has at least one sheet with IPO recipe columns."""
+        return workbook_has_required_columns(
+            workbook_path,
+            parser=self._parser,
+        )
 
     def load_simple(self, workbook_path: str | Path) -> dict[str, list[dict[str, Any]]]:
         """Load workbook and return only the values dictionary.
