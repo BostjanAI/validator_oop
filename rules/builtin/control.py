@@ -4,30 +4,30 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from decimal import Decimal, InvalidOperation
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Iterable, Mapping, Sequence
 
 from validator_oop.core.constants import ALLOWED_CONTROLS_NORMALIZED, EXCEL_ERROR_TOKENS, NUMERIC_TOKEN_RE
 from validator_oop.core.error import Severity
 from validator_oop.rules import RowRule, RuleContext, SheetRule, register
 from validator_oop.utils import (
-    base_key_no_trailing_number,
     coerce_str,
     decimal_places_of_first_number,
     decimals_from_eps,
     derive_decimal_step_from_text,
     extract_unit_token,
-    has_only_comma_separated_ints,
     is_equipment_row,
     is_equipment_tip,
     max_decimals,
     norm_control_name,
     norm_text,
     parse_checkbox_state,
+    inequality_is_column_volume,
     parse_navodilo_inequality,
     parse_navodilo_interval,
     parse_navodilo_pm,
     parse_navodilo_single,
+    match_navodilo_pm,
     parse_time_lower_bound_from_navodilo,
     parse_time_range_from_navodilo,
 )
@@ -114,6 +114,8 @@ class NumericNavodiloParse:
     inequality_op: str | None
     inequality_value: float | None
     inequality_step: float | None
+    pm_center_text: str | None = None
+    pm_tolerance_text: str | None = None
 
     def has_numeric_interval(self) -> bool:
         return (
@@ -181,10 +183,104 @@ def _decimal_eq(raw: str, target: float, d_exact: int) -> bool:
         return False
 
 
+def _decimal_places_stripped(value: Decimal) -> int:
+    """Število decimalnih mest po odstranitvi trailing zeros (6.40 → 1)."""
+    exponent = value.normalize().as_tuple().exponent
+    if isinstance(exponent, int) and exponent < 0:
+        return -exponent
+    return 0
+
+
+def _round_half_up(value: Decimal, decimals: int) -> Decimal:
+    quant = Decimal(1) if decimals <= 0 else Decimal(10) ** -decimals
+    return value.quantize(quant, rounding=ROUND_HALF_UP)
+
+
+def _pm_rounding_band(lower: Decimal, upper: Decimal, d_round: int) -> tuple[Decimal, Decimal]:
+    """Dovoljeni numerični pas za Param1/Param2 pri ± (ne samo zaokrožena vrednost).
+
+    Za 6.50 ± 0.10: interval [6.40, 6.60], korak 0.1 → [6.34, 6.65].
+    6.34 in 6.65 sta OK; 6.33 in 6.66 sta napaki.
+    """
+    step = Decimal(1) if d_round <= 0 else Decimal(10) ** -d_round
+    fine = Decimal(10) ** -(d_round + 1)
+    lo_r = _round_half_up(lower, d_round)
+    hi_r = _round_half_up(upper, d_round)
+    return lo_r - (step / 2) - fine, hi_r + (step / 2)
+
+
+def _rounds_into_pm_interval(raw: str, lower: Decimal, upper: Decimal, d_round: int) -> bool:
+    """True, če je raw v pasu [_pm_rounding_band]."""
+    try:
+        raw_dec = Decimal(raw.replace(",", "."))
+    except InvalidOperation:
+        return False
+    lo, hi = _pm_rounding_band(lower, upper, d_round)
+    return lo <= raw_dec <= hi
+
+
+def _pm_param_matches(
+    raw: str,
+    is_num: bool,
+    required: float,
+    d_eq: int,
+    lower: Decimal | None,
+    upper: Decimal | None,
+    d_round: int | None,
+) -> bool:
+    """Kanonska meja ali vrednost v numeričnem pasu okoli [x−t, x+t] (npr. 6.34–6.65)."""
+    if not is_num:
+        return False
+    if _decimal_eq(raw, required, d_eq):
+        return True
+    if lower is None or upper is None or d_round is None:
+        return False
+    return _rounds_into_pm_interval(raw, lower, upper, d_round)
+
+
+def _range_param_band(lower: Decimal, upper: Decimal, d_round: int) -> tuple[Decimal, Decimal]:
+    """Dovoljeni pas Param1/Param2 pri razponu a–b, kjer bi bil a−eps enak 0.
+
+    Za 0.01–0.30: [0.004, 0.305]. Param1 0.004 je prag pod meritvijo 0.005;
+    Param2 0.305 je prag nad zadnjo meritvijo 0.304.
+    Sicer (npr. 0.18–0.22, 47.5–52.5) veljata kanonska a−eps / b+eps na istih decimalkah.
+    """
+    step = Decimal(1) if d_round <= 0 else Decimal(10) ** -d_round
+    fine = Decimal(10) ** -(d_round + 1)
+    lo_r = _round_half_up(lower, d_round)
+    hi_r = _round_half_up(upper, d_round)
+    return lo_r - (step / 2) - fine, hi_r + (step / 2)
+
+
+def _range_param_matches(
+    raw: str,
+    is_num: bool,
+    required: float | None,
+    d_eq: int,
+    bound_lo: Decimal,
+    bound_hi: Decimal,
+    d_round: int,
+) -> bool:
+    """Vrednost v [_range_param_band]; kanonski a−eps / b+eps le, če je required v pasu ali pri celih številih."""
+    if not is_num:
+        return False
+    if required is not None and _decimal_eq(raw, required, d_eq):
+        return True
+    try:
+        raw_dec = Decimal(raw.replace(",", "."))
+    except InvalidOperation:
+        return False
+    lo, hi = _range_param_band(bound_lo, bound_hi, d_round)
+    return lo <= raw_dec <= hi
+
+
 def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
     navodilo_clean = _normalize_navodilo_text(navodilo)
-    range_min, range_max, _, range_step = parse_navodilo_interval(navodilo_clean)
+    range_min, range_max, range_unit, range_step = parse_navodilo_interval(navodilo_clean)
+    pm_match = match_navodilo_pm(navodilo_clean)
     pm_center, pm_tolerance, _, pm_step = parse_navodilo_pm(navodilo_clean)
+    pm_center_text = pm_match.group("x") if pm_match else None
+    pm_tolerance_text = pm_match.group("t") if pm_match else None
     inequality_op, inequality_value, _, inequality_step = parse_navodilo_inequality(navodilo_clean)
 
     if inequality_op is None:
@@ -216,6 +312,18 @@ def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
         inequality_value = None
         inequality_step = None
 
+    # "≥ 3 CV (120000 - 340000 mL)" is the mL range, not an open ≥ 3.
+    if (
+        inequality_op is not None
+        and range_min is not None
+        and range_max is not None
+        and range_unit in {"ml", "l", "ul"}
+        and inequality_is_column_volume(navodilo_clean)
+    ):
+        inequality_op = None
+        inequality_value = None
+        inequality_step = None
+
     return NumericNavodiloParse(
         raw=navodilo,
         clean=navodilo_clean,
@@ -225,6 +333,8 @@ def _parse_numeric_navodilo(navodilo: str) -> NumericNavodiloParse:
         pm_center=pm_center,
         pm_tolerance=pm_tolerance,
         pm_step=pm_step,
+        pm_center_text=pm_center_text,
+        pm_tolerance_text=pm_tolerance_text,
         inequality_op=inequality_op,
         inequality_value=inequality_value,
         inequality_step=inequality_step,
@@ -606,41 +716,16 @@ class ControlContextRule(RowRule):
             )
             return errors
 
-        key_base = base_key_no_trailing_number(state.key_here)
         param1_col = control.param1_column
         if not param1_col:
             errors.append(
                 self.build_error(
-                    "Kontrola raztopine brez baze ključa (Param1).",
+                    "Kontrola raztopine brez Param1.",
                     context=context,
                     column=control.column,
                     code="SOLUTION_P1_MISSING",
                 )
             )
-        else:
-            param1_value = coerce_str(state.row.get(param1_col, "")).strip()
-            if param1_value and param1_value != key_base:
-                errors.append(
-                    self.build_error(
-                        "Param1 ne ustreza bazi ključa",
-                        context=context,
-                        column=param1_col,
-                        code="SOLUTION_P1_BASE",
-                    )
-                )
-
-        param2_col = control.param2_column
-        if param2_col:
-            param2_value = coerce_str(state.row.get(param2_col, "")).strip()
-            if param2_value and param2_value != key_base:
-                errors.append(
-                    self.build_error(
-                        "Param2 ne ustreza bazi ključa",
-                        context=context,
-                        column=param2_col,
-                        code="SOLUTION_P2_BASE",
-                    )
-                )
         return errors or None
 
     def _validate_aliisto_context(
@@ -1131,7 +1216,7 @@ class AliObstajaPogojCombinationRule(RowRule):
         if not invalid:
             return []
 
-        # Če so vsi neveljavni pari (key, 1) z key v step_keys, je vzrok odvečni koraki v zaklenipolja Param1 – napako poroča ZakleniParam1OdvecniKorakiRule
+        # Param2=1 pri ključu, ki je v Param1 istega zaklenipolja, je dovoljeno (ne javimo napake).
         if all(
             p2_val == 1 and key in step_keys for key, p2_val in invalid
         ):
@@ -1160,58 +1245,245 @@ class AliObstajaPogojCombinationRule(RowRule):
         ]
 
 
+_ZAKLENI_INT_LIST_RE = re.compile(r"^\s*\d+(?:\s*,\s*\d+)*\s*$")
+_SEPARATOR_OBJECT_TYPES = frozenset({"crta", "naslov"})
+
+
+@dataclass(slots=True)
+class _ZakleniLocker:
+    row_idx: int
+    step: int | None
+    key: str
+    locked_steps: set[int] | None
+
+
+@dataclass(slots=True)
+class _AliobParam1Hit:
+    row_idx: int
+    param1_col: str
+    keys: list[str]
+
+
+def _parse_step_token(row: Mapping[str, object]) -> int | None:
+    token = coerce_str(row.get("št. Koraka", "")).strip()
+    if not token:
+        return None
+    try:
+        return int(token)
+    except ValueError:
+        return None
+
+
+def _parse_zakleni_locked_steps(value: object) -> set[int] | None:
+    raw = coerce_str(value).strip()
+    if not raw or raw.startswith("=") or not _ZAKLENI_INT_LIST_RE.fullmatch(raw):
+        return None
+    return {int(tok.strip()) for tok in raw.split(",") if tok.strip()}
+
+
+def _parse_aliob_param1_keys(value: object) -> list[str] | None:
+    raw = coerce_str(value).strip()
+    if not raw or raw.startswith("="):
+        return None
+    keys = [tok.strip() for tok in raw.split(",") if tok.strip()]
+    return keys or None
+
+
+def _unique_lockers(lockers: Sequence[_ZakleniLocker]) -> list[_ZakleniLocker]:
+    by_row: dict[int, _ZakleniLocker] = {}
+    for locker in lockers:
+        by_row.setdefault(locker.row_idx, locker)
+    return list(by_row.values())
+
+
+def _cluster_zakleni_rows(
+    tab_rows: Sequence[tuple[int, Mapping[str, object]]],
+    zakleni_by_row: Mapping[int, _ZakleniLocker],
+) -> dict[int, list[_ZakleniLocker]]:
+    """Map each zaklenipolja row to its contiguous DA/NE (or similar) cluster."""
+    clusters: list[list[_ZakleniLocker]] = []
+    current: list[_ZakleniLocker] = []
+
+    def close_current() -> None:
+        nonlocal current
+        if current:
+            clusters.append(current)
+            current = []
+
+    for row_idx, row in tab_rows:
+        if row_idx in zakleni_by_row:
+            current.append(zakleni_by_row[row_idx])
+            continue
+        tip_obj = norm_text(coerce_str(row.get("Tip objekta", "")))
+        if tip_obj in _SEPARATOR_OBJECT_TYPES:
+            continue
+        close_current()
+    close_current()
+
+    cluster_by_row: dict[int, list[_ZakleniLocker]] = {}
+    for cluster in clusters:
+        for locker in cluster:
+            cluster_by_row[locker.row_idx] = cluster
+    return cluster_by_row
+
+
+def _expand_lock_sklop(
+    owners: Sequence[_ZakleniLocker],
+    zakleni_by_step: Mapping[int, _ZakleniLocker],
+    cluster_by_row: Mapping[int, Sequence[_ZakleniLocker]],
+) -> list[_ZakleniLocker]:
+    """Owners plus paired zaklenipolja (listed in Param1 or adjacent in the same cluster)."""
+    by_row: dict[int, _ZakleniLocker] = {}
+
+    def add(locker: _ZakleniLocker) -> None:
+        by_row[locker.row_idx] = locker
+
+    for owner in owners:
+        add(owner)
+        if owner.locked_steps:
+            for listed_step in owner.locked_steps:
+                sibling = zakleni_by_step.get(listed_step)
+                if sibling is not None:
+                    add(sibling)
+        for mate in cluster_by_row.get(owner.row_idx, ()):
+            add(mate)
+    return list(by_row.values())
+
+
 @register
-class ZakleniParam1OdvecniKorakiRule(RowRule):
-    """Report on zaklenipolja row when Param1 contains steps that have aliObstajaPogoj with same key and Param2=1 (odvečni koraki)."""
+class AliObstajaPogojParam1Rule(SheetRule):
+    """Param1 at aliObstajaPogoj must match the zaklenipolja sklop that locks this step."""
 
-    name = "zaklenipolja_param1_odvecni_koraki_rule"
-    description = "Pri zaklenipolja v Param1 ne smejo biti koraki, kjer ima ta korak aliObstajaPogoj s tem ključem in Param2=1."
+    name = "aliobstajapogoj_param1_rule"
+    description = (
+        "Pri 'aliObstajaPogoj' mora biti Param1 ključ sklopa 'zaklenipolja', ki ta korak "
+        "zaklene (ključ vrstice, ki korak navaja v Param1, ali parni ključ, npr. sst_4 "
+        "namesto sst_3), in ne sme biti podvojen med različnimi sklopi zaklepanja."
+    )
 
-    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+    def evaluate_sheet(
+        self,
+        rows: Sequence[Mapping[str, object]],
+        context: RuleContext,
+        *,
+        row_offset: int = 2,
+    ) -> Iterable:
         shared = context.shared
         if not shared:
             return []
 
-        controls = _get_present_controls(row, shared)
-        if not _has_control(controls, ZAKLENI_CONTROL):
-            return []
+        tab_by_row = shared.tab_by_row
+        rows_by_tab: dict[str, list[tuple[int, Mapping[str, object]]]] = {}
+        for row_idx, row in enumerate(rows, start=row_offset):
+            tab = tab_by_row.get(row_idx, "")
+            rows_by_tab.setdefault(tab, []).append((row_idx, row))
 
-        key_here = coerce_str(row.get("Ključ preverjanja", "")).strip()
-        if not key_here:
-            return []
+        errors: list = []
+        for tab_rows in rows_by_tab.values():
+            errors.extend(self._evaluate_tab(tab_rows, context, shared))
+        return errors
 
-        step_key_param2 = getattr(shared, "step_key_param2", {})
-        if not step_key_param2:
-            return []
+    def _evaluate_tab(
+        self,
+        tab_rows: Sequence[tuple[int, Mapping[str, object]]],
+        context: RuleContext,
+        shared,
+    ) -> list:
+        lockers_by_step: dict[int, list[_ZakleniLocker]] = {}
+        zakleni_by_row: dict[int, _ZakleniLocker] = {}
+        zakleni_by_step: dict[int, _ZakleniLocker] = {}
+        aliob_rows: list[tuple[int, Mapping[str, object], list[ControlInstance]]] = []
 
-        for ctrl in _get_control(controls, ZAKLENI_CONTROL):
-            p1_col = ctrl.param1_column
-            if not p1_col:
-                continue
-            p1_val = coerce_str(row.get(p1_col, ""))
-            if not p1_val or not has_only_comma_separated_ints(p1_val):
-                continue
-            odvecni: list[int] = []
-            for tok in p1_val.split(","):
-                tok = tok.strip()
-                if not tok:
-                    continue
-                try:
-                    ref_step = int(tok)
-                    if step_key_param2.get((ref_step, key_here)) == 1:
-                        odvecni.append(ref_step)
-                except ValueError:
-                    pass
-            if odvecni:
-                odvecni_str = ", ".join(str(s) for s in sorted(odvecni))
-                yield self.build_error(
-                    f"Pri zaklenipolja v Param1 so odvečni koraki: {odvecni_str}.",
-                    context=context,
-                    column=p1_col,
-                    code="LOCK_P1_EXTRA_STEPS",
+        for row_idx, row in tab_rows:
+            controls = _get_present_controls(row, shared)
+            zakleni_ctrls = _get_control(controls, ZAKLENI_CONTROL)
+            ali_ctrls = _get_control(controls, ALIOB_CONTROL)
+
+            if zakleni_ctrls:
+                key = coerce_str(row.get("Ključ preverjanja", "")).strip()
+                locker_step = _parse_step_token(row)
+                locked: set[int] | None = None
+                for ctrl in zakleni_ctrls:
+                    locked = _parse_zakleni_locked_steps(row.get(ctrl.param1_column or "", ""))
+                    break
+                locker = _ZakleniLocker(
+                    row_idx=row_idx,
+                    step=locker_step,
+                    key=key,
+                    locked_steps=locked,
                 )
-            break  # only one zaklenipolja per row
-        return
+                zakleni_by_row[row_idx] = locker
+                if locker_step is not None:
+                    zakleni_by_step[locker_step] = locker
+                if locked:
+                    for locked_step in locked:
+                        lockers_by_step.setdefault(locked_step, []).append(locker)
+
+            if ali_ctrls:
+                aliob_rows.append((row_idx, row, ali_ctrls))
+
+        cluster_by_row = _cluster_zakleni_rows(tab_rows, zakleni_by_row)
+
+        errors: list = []
+        key_to_group_hits: dict[str, dict[frozenset[int], list[_AliobParam1Hit]]] = {}
+
+        for row_idx, row, ali_ctrls in aliob_rows:
+            step = _parse_step_token(row)
+            if step is None:
+                continue
+            owners = _unique_lockers(lockers_by_step.get(step, []))
+            if not owners:
+                continue
+
+            sklop = _expand_lock_sklop(owners, zakleni_by_step, cluster_by_row)
+            allowed = {item.key for item in sklop if item.key}
+            group_id = frozenset(item.row_idx for item in sklop)
+            keys_label = " ali ".join(item.key for item in sklop if item.key)
+
+            for ctrl in ali_ctrls:
+                p1_col = ctrl.param1_column or ctrl.column or "(Kontrole)"
+                parsed = _parse_aliob_param1_keys(row.get(ctrl.param1_column or "", ""))
+                if parsed is None:
+                    continue
+                unique_keys = list(dict.fromkeys(parsed))
+                hit = _AliobParam1Hit(row_idx=row_idx, param1_col=p1_col, keys=unique_keys)
+                for key in unique_keys:
+                    if allowed and key not in allowed:
+                        expected = keys_label or "(manjka ključ)"
+                        errors.append(
+                            self.build_error(
+                                f"Param1 pri 'aliObstajaPogoj' mora biti {expected}, ne '{key}'.",
+                                context=context.with_row(row_idx),
+                                column=p1_col,
+                                code="LOCK_CONDITION_P1_LOCK_KEY",
+                            )
+                        )
+                    key_to_group_hits.setdefault(key, {}).setdefault(group_id, []).append(hit)
+
+        for key, groups in key_to_group_hits.items():
+            if len(groups) <= 1:
+                continue
+            first_group_id = min(groups, key=lambda gid: min(gid) if gid else 0)
+            first_row = min(hit.row_idx for hit in groups[first_group_id])
+            reported_rows: set[int] = set()
+            for group_id, hits in groups.items():
+                if group_id == first_group_id:
+                    continue
+                for hit in hits:
+                    if hit.row_idx in reported_rows:
+                        continue
+                    reported_rows.add(hit.row_idx)
+                    errors.append(
+                        self.build_error(
+                            f"Param1 '{key}' pri kontroli 'aliObstajaPogoj' je podvojen – "
+                            "isti ključ je že uporabljen pri drugem sklopu 'zaklenipolja' "
+                            f"(prva pojavitev: vrstica {first_row}).",
+                            context=context.with_row(hit.row_idx),
+                            column=hit.param1_col,
+                            code="LOCK_CONDITION_P1_DUPLICATE",
+                        )
+                    )
+        return errors
 
 
 @register
@@ -1646,12 +1918,26 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 # Za ± uporabljamo decimalke tolerance (t), ne decimalke sredine (x).
                 # Tako npr. "8 ± 0.4" vedno zahteva Param1=7.5 in Param2=8.5.
                 # Float xpm/tpm izgubi trailing zeros, zato decimalke beremo iz surovega besedila v Navodilu.
-                pm_raw_match = re.search(
-                    r'(?P<x>\d+(?:[.,]\d+)?)\s*(?:±|\+/-|\+\s*/\s*-)\s*(?P<t>\d+(?:[.,]\d+)?)',
-                    navodilo_parse.clean,
-                )
-                if pm_raw_match:
-                    d_tol = decimal_places_of_first_number(pm_raw_match.group("t")) or 0
+                x_text = navodilo_parse.pm_center_text
+                t_text = navodilo_parse.pm_tolerance_text
+                left_dec: Decimal | None = None
+                right_dec: Decimal | None = None
+                d_round: int | None = None
+                if x_text and t_text:
+                    d_tol = decimal_places_of_first_number(t_text) or 0
+                    try:
+                        x_dec = Decimal(x_text.replace(",", "."))
+                        t_dec = Decimal(t_text.replace(",", "."))
+                        left_dec = x_dec - t_dec
+                        right_dec = x_dec + t_dec
+                        d_round = max(
+                            _decimal_places_stripped(left_dec),
+                            _decimal_places_stripped(right_dec),
+                        )
+                    except InvalidOperation:
+                        left_dec = None
+                        right_dec = None
+                        d_round = None
                 else:
                     # Fallback: step_pm je definiran kot korak iz max(decimalk(x), decimalk(t))
                     d_tol = decimals_from_eps(navodilo_parse.pm_step) if navodilo_parse.pm_step is not None else 0
@@ -1664,12 +1950,22 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 param2_required = right_req + eps_pm
 
                 d_fmt = max_decimals(left_req, right_req, param1_required, param2_required, p1_val, p2_val)
+                d_hint = d_fmt
+                p1_msg_target = f"{param1_required:.{d_fmt}f}"
+                p2_msg_target = f"{param2_required:.{d_fmt}f}"
+                if left_dec is not None and right_dec is not None and d_round is not None:
+                    band_lo, band_hi = _pm_rounding_band(left_dec, right_dec, d_round)
+                    d_hint = max(d_round + 1, d_fmt, 0)
+                    p1_msg_target = f"{band_lo:.{d_hint}f}"
+                    p2_msg_target = f"{band_hi:.{d_hint}f}"
 
-                if not (p1_is_num and _decimal_eq(p1_raw, param1_required, d_tol)):
+                if not _pm_param_matches(
+                    p1_raw, p1_is_num, param1_required, d_tol, left_dec, right_dec, d_round
+                ):
                     errors.append(
                         self.build_error(
                             (
-                                f"Param1 mora biti {param1_required:.{d_fmt}f} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
+                                f"Param1 mora biti {p1_msg_target} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
                                 f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
                             ),
                             context=context,
@@ -1677,12 +1973,13 @@ class KontrolaIntervalAdvancedRule(RowRule):
                             code="CTRL_INTERVAL_PM_P1",
                         )
                     )
-                if not (p2_is_num and _decimal_eq(p2_raw, param2_required, d_tol)):
+                if not _pm_param_matches(
+                    p2_raw, p2_is_num, param2_required, d_tol, left_dec, right_dec, d_round
+                ):
                     errors.append(
                         self.build_error(
                             (
-                                f"Param2 mora biti {param2_required:.{d_fmt}f} (naslednja vrednost nad zgornjo dovoljeno mejo {right_req:.{d_fmt}f})"
-                                f" – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
+                                f"Param2 mora biti {p2_msg_target} – iz {xpm:.{d_fmt}f} ± {tpm:.{d_fmt}f}. "
                                 f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
                             ),
                             context=context,
@@ -1705,25 +2002,53 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 lower = a - eps
                 upper = b + eps
                 d_fmt = max_decimals(a, b, lower, upper, p1_val, p2_val)
+                a_dec = Decimal(f"{a:.{d_exact}f}")
+                b_dec = Decimal(f"{b:.{d_exact}f}")
+                canonical_lo = Decimal(f"{lower:.{d_exact}f}")
+                # Extra decimal MES band only when a−eps is 0 (0.01–0.30 → 0.004 / 0.305).
+                # Otherwise keep a−eps / b+eps at the interval's decimals (0.18–0.22 → 0.17).
+                use_fine_band = d_exact >= 2 and canonical_lo == 0
+                if use_fine_band:
+                    band_lo, band_hi = _range_param_band(a_dec, b_dec, d_exact)
+                    d_hint = max(d_exact + 1, d_fmt, 0)
+                    p1_required: float | None = lower
+                    p2_required: float | None = upper
+                    if Decimal(f"{lower:.{d_exact}f}") < band_lo:
+                        p1_required = None
+                    if Decimal(f"{upper:.{d_exact}f}") > band_hi:
+                        p2_required = None
+                    p1_ok = _range_param_matches(
+                        p1_raw, p1_is_num, p1_required, d_exact, a_dec, b_dec, d_exact
+                    )
+                    p2_ok = _range_param_matches(
+                        p2_raw, p2_is_num, p2_required, d_exact, a_dec, b_dec, d_exact
+                    )
+                    p1_msg_target = f"{band_lo:.{d_hint}f}"
+                    p2_msg_target = f"{band_hi:.{d_hint}f}"
+                else:
+                    p1_ok = p1_is_num and _decimal_eq(p1_raw, lower, d_exact)
+                    p2_ok = p2_is_num and _decimal_eq(p2_raw, upper, d_exact)
+                    p1_msg_target = f"{lower:.{d_exact}f}"
+                    p2_msg_target = f"{upper:.{d_exact}f}"
 
-                if not (p1_is_num and _decimal_eq(p1_raw, lower, d_exact)):
+                if not p1_ok:
                     errors.append(
                         self.build_error(
                                 (
-                                    f"Param1 mora biti {lower:.{d_fmt}f} – spodnja meja iz navodila {navodilo}. "
-                                    f"({a:.{d_fmt}f} − x = {lower:.{d_fmt}f}) Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
+                                    f"Param1 mora biti {p1_msg_target} – iz navodila {navodilo}. "
+                                    f"Trenutno v recepturi: {fmt(p1_val, p1_raw, d_fmt)}"
                                 ),
                             context=context,
                             column=control.param1_column or control.column,
                             code="CTRL_INTERVAL_P1_BOUND",
                         )
                     )
-                if not (p2_is_num and _decimal_eq(p2_raw, upper, d_exact)):
+                if not p2_ok:
                     errors.append(
                         self.build_error(
                                 (
-                                    f"Param2 mora biti {upper:.{d_fmt}f} – zgornja meja iz navodila {navodilo}. "
-                                    f"({b:.{d_fmt}f} + x = {upper:.{d_fmt}f}) Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
+                                    f"Param2 mora biti {p2_msg_target} – iz navodila {navodilo}. "
+                                    f"Trenutno v recepturi: {fmt(p2_val, p2_raw, d_fmt)}"
                                 ),
                             context=context,
                             column=control.param2_column or control.column,
@@ -1944,10 +2269,10 @@ class DatumCasKonecKontrolaCasaRequiredRule(RowRule):
 
 @register
 class NavodiloIntervalKontrolaIntervalRequiredRule(RowRule):
-    """Require kontrolaInterval when Navodilo contains numeric intervals (≥, range, ±)."""
+    """Require kontrolaInterval or kontrolarazlika when Navodilo contains numeric intervals (≥, range, ±)."""
 
     name = "navodilo_interval_kontrolainterval_required_rule"
-    description = "Če Navodilo vsebuje številčni interval (≥, razpon, ±), je obvezna kontrola 'kontrolaInterval'."
+    description = "Če Navodilo vsebuje številčni interval (≥, razpon, ±), je obvezna kontrola 'kontrolaInterval' ali 'kontrolarazlika'."
 
     def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
         shared = context.shared
@@ -1977,12 +2302,12 @@ class NavodiloIntervalKontrolaIntervalRequiredRule(RowRule):
             return []
 
         controls = _get_present_controls(row, shared)
-        if _get_interval_controls(controls):
+        if _get_interval_controls(controls) or _has_control(controls, "kontrolarazlika"):
             return []
 
         return [
             self.build_error(
-                "Navodilo vsebuje številčni interval, vendar manjka kontrola 'kontrolaInterval'.",
+                "Navodilo vsebuje številčni interval, vendar manjka kontrola 'kontrolaInterval' ali 'kontrolarazlika'.",
                 context=context,
                 column="(Kontrole)",
                 code="CTRL_INTERVAL_REQUIRED",

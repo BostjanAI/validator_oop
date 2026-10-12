@@ -49,9 +49,10 @@ class ValidatorConfig:
     # SOP validation settings
     sop_data_path: Path | None = None
     enable_sop_validation: bool = True
-    # Catalog validation settings (solution/chemical code matching)
+    # Catalog validation settings (solution/chemical/repro code matching)
     catalog_raztopine_path: Path | None = None
     catalog_kemikalije_path: Path | None = None
+    catalog_repro_path: Path | None = None
     enable_catalog_validation: bool = True
     extra: dict[str, Any] = field(default_factory=dict)
 
@@ -122,6 +123,7 @@ class ValidatorConfig:
             enable_sop_validation=data.get("enable_sop_validation", True),
             catalog_raztopine_path=Path(data["catalog_raztopine_path"]) if data.get("catalog_raztopine_path") else None,
             catalog_kemikalije_path=Path(data["catalog_kemikalije_path"]) if data.get("catalog_kemikalije_path") else None,
+            catalog_repro_path=Path(data["catalog_repro_path"]) if data.get("catalog_repro_path") else None,
             enable_catalog_validation=data.get("enable_catalog_validation", True),
             extra=data.get("extra", {}),
         )
@@ -148,6 +150,7 @@ class ValidatorConfig:
             "enable_sop_validation": self.enable_sop_validation,
             "catalog_raztopine_path": str(self.catalog_raztopine_path) if self.catalog_raztopine_path else None,
             "catalog_kemikalije_path": str(self.catalog_kemikalije_path) if self.catalog_kemikalije_path else None,
+            "catalog_repro_path": str(self.catalog_repro_path) if self.catalog_repro_path else None,
             "enable_catalog_validation": self.enable_catalog_validation,
             "extra": self.extra,
         }

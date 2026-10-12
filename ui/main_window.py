@@ -97,8 +97,8 @@ class ValidatorApp(tk.Tk):
 
         # Configure window
         self.title(f"Validator IPO Receptur {VERSION}")
-        self.geometry("900x540")
-        self.minsize(860, 500)
+        self.geometry("900x600")
+        self.minsize(860, 540)
 
         # Tkinter variables
         self.input_var = tk.StringVar()
@@ -106,6 +106,7 @@ class ValidatorApp(tk.Tk):
         self.sop_var = tk.StringVar()
         self.catalog_razt_var = tk.StringVar()
         self.catalog_kem_var = tk.StringVar()
+        self.catalog_repro_var = tk.StringVar()
         self.sheet_var = tk.StringVar()
         self.report_mode_var = tk.StringVar(value="combined")
 
@@ -176,42 +177,50 @@ class ValidatorApp(tk.Tk):
             row=9, column=2, sticky="e"
         )
 
+        ttk.Label(frm, text="Šifrant repro materiala (Excel):").grid(row=10, column=0, sticky="w")
+        ttk.Entry(frm, textvariable=self.catalog_repro_var).grid(
+            row=11, column=0, columnspan=2, sticky="we"
+        )
+        ttk.Button(frm, text="Izberi...", command=self._pick_catalog_repro).grid(
+            row=11, column=2, sticky="e"
+        )
+
         # Report mode selection
-        ttk.Label(frm, text="Način poročila:").grid(row=10, column=0, sticky="w")
+        ttk.Label(frm, text="Način poročila:").grid(row=12, column=0, sticky="w")
         ttk.Radiobutton(
             frm,
             text="Ena skupna datoteka",
             variable=self.report_mode_var,
             value="combined",
-        ).grid(row=11, column=0, sticky="w")
+        ).grid(row=13, column=0, sticky="w")
         ttk.Radiobutton(
             frm,
             text="Ločeno poročilo za vsako datoteko",
             variable=self.report_mode_var,
             value="per_file",
-        ).grid(row=11, column=1, sticky="w")
+        ).grid(row=13, column=1, sticky="w")
 
         # Action buttons
         ttk.Button(frm, text="Zaženi validacijo", command=self._run_validation).grid(
-            row=12, column=0, sticky="w", pady=12
+            row=14, column=0, sticky="w", pady=12
         )
         ttk.Button(
             frm, text="Zaženi validacijo s SOP", command=self._run_validation_with_sop
-        ).grid(row=12, column=1, sticky="w", pady=12)
+        ).grid(row=14, column=1, sticky="w", pady=12)
         ttk.Button(
             frm, text="Primerjaj razdelke med listi", command=self._run_section_compare
-        ).grid(row=12, column=2, sticky="w", pady=12)
+        ).grid(row=14, column=2, sticky="w", pady=12)
         ttk.Button(
             frm, text="Odpri mapo poročila", command=self._open_report_folder
-        ).grid(row=12, column=3, sticky="e")
+        ).grid(row=14, column=3, sticky="e")
 
         # Status text area
-        ttk.Label(frm, text="Status:").grid(row=15, column=0, sticky="w")
+        ttk.Label(frm, text="Status:").grid(row=17, column=0, sticky="w")
         self.txt = tk.Text(frm, height=12, wrap="word")
-        self.txt.grid(row=16, column=0, columnspan=3, sticky="nsew")
+        self.txt.grid(row=18, column=0, columnspan=3, sticky="nsew")
         scr = ttk.Scrollbar(frm, command=self.txt.yview)
         self.txt.configure(yscrollcommand=scr.set)
-        scr.grid(row=16, column=3, sticky="ns")
+        scr.grid(row=18, column=3, sticky="ns")
 
         # Configure grid weights
         frm.columnconfigure(0, weight=1)
@@ -219,7 +228,7 @@ class ValidatorApp(tk.Tk):
         frm.columnconfigure(2, weight=0)
         frm.columnconfigure(3, weight=0)
         frm.columnconfigure(4, weight=0)
-        frm.rowconfigure(16, weight=1)
+        frm.rowconfigure(18, weight=1)
 
     def _log_startup(self) -> None:
         """Log startup message."""
@@ -314,7 +323,7 @@ class ValidatorApp(tk.Tk):
 
         if not discovered and not existing_parts:
             self.log(
-                f"V {source_label} ni najdenih Excel receptur z zahtevanimi stolpci."
+                f"V {source_label} ni najdenih Excel receptur (noben stolpec recepture)."
             )
 
     def _pick_sop(self) -> None:
@@ -347,6 +356,15 @@ class ValidatorApp(tk.Tk):
         if path:
             self.catalog_kem_var.set(path)
             self.log(f"Šifrant kemikalij: {path}")
+
+    def _pick_catalog_repro(self) -> None:
+        path = filedialog.askopenfilename(
+            title="Izberi šifrant repro materiala (Excel)",
+            filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+        )
+        if path:
+            self.catalog_repro_var.set(path)
+            self.log(f"Šifrant repro materiala: {path}")
 
     def _pick_report(self) -> None:
         """Open file/folder dialog to select output report location."""
@@ -536,6 +554,7 @@ class ValidatorApp(tk.Tk):
             catalog_data, catalog_paths = load_catalog_for_validation(
                 self.catalog_razt_var.get(),
                 self.catalog_kem_var.get(),
+                self.catalog_repro_var.get(),
                 log=self.log,
             )
         else:

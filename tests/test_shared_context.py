@@ -247,6 +247,20 @@ class TestSharedContextBuilder:
         assert ctx.tab_by_row[4] == "Tab2"
         assert ctx.tab_by_row[5] == "Tab2"
 
+    def test_zavihek_with_space_does_not_start_new_tab(self, builder: SharedContextBuilder) -> None:
+        """Invalid Zavihek (internal space) must not split the logical tab."""
+        rows = [
+            {"Zavihek": "Tab1", "št. Koraka": "1"},
+            {"Zavihek": "Tab 1", "št. Koraka": "2"},
+            {"Zavihek": "", "št. Koraka": "3"},
+        ]
+        columns = ["Zavihek", "št. Koraka"]
+        ctx = builder.build(rows, columns)
+
+        assert ctx.tab_by_row[2] == "Tab1"
+        assert ctx.tab_by_row[3] == "Tab1"
+        assert ctx.tab_by_row[4] == "Tab1"
+
     def test_build_zakleni_data(self, builder: SharedContextBuilder) -> None:
         """Test zaklenipolja-specific data extraction."""
         rows = [

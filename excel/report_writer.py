@@ -80,15 +80,18 @@ class ReportWriter:
             ("Preverjanje šifrantov", "Da"),
             ("Šifrant raztopin", catalog_summary.get("raztopine_path") or "—"),
             ("Šifrant kemikalij", catalog_summary.get("kemikalije_path") or "—"),
+            ("Šifrant repro materiala", catalog_summary.get("repro_path") or "—"),
             (
-                "Šifer v katalogu (raztopina / kemikalija)",
+                "Šifer v katalogu (raztopina / kemikalija / repro)",
                 f"{catalog_summary.get('catalog_codes_raztopina', 0)} / "
-                f"{catalog_summary.get('catalog_codes_kemikalija', 0)}",
+                f"{catalog_summary.get('catalog_codes_kemikalija', 0)} / "
+                f"{catalog_summary.get('catalog_codes_repro', 0)}",
             ),
             (
-                "Pregledanih vrstic (raztopina / kemikalija)",
+                "Pregledanih vrstic (raztopina / kemikalija / repro)",
                 f"{catalog_summary.get('rows_checked_raztopina', 0)} / "
-                f"{catalog_summary.get('rows_checked_kemikalija', 0)}",
+                f"{catalog_summary.get('rows_checked_kemikalija', 0)} / "
+                f"{catalog_summary.get('rows_checked_repro', 0)}",
             ),
             ("Napak šifer (CATALOG_CODE_MISMATCH)", catalog_summary.get("mismatches", 0)),
             ("Status šifrantov", catalog_summary.get("status", "")),

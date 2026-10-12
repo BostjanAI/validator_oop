@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, Sequence
 
 from validator_oop.core.constants import EXCEL_ERROR_TOKENS
+from validator_oop.utils.helpers import canonicalize_header
 
 
 @dataclass(slots=True)
@@ -123,7 +124,7 @@ class WorkbookParser:
             List of normalized header strings.
         """
         return [
-            str(value).strip() if value is not None else f"column_{idx}"
+            canonicalize_header(str(value)) if value is not None else f"column_{idx}"
             for idx, value in enumerate(header_row)
         ]
 

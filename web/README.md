@@ -171,23 +171,18 @@ Seje: strežniški žetoni v SQLite + HttpOnly piškotek `mes_session`
 
 - Nalaganje ene ali več receptur (.xlsx/.xlsm), drag & drop, validacija
   tipov datotek ob uploadu.
-- Opcijske vhodne datoteke: SOP (.docx), šifrant raztopin, šifrant kemikalij.
-- Konfiguracija: strogi način, formule, SOP/šifranti, preskoči pravila/kode,
-  zaklenipolja zastavice, (opcijsko) auto-fix. Konfiguracija se ohrani med
-  sejami (localStorage).
+- Opcijske vhodne datoteke: SOP (.docx), šifrant raztopin, šifrant kemikalij, šifrant repro materiala.
+- Validacija teče s privzetimi nastavitvami (brez konfiguracije v vmesniku).
 - Validacija v ozadju z napredkom v **realnem času** (WebSocket, samodejni
   fallback na polling; po datotekah, slovenski statusi).
-- Pregled rezultatov: povzetek (kliklive ploščice za hitro filtriranje),
-  iskanje, filtri (resnost/list/koda/datoteka), grupiranje (po
-  listu/kodi/resnosti/datoteki), razvrščanje po stolpcih, graf napak po
-  kodah, strni/razširi vse skupine.
-- Prenos poročil: Excel, JSON, TXT in (opcijsko) auto-fix;
-  pri več datotekah tudi **skupno poročilo** za celoten batch.
+- Pregled rezultatov: povzetek neveljavnih datotek, iskanje, filtri
+  (list/koda/datoteka), grupiranje (po listu/kodi/datoteki), razvrščanje po
+  stolpcih, graf napak po kodah, strni/razširi vse skupine.
+- Prenos poročil: samo Excel; pri več datotekah tudi **skupno Excel poročilo**
+  za celoten batch.
 - **Prijava** (AD/LDAP ali lokalni uporabnik) z rolami tehnolog/QA/admin.
 - **Zgodovina validacij**: trajni pregled preteklih validacij s ponovnim
-  prenosom poročil (tudi po TTL čiščenju začasnih jobov).
-- **Primerjava razdelkov med listi** (npr. `Receptura` ⟷ `Receptura_2`):
-  število razdelkov, naslovi, število korakov, besedila navodil.
+  prenosom Excel poročil (tudi po TTL čiščenju začasnih jobov).
 - **Diff dveh verzij recepture**: naloženi datoteki ali datoteki iz
   zgodovine; dodane/odstranjene/spremenjene vrstice po stolpcih.
 - **Audit trail** (QA/admin): kdo, kdaj, kaj — s filtri in straničenjem.

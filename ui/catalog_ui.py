@@ -17,6 +17,7 @@ LogFn = Callable[[str], None]
 def load_catalog_for_validation(
     razt_path_str: str,
     kem_path_str: str,
+    repro_path_str: str = "",
     *,
     log: LogFn | None = None,
 ) -> tuple[dict[str, CatalogData] | None, dict[str, str]]:
@@ -28,6 +29,7 @@ def load_catalog_for_validation(
     """
     razt_path = Path(razt_path_str.strip()) if razt_path_str.strip() else None
     kem_path = Path(kem_path_str.strip()) if kem_path_str.strip() else None
+    repro_path = Path(repro_path_str.strip()) if repro_path_str.strip() else None
 
     if razt_path and not razt_path.is_file():
         if log:
@@ -37,14 +39,19 @@ def load_catalog_for_validation(
         if log:
             log(f"Opozorilo: Šifrant kemikalij ne obstaja: {kem_path}")
         kem_path = None
+    if repro_path and not repro_path.is_file():
+        if log:
+            log(f"Opozorilo: Šifrant repro materiala ne obstaja: {repro_path}")
+        repro_path = None
 
-    if not razt_path and not kem_path:
+    if not razt_path and not kem_path and not repro_path:
         return None, {}
 
     try:
         catalog_data = load_catalogs(
             raztopine_path=razt_path,
             kemikalije_path=kem_path,
+            repro_path=repro_path,
         )
         if not catalog_data:
             return None, {}
@@ -54,6 +61,8 @@ def load_catalog_for_validation(
             paths["raztopina"] = str(razt_path)
         if kem_path:
             paths["kemikalija"] = str(kem_path)
+        if repro_path:
+            paths["repro"] = str(repro_path)
 
         if log:
             loaded = ", ".join(catalog_data.keys())
@@ -62,6 +71,8 @@ def load_catalog_for_validation(
                 log(f"  Raztopine: {razt_path.name}")
             if kem_path:
                 log(f"  Kemikalije: {kem_path.name}")
+            if repro_path:
+                log(f"  Repro material: {repro_path.name}")
 
         return catalog_data, paths
     except Exception as e:
@@ -78,22 +89,28 @@ def merge_catalog_summaries(summaries: list[Mapping[str, Any]]) -> dict[str, Any
 
     raz_path = next((s.get("raztopine_path") for s in enabled_items if s.get("raztopine_path")), "")
     kem_path = next((s.get("kemikalije_path") for s in enabled_items if s.get("kemikalije_path")), "")
+    repro_path = next((s.get("repro_path") for s in enabled_items if s.get("repro_path")), "")
 
     mismatches = sum(int(s.get("mismatches", 0)) for s in enabled_items)
     rows_r = sum(int(s.get("rows_checked_raztopina", 0)) for s in enabled_items)
     rows_k = sum(int(s.get("rows_checked_kemikalija", 0)) for s in enabled_items)
+    rows_repro = sum(int(s.get("rows_checked_repro", 0)) for s in enabled_items)
     codes_r = max(int(s.get("catalog_codes_raztopina", 0)) for s in enabled_items)
     codes_k = max(int(s.get("catalog_codes_kemikalija", 0)) for s in enabled_items)
+    codes_repro = max(int(s.get("catalog_codes_repro", 0)) for s in enabled_items)
 
     return {
         "enabled": True,
         "raztopine_path": raz_path,
         "kemikalije_path": kem_path,
+        "repro_path": repro_path,
         "catalog_codes_raztopina": codes_r,
         "catalog_codes_kemikalija": codes_k,
+        "catalog_codes_repro": codes_repro,
         "rows_checked_raztopina": rows_r,
         "rows_checked_kemikalija": rows_k,
-        "rows_checked_total": rows_r + rows_k,
+        "rows_checked_repro": rows_repro,
+        "rows_checked_total": rows_r + rows_k + rows_repro,
         "mismatches": mismatches,
         "status": "napake" if mismatches else "v redu",
     }

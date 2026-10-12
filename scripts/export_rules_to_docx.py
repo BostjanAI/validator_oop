@@ -21,9 +21,10 @@ RULES = [
     ("step_numbering", "Preveri pravilno številčenje korakov: celo število, brez podvajanj, brez vrzeli, začetek s 1.", "Strukturna pravila"),
     # Field
     ("tip_objekta_rule", "Tip objekta mora biti zapolnjen in med dovoljenimi vrednostmi (edit, checkbox, crta, formula, gumbdatumcas, itd.).", "Pravila polj"),
+    ("masa_tip_podatka_rule", "Tip podatka za maso mora biti točno 'masa'; oštevilčene vrednosti (npr. masa1) niso veljavne.", "Pravila polj"),
     ("data_object_compatibility", "Tip podatka mora imeti ustrezen Tip objekta (npr. kemikalija → edit, checkbox → checkbox).", "Pravila polj"),
     ("label_requirements", "Za določene tipe (kemikalija, zaposleni, monolit, repro, reproodpis) mora biti Labela = 'koda'; enota v Labela se mora ujemati z Navodilo.", "Pravila polj"),
-    ("key_validation", "Ključ preverjanja: dovoljeni znaki (črke, številke, _, -, .); za kemikalija/raztopina/masa/tehtnica je obvezen.", "Pravila polj"),
+    ("key_validation", "Ključ preverjanja: dovoljeni znaki (črke, številke, _, -, .); obvezen za kemikalija/raztopina/masa in časovni par (ne za opremo in checkbox).", "Pravila polj"),
     ("formula_syntax", "Formulska polja (formula, formula0, formula1) morajo imeti Vrednost z '=' in sklice na korake ($n).", "Pravila polj"),
     ("comma_number_rule", "Decimalna pika je privzeta; vejice v številih niso dovoljene (razen v Navodilo in parametrih zaklenipolja/aliObstajaPogoj).", "Pravila polj"),
     ("formula_reference_rule", "Formule se lahko sklicujejo le na obstoječe korake.", "Pravila polj"),
@@ -31,6 +32,7 @@ RULES = [
     # Relational
     ("duplicate_key_rule", "Ključi za kemikalija, raztopina, datumcaszacetek, datumcaskonec in masa morajo biti unikatni znotraj zavihka/razdelka.", "Relacijska pravila"),
     ("mass_owner_rule", "Masa mora imeti pripadajočo kemikalijo ali raztopino; ujemanje ključev med kemikalija/raztopina in masa.", "Relacijska pravila"),
+    ("owner_mass_pair_rule", "kemikalija/raztopina mora imeti vrstico masa z enakim ključem; volumen z istim ključem ni dovoljen (izjema dH2O).", "Relacijska pravila"),
     ("repro_kolicina_owner_rule", "Kolicina mora imeti predhodni repro z enakim ključem preverjanja (par repro–kolicina).", "Relacijska pravila"),
     ("time_pair_rule", "Par datumcaszacetek / datumcaskonec: za začetni čas mora obstajati končni in obratno.", "Relacijska pravila"),
     ("key_numbering_rule", "Oštevilčenje ključev (base1, base2, …) brez vrzeli in brez podvajanja 'base' + 'base1'.", "Relacijska pravila"),
@@ -43,6 +45,7 @@ RULES = [
     ("expected_controls_rule", "Pričakovane kontrole glede na tip (npr. kemikalija: kontrola veljavnosti in ustreznosti; masa: kontrola mase, interval, razlika).", "Kontrolna pravila"),
     ("zakleni_param_rule", "Parametri za zaklenipolja: Param1 = koraki z aliObstajaPogoj; za checkbox obvezna kontrola praznega polja (ali obratno glede na konfiguracijo).", "Kontrolna pravila"),
     ("aliobstajapogoj_combo_rule", "Pravilna kombinacija aliObstajaPogoj (Param1 = ključi, Param2 = 0/1) in vrednost polja, ko je pogoj izpolnjen.", "Kontrolna pravila"),
+    ("aliobstajapogoj_param1_rule", "Pri aliObstajaPogoj mora biti Param1 ključ sklopa zaklenipolja, ki ta korak zaklene (tudi parni ključ, npr. sst_4 namesto sst_3); isti Param1 ne sme biti uporabljen pri dveh različnih sklopih zaklepanja.", "Kontrolna pravila"),
     ("zaklenipolja_unique_key_rule", "Pri zaklenipolja ne sme biti podvojenega ključa preverjanja.", "Kontrolna pravila"),
     ("zakleni_inverse_rule", "Za korake iz Param1 pri zaklenipolja mora obstajati kontrola aliObstajaPogoj z ustreznimi Param1/Param2.", "Kontrolna pravila"),
     ("zakleni_checkbox_rule", "Pri checkboxu in zaklenipolja: dovoljena/zahtevana kontrola praznega polja glede na konfiguracijo.", "Kontrolna pravila"),

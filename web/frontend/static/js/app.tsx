@@ -4,8 +4,8 @@
  * (obstoječi ValidatorEngine). Ta datoteka je samo predstavitvena plast.
  *
  * Faza 2: prijava (AD/LDAP ali lokalni uporabnik), zgodovina validacij,
- * primerjava razdelkov med listi, diff dveh verzij recepture, audit trail
- * in napredek v realnem času (WebSocket s fallbackom na polling).
+ * diff dveh verzij recepture, audit trail in napredek v realnem času
+ * (WebSocket s fallbackom na polling).
  */
 
 const { useState, useEffect, useRef, useMemo, useCallback } = React;
@@ -56,6 +56,7 @@ const API = {
     if (optional.sop) fd.append("sop", optional.sop, optional.sop.name);
     if (optional.raztopine) fd.append("catalog_raztopine", optional.raztopine, optional.raztopine.name);
     if (optional.kemikalije) fd.append("catalog_kemikalije", optional.kemikalije, optional.kemikalije.name);
+    if (optional.repro) fd.append("catalog_repro", optional.repro, optional.repro.name);
     const res = await apiFetch("/api/validate", { method: "POST", body: fd });
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: "Napaka pri zagonu validacije" }));
@@ -99,16 +100,6 @@ const API = {
   historyCombinedReportUrl(jobId, filename) {
     return `/api/history/${jobId}/report/${encodeURIComponent(filename)}`;
   },
-  async sectionCompare(file) {
-    const fd = new FormData();
-    fd.append("recipe", file, file.name);
-    const res = await apiFetch("/api/section-compare", { method: "POST", body: fd });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: "Primerjava razdelkov ni uspela" }));
-      throw new Error(err.detail || "Primerjava razdelkov ni uspela");
-    }
-    return res.json();
-  },
   async diff(sideA, sideB) {
     const fd = new FormData();
     if (sideA.file) fd.append("file_a", sideA.file, sideA.file.name);
@@ -143,7 +134,6 @@ const API = {
 
 /* ----------------------------- Pomožno --------------------------------- */
 
-const SEVERITY_LABEL = { error: "Napake", warning: "Opozorila", info: "Info" };
 const STATE_LABEL = { queued: "čaka", running: "v teku", done: "končano", error: "napaka" };
 
 function classNames(...parts) {
@@ -214,40 +204,6 @@ function FilePicker({ accept, multiple, files, onChange, label, hint }) {
   );
 }
 
-/* ------------------------- Multiselect (bypass) ------------------------ */
-
-function MultiSelect({ options, selected, onToggle, renderOption, placeholder }) {
-  const [filter, setFilter] = useState("");
-  const lower = filter.toLowerCase();
-  const visible = options.filter((o) => o.search.toLowerCase().includes(lower));
-  return (
-    <div>
-      <div className="multiselect">
-        <input
-          className="ms-filter"
-          placeholder={placeholder || "Filtriraj…"}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        {visible.length === 0 && <div className="opt muted">Ni zadetkov</div>}
-        {visible.map((o) => (
-          <label className="opt" key={o.value}>
-            <input
-              type="checkbox"
-              checked={selected.has(o.value)}
-              onChange={() => onToggle(o.value)}
-            />
-            {renderOption(o)}
-          </label>
-        ))}
-      </div>
-      {selected.size > 0 && (
-        <div className="muted" style={{ marginTop: 4 }}>Izbranih: {selected.size}</div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------------------- Collapsible ------------------------------ */
 
 function Collapsible({ title, children, defaultOpen }) {
@@ -300,6 +256,8 @@ function UploadCard({ state, set }) {
               onChange={(f) => set({ raztopine: f })} onClear={() => set({ raztopine: null })} />
             <OptionalFile label="Šifrant kemikalij (.xlsx)" accept=".xlsx" file={state.kemikalije}
               onChange={(f) => set({ kemikalije: f })} onClear={() => set({ kemikalije: null })} />
+            <OptionalFile label="Šifrant repro materiala (.xlsx)" accept=".xlsx" file={state.repro}
+              onChange={(f) => set({ repro: f })} onClear={() => set({ repro: null })} />
           </Collapsible>
         </div>
       </div>
@@ -330,92 +288,6 @@ function OptionalFile({ label, accept, file, onChange, onClear }) {
   );
 }
 
-/* ---------------------------- Config card ------------------------------ */
-
-function ConfigCard({ config, set, rules, codes }) {
-  const toggle = (key) => set({ [key]: !config[key] });
-  const toggleSet = (key, value) => {
-    const next = new Set(config[key]);
-    next.has(value) ? next.delete(value) : next.add(value);
-    set({ [key]: next });
-  };
-
-  const ruleOptions = rules.map((r) => ({ value: r.name, search: r.name + " " + r.code, rule: r }));
-  const codeOptions = codes.map((c) => ({ value: c.code, search: c.code + " " + c.description, code: c }));
-
-  return (
-    <div className="card">
-      <div className="card-head"><h2><span className="step">2</span> Konfiguracija</h2></div>
-      <div className="card-body">
-        <CheckRow checked={config.strict_mode} onChange={() => toggle("strict_mode")}
-          label="Strogi način" desc="Opozorila se obravnavajo kot napake" />
-        <CheckRow checked={config.include_formulas} onChange={() => toggle("include_formulas")}
-          label="Validacija formul" desc="Naloži in preveri tudi celične formule" />
-        <CheckRow checked={config.enable_sop_validation} onChange={() => toggle("enable_sop_validation")}
-          label="Preverjanje SOP skladnosti" desc="Navzkrižno preverjanje z naloženim SOP dokumentom" />
-        <CheckRow checked={config.enable_catalog_validation} onChange={() => toggle("enable_catalog_validation")}
-          label="Preverjanje šifrantov" desc="Preveri šifre kemikalij/raztopin proti naloženim šifrantom" />
-        <CheckRow checked={config.apply_fixes} onChange={() => toggle("apply_fixes")}
-          label="Samodejni popravki (auto-fix)" desc="Ustvari popravljeno kopijo recepture" />
-
-        <div style={{ marginTop: 8 }}>
-          <Collapsible title="Napredno – zaklenipolja zastavice">
-            <CheckRow checked={config.bypass_zakleni_require_empty_for_checkbox}
-              onChange={() => toggle("bypass_zakleni_require_empty_for_checkbox")}
-              label="Obvod: prazno polje za checkbox" />
-            <CheckRow checked={config.bypass_zakleni_require_pogoj_for_param1_steps}
-              onChange={() => toggle("bypass_zakleni_require_pogoj_for_param1_steps")}
-              label="Obvod: zahteva pogoja za Param1 korake" />
-            <CheckRow checked={config.bypass_zakleni_inverse_pogoj_requirement}
-              onChange={() => toggle("bypass_zakleni_inverse_pogoj_requirement")}
-              label="Obvod: inverzna zahteva pogoja" />
-          </Collapsible>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <Collapsible title={`Preskoči pravila (${config.bypass_rules.size})`}>
-            <MultiSelect
-              options={ruleOptions}
-              selected={config.bypass_rules}
-              onToggle={(v) => toggleSet("bypass_rules", v)}
-              placeholder="Filtriraj pravila…"
-              renderOption={(o) => (
-                <span>{o.rule.name} <code>{o.rule.code}</code></span>
-              )}
-            />
-          </Collapsible>
-        </div>
-
-        <div style={{ marginTop: 12 }}>
-          <Collapsible title={`Preskoči kode napak (${config.bypass_codes.size})`}>
-            <MultiSelect
-              options={codeOptions}
-              selected={config.bypass_codes}
-              onToggle={(v) => toggleSet("bypass_codes", v)}
-              placeholder="Filtriraj kode…"
-              renderOption={(o) => (
-                <span><code>{o.code.code}</code> {o.code.description}</span>
-              )}
-            />
-          </Collapsible>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CheckRow({ checked, onChange, label, desc }) {
-  return (
-    <label className="check">
-      <input type="checkbox" checked={checked} onChange={onChange} />
-      <span>
-        <span className="lbl">{label}</span>
-        {desc && <span className="desc"> — {desc}</span>}
-      </span>
-    </label>
-  );
-}
-
 /* ----------------------------- Run card -------------------------------- */
 
 function RunCard({ canRun, phase, onRun, status, live }) {
@@ -423,7 +295,7 @@ function RunCard({ canRun, phase, onRun, status, live }) {
   return (
     <div className="card">
       <div className="card-head">
-        <h2><span className="step">3</span> Validacija</h2>
+        <h2><span className="step">2</span> Validacija</h2>
         {running && live && <span className="live-badge" title="Napredek v realnem času (WebSocket)">⚡ v živo</span>}
       </div>
       <div className="card-body">
@@ -460,7 +332,6 @@ function RunCard({ canRun, phase, onRun, status, live }) {
 
 function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
   const [search, setSearch] = useState("");
-  const [severity, setSeverity] = useState("all");
   const [fileFilter, setFileFilter] = useState("all");
   const [sheetFilter, setSheetFilter] = useState("all");
   const [codeFilter, setCodeFilter] = useState("all");
@@ -486,15 +357,14 @@ function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
     [allIssues]
   );
 
-  const hasFilter = search || severity !== "all" || fileFilter !== "all" || sheetFilter !== "all" || codeFilter !== "all";
+  const hasFilter = search || fileFilter !== "all" || sheetFilter !== "all" || codeFilter !== "all";
   const resetFilters = () => {
-    setSearch(""); setSeverity("all"); setFileFilter("all"); setSheetFilter("all"); setCodeFilter("all");
+    setSearch(""); setFileFilter("all"); setSheetFilter("all"); setCodeFilter("all");
   };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return allIssues.filter((iss) => {
-      if (severity !== "all" && iss.severity !== severity) return false;
       if (fileFilter !== "all" && iss.file !== fileFilter) return false;
       if (sheetFilter !== "all" && iss.sheet !== sheetFilter) return false;
       if (codeFilter !== "all" && iss.code !== codeFilter) return false;
@@ -504,12 +374,12 @@ function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
       }
       return true;
     });
-  }, [allIssues, search, severity, fileFilter, sheetFilter, codeFilter]);
+  }, [allIssues, search, fileFilter, sheetFilter, codeFilter]);
 
   const sorted = useMemo(() => sortIssues(filtered, sort), [filtered, sort]);
   const groups = useMemo(() => buildGroups(sorted, grouping), [sorted, grouping]);
   const totals = results.totals || {};
-  const toggleSeverity = (sev) => setSeverity(severity === sev ? "all" : sev);
+  const excelCombined = (results.combined_reports || []).filter((rep) => rep.kind === "excel");
 
   return (
     <div className="card">
@@ -518,26 +388,18 @@ function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
         <span className="muted">{filtered.length} prikazanih / {allIssues.length} skupaj</span>
       </div>
       <div className="card-body">
-        <div className="summary-tiles">
-          {[["error", totals.error || 0, "Napake"], ["warning", totals.warning || 0, "Opozorila"], ["info", totals.info || 0, "Info"]].map(([sev, num, lbl]) => (
-            <div key={sev}
-              className={classNames("tile", sev, severity === sev && "active")}
-              onClick={() => toggleSeverity(sev)}
-              title="Klikni za filtriranje po resnosti">
-              <div className="num">{num}</div><div className="lbl">{lbl}</div>
-            </div>
-          ))}
+        <div className="summary-tiles" style={{ gridTemplateColumns: "minmax(160px, 220px)" }}>
           <div className="tile files static">
             <div className="num">{totals.invalid_files || 0}/{totals.files || 0}</div>
             <div className="lbl">Neveljavnih datotek</div>
           </div>
         </div>
 
-        {(results.combined_reports || []).length > 0 && (
+        {excelCombined.length > 0 && (
           <div className="combined-reports">
             <div className="cr-title">📦 Skupna poročila za vse datoteke</div>
             <div className="downloads">
-              {results.combined_reports.map((rep) => (
+              {excelCombined.map((rep) => (
                 <a key={rep.kind} className="btn btn-sm"
                   href={combinedUrlFn(rep.filename)} download>
                   ⬇ {rep.label}
@@ -552,12 +414,6 @@ function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
         <div className="toolbar">
           <input type="text" placeholder="🔎 Iskanje po sporočilu, listu, kodi…"
             value={search} onChange={(e) => setSearch(e.target.value)} />
-          <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-            <option value="all">Vse resnosti</option>
-            <option value="error">Napake</option>
-            <option value="warning">Opozorila</option>
-            <option value="info">Info</option>
-          </select>
           {sheetNames.length > 1 && (
             <select value={sheetFilter} onChange={(e) => setSheetFilter(e.target.value)}>
               <option value="all">Vsi listi</option>
@@ -583,7 +439,7 @@ function ResultsPanel({ results, reportUrlFn, combinedUrlFn, onReset, title }) {
 
         <div className="toolbar">
           <div className="seg">
-            {[["sheet", "Po listu"], ["code", "Po kodi"], ["severity", "Po resnosti"], ["file", "Po datoteki"], ["none", "Brez"]].map(([k, lbl]) => (
+            {[["sheet", "Po listu"], ["code", "Po kodi"], ["file", "Po datoteki"], ["none", "Brez"]].map(([k, lbl]) => (
               <button key={k} className={classNames(grouping === k && "active")} onClick={() => setGrouping(k)}>{lbl}</button>
             ))}
           </div>
@@ -651,7 +507,6 @@ function CodeChart({ issues, onSelect }) {
 }
 
 const SORT_KEYS = {
-  severity: (iss) => ({ error: 0, warning: 1, info: 2 }[iss.severity] ?? 3),
   file: (iss) => iss.file || "",
   sheet: (iss) => iss.sheet || "",
   row: (iss) => (typeof iss.row === "number" ? iss.row : Number(iss.row) || 0),
@@ -677,7 +532,6 @@ function buildGroups(issues, grouping) {
   const keyOf = (iss) => {
     if (grouping === "sheet") return iss.sheet || "(neznano)";
     if (grouping === "code") return iss.code ? `${iss.code} — ${iss.code_desc || ""}` : "(brez kode)";
-    if (grouping === "severity") return SEVERITY_LABEL[iss.severity] || iss.severity;
     if (grouping === "file") return iss.file;
     return "";
   };
@@ -694,7 +548,7 @@ function buildGroups(issues, grouping) {
 function IssuesTable({ groups, grouped, multiFile, sort, onSort }) {
   const [collapsed, setCollapsed] = useState({});
   const toggle = (k) => setCollapsed((c) => ({ ...c, [k]: !c[k] }));
-  const colSpan = multiFile ? 6 : 5;
+  const colSpan = multiFile ? 5 : 4;
   const anyCollapsed = groups.some((g) => collapsed[g.key]);
   const toggleAll = () => {
     if (anyCollapsed) setCollapsed({});
@@ -720,7 +574,6 @@ function IssuesTable({ groups, grouped, multiFile, sort, onSort }) {
       <table className="issues-table">
         <thead>
           <tr>
-            {header("severity", "Resnost", { width: 70 })}
             {multiFile && header("file", "Datoteka")}
             {header("sheet", "List")}
             {header("row", "Vrstica", { width: 60 })}
@@ -740,7 +593,6 @@ function IssuesTable({ groups, grouped, multiFile, sort, onSort }) {
               )}
               {!collapsed[g.key] && g.issues.map((iss, i) => (
                 <tr key={g.key + i}>
-                  <td><span className={classNames("sev-pill", iss.severity)}>{iss.severity}</span></td>
                   {multiFile && <td className="muted">{iss.file}</td>}
                   <td>{iss.sheet}{iss.col ? <span className="muted"> · {iss.col}</span> : null}</td>
                   <td>{iss.row != null ? iss.row : ""}</td>
@@ -791,13 +643,13 @@ function DownloadSection({ results, reportUrlFn }) {
             ) : (
               <>
                 <div className="downloads">
-                  {(fr.reports || []).map((rep) => (
+                  {(fr.reports || []).filter((rep) => rep.kind === "excel").map((rep) => (
                     <a key={rep.kind} className="btn btn-sm"
                       href={reportUrlFn(fr.index, rep.filename)} download>
                       ⬇ {rep.label}
                     </a>
                   ))}
-                  {(!fr.reports || fr.reports.length === 0) && <span className="muted">Ni poročil.</span>}
+                  {(fr.reports || []).filter((rep) => rep.kind === "excel").length === 0 && <span className="muted">Ni poročil.</span>}
                 </div>
                 {fr.catalog_validation && fr.catalog_validation.enabled && (
                   <div className="catalog-note">
@@ -837,8 +689,20 @@ function LoginView({ onLogin }) {
   };
 
   return (
-    <div className="login-wrap">
-      <form className="login-card" onSubmit={submit}>
+    <div className="login-page">
+      <div className="site-header">
+        <div className="site-topbar">Sartorius BIA Separations</div>
+        <header className="app-header">
+          <div className="brand">
+            <div>
+              <h1>IPO Excel Validator</h1>
+              <p className="subtitle">Validacija IPO receptur</p>
+            </div>
+          </div>
+        </header>
+      </div>
+      <div className="login-wrap">
+        <form className="login-card" onSubmit={submit}>
         <div className="login-logo">IPO</div>
         <h2>IPO Excel Validator</h2>
         <p className="muted">Prijava z domenskim (AD) ali lokalnim računom</p>
@@ -860,7 +724,8 @@ function LoginView({ onLogin }) {
         <button className="btn btn-primary btn-block" type="submit" disabled={busy || !username || !password}>
           {busy ? <><span className="spinner"></span> Prijavljanje…</> : "Prijava"}
         </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
@@ -876,45 +741,12 @@ const DEFAULT_CONFIG = {
   bypass_zakleni_require_empty_for_checkbox: true,
   bypass_zakleni_require_pogoj_for_param1_steps: false,
   bypass_zakleni_inverse_pogoj_requirement: false,
-  bypass_rules: new Set(),
-  bypass_codes: new Set(),
+  bypass_rules: [],
+  bypass_codes: [],
 };
 
-const CONFIG_STORAGE_KEY = "mes_validator_config_v1";
-
-/* Konfiguracija se ohrani med sejami (localStorage); Set ⟷ Array pretvorba. */
-function loadStoredConfig() {
-  try {
-    const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
-    if (!raw) return DEFAULT_CONFIG;
-    const parsed = JSON.parse(raw);
-    return {
-      ...DEFAULT_CONFIG,
-      ...parsed,
-      bypass_rules: new Set(parsed.bypass_rules || []),
-      bypass_codes: new Set(parsed.bypass_codes || []),
-    };
-  } catch {
-    return DEFAULT_CONFIG;
-  }
-}
-
-function storeConfig(config) {
-  try {
-    localStorage.setItem(
-      CONFIG_STORAGE_KEY,
-      JSON.stringify({
-        ...config,
-        bypass_rules: Array.from(config.bypass_rules),
-        bypass_codes: Array.from(config.bypass_codes),
-      })
-    );
-  } catch { /* localStorage ni na voljo – ignoriramo */ }
-}
-
-function ValidateView({ catalog }) {
-  const [files, setFiles] = useState({ recipes: [], sop: null, raztopine: null, kemikalije: null });
-  const [config, setConfig] = useState(loadStoredConfig);
+function ValidateView() {
+  const [files, setFiles] = useState({ recipes: [], sop: null, raztopine: null, kemikalije: null, repro: null });
   const [phase, setPhase] = useState("idle");
   const [jobId, setJobId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -925,10 +757,7 @@ function ValidateView({ catalog }) {
   const wsRef = useRef(null);
   const finishedRef = useRef(false);
 
-  useEffect(() => { storeConfig(config); }, [config]);
-
   const setFilesPartial = useCallback((patch) => setFiles((s) => ({ ...s, ...patch })), []);
-  const setConfigPartial = useCallback((patch) => setConfig((s) => ({ ...s, ...patch })), []);
 
   const stopPolling = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
@@ -1008,14 +837,9 @@ function ValidateView({ catalog }) {
     setStatus(null);
     setPhase("running");
     finishedRef.current = false;
-    const payload = {
-      ...config,
-      bypass_rules: Array.from(config.bypass_rules),
-      bypass_codes: Array.from(config.bypass_codes),
-    };
     try {
-      const { job_id } = await API.startValidation(files.recipes, payload, {
-        sop: files.sop, raztopine: files.raztopine, kemikalije: files.kemikalije,
+      const { job_id } = await API.startValidation(files.recipes, DEFAULT_CONFIG, {
+        sop: files.sop, raztopine: files.raztopine, kemikalije: files.kemikalije, repro: files.repro,
       });
       setJobId(job_id);
       startProgress(job_id);
@@ -1036,7 +860,7 @@ function ValidateView({ catalog }) {
     setJobId(null);
     setError(null);
     setPhase("idle");
-    setFiles({ recipes: [], sop: null, raztopine: null, kemikalije: null });
+    setFiles({ recipes: [], sop: null, raztopine: null, kemikalije: null, repro: null });
   };
 
   const canRun = files.recipes.length > 0 && phase !== "running";
@@ -1047,7 +871,6 @@ function ValidateView({ catalog }) {
       <div className="grid">
         <div>
           <UploadCard state={files} set={setFilesPartial} />
-          <ConfigCard config={config} set={setConfigPartial} rules={catalog.rules} codes={catalog.codes} />
           <RunCard canRun={canRun} phase={phase} onRun={onRun} status={status} live={live} />
         </div>
         <div>
@@ -1215,128 +1038,6 @@ function HistorySummary({ record }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-/* --------------------- Pogled: primerjava razdelkov -------------------- */
-
-function SectionsView() {
-  const [file, setFile] = useState(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
-  const [result, setResult] = useState(null);
-
-  const run = async () => {
-    setError(null);
-    setResult(null);
-    setBusy(true);
-    try {
-      setResult(await API.sectionCompare(file));
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="grid">
-      <div>
-        <div className="card">
-          <div className="card-head"><h2>📑 Primerjava razdelkov med listi</h2></div>
-          <div className="card-body">
-            <p className="muted" style={{ marginTop: 0 }}>
-              Naloži recepturo z vsaj dvema listoma (npr. <code>Receptura</code> in <code>Receptura_2</code>).
-              Primerjajo se število razdelkov, naslovi, število korakov in besedila navodil.
-            </p>
-            <FilePicker
-              accept=".xlsx,.xlsm"
-              files={file ? [file] : []}
-              onChange={(f) => setFile(f)}
-              label={file ? `📄 ${file.name}` : "Povleci recepturo sem ali klikni za izbiro"}
-              hint="Podprto: .xlsx, .xlsm (ena datoteka)"
-            />
-            <button className="btn btn-primary btn-block" style={{ marginTop: 14 }}
-              disabled={!file || busy} onClick={run}>
-              {busy ? <><span className="spinner"></span> Primerjava poteka…</> : "▶ Primerjaj razdelke"}
-            </button>
-            {error && <div className="error-banner" style={{ marginTop: 12 }}>⚠ {error}</div>}
-          </div>
-        </div>
-        {result && (
-          <div className="card">
-            <div className="card-head"><h2>Razdelki po listih</h2></div>
-            <div className="card-body">
-              {result.sheets.map((sheet) => (
-                <Collapsible key={sheet} title={`${sheet}${sheet === result.base_sheet ? " (referenčni)" : ""} — ${result.sections[sheet].length} razdelkov`}>
-                  <table className="issues-table" style={{ marginBottom: 10 }}>
-                    <thead>
-                      <tr><th style={{ width: 40 }}>#</th><th>Naslov</th><th style={{ width: 80 }}>Vrstica</th><th style={{ width: 80 }}>Korakov</th></tr>
-                    </thead>
-                    <tbody>
-                      {result.sections[sheet].map((s) => (
-                        <tr key={s.index + "-" + s.start_row}>
-                          <td>{s.index}</td>
-                          <td>{s.title || <span className="muted">(brez naslova)</span>}</td>
-                          <td>{s.start_row}</td>
-                          <td>{s.step_count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </Collapsible>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-      <div>
-        {result ? (
-          <div className="card">
-            <div className="card-head">
-              <h2>Rezultat primerjave</h2>
-              <span className="muted">{result.filename}</span>
-            </div>
-            <div className="card-body">
-              {result.is_match ? (
-                <div className="success-banner">✓ Razdelki se ujemajo med listi ({result.sheets.join(", ")}).</div>
-              ) : (
-                <div className="error-banner">
-                  ✗ Najdene razlike: {result.counts.error || 0} (opozoril: {result.counts.warning || 0})
-                </div>
-              )}
-              {result.issues.length > 0 && (
-                <table className="issues-table" style={{ marginTop: 12 }}>
-                  <thead>
-                    <tr><th style={{ width: 70 }}>Resnost</th><th>List</th><th style={{ width: 60 }}>Vrstica</th><th>Koda</th><th>Sporočilo</th></tr>
-                  </thead>
-                  <tbody>
-                    {result.issues.map((iss, i) => (
-                      <tr key={i}>
-                        <td><span className={classNames("sev-pill", iss.severity)}>{iss.severity}</span></td>
-                        <td>{iss.sheet}</td>
-                        <td>{iss.row}</td>
-                        <td className="code-cell"><code>{iss.code}</code></td>
-                        <td>{iss.message}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="card">
-            <div className="card-body">
-              <div className="empty">
-                <div className="ic">📑</div>
-                <p>Naloži recepturo in zaženi primerjavo razdelkov za prikaz rezultatov.</p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -1595,7 +1296,6 @@ function AuditView() {
                   <tr>
                     <th style={{ width: 150 }}>Čas</th>
                     <th style={{ width: 130 }}>Uporabnik</th>
-                    <th style={{ width: 80 }}>Rola</th>
                     <th style={{ width: 170 }}>Dejanje</th>
                     <th>Podrobnosti</th>
                     <th style={{ width: 110 }}>IP</th>
@@ -1606,7 +1306,6 @@ function AuditView() {
                     <tr key={e.id}>
                       <td>{formatDateTime(e.ts)}</td>
                       <td>{e.username || "—"}</td>
-                      <td className="muted">{e.role || "—"}</td>
                       <td>{AUDIT_ACTION_LABELS[e.action] || e.action}</td>
                       <td className="muted">{e.detail}</td>
                       <td className="muted">{e.ip || "—"}</td>
@@ -1634,7 +1333,6 @@ function AuditView() {
 const VIEWS = [
   { id: "validate", label: "Validacija", icon: "✓" },
   { id: "history", label: "Zgodovina", icon: "🗂" },
-  { id: "sections", label: "Razdelki", icon: "📑" },
   { id: "diff", label: "Diff verzij", icon: "🔀" },
   { id: "audit", label: "Audit", icon: "🛡", minRole: "qa" },
 ];
@@ -1695,12 +1393,13 @@ function App() {
 
   return (
     <>
-      <header className="app-header">
+      <div className="site-header">
+        <div className="site-topbar">Sartorius BIA Separations</div>
+        <header className="app-header">
         <div className="brand">
-          <div className="logo">IPO</div>
           <div>
             <h1>IPO Excel Validator</h1>
-            <p className="subtitle">Validacija IPO receptur — nalaganje, konfiguracija in poročila v brskalniku</p>
+            <p className="subtitle">Validacija IPO receptur — nalaganje in poročila v brskalniku</p>
           </div>
         </div>
         <nav className="nav-tabs">
@@ -1722,13 +1421,13 @@ function App() {
             </div>
           )}
         </div>
-      </header>
+        </header>
+      </div>
 
       <div className="container">
         {error && <div className="error-banner">⚠ {error}</div>}
-        {view === "validate" && <ValidateView catalog={catalog} />}
+        {view === "validate" && <ValidateView />}
         {view === "history" && <HistoryView />}
-        {view === "sections" && <SectionsView />}
         {view === "diff" && <DiffView />}
         {view === "audit" && <AuditView />}
       </div>

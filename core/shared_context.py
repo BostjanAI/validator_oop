@@ -91,8 +91,6 @@ class SharedContext:
     ali_pogoj_step_locations_by_tab: dict[str, dict[int, list[tuple[int, str]]]] = field(default_factory=dict)
     keys_by_zakleni_step: dict[int, set[str]] = field(default_factory=dict)
     all_zakleni_keys: set[str] = field(default_factory=set)
-    # (step, key) -> Param2 value (0 or 1) for aliObstajaPogoj on that step; used to detect odvečni koraki in zaklenipolja Param1
-    step_key_param2: dict[tuple[int, str], int] = field(default_factory=dict)
     equipment_keys: set[str] = field(default_factory=set)
 
     # Extension point
@@ -113,6 +111,16 @@ class SharedContext:
     def get_controls_at_step(self, step: int) -> set[str]:
         """Get normalized control names at a specific step."""
         return self.step_to_controls.get(step, set())
+
+
+def _is_usable_zavihek_name(tab_val: str) -> bool:
+    """True if a Zavihek cell may start a new logical tab.
+
+    Names with internal whitespace are invalid (SPACE_NOT_ALLOWED) and must
+    not split the tab; otherwise later rows inherit a bogus tab and rules
+    such as zaklenipolja / step numbering report false positives.
+    """
+    return bool(tab_val) and not any(ch.isspace() for ch in tab_val)
 
 
 class SharedContextBuilder:
@@ -242,9 +250,11 @@ class SharedContextBuilder:
 
             ctx.section_by_row[excel_row] = current_section
 
-            # Update tab
+            # Update tab. Values with whitespace are invalid (SPACE_NOT_ALLOWED)
+            # and must not start a new tab — otherwise later rows inherit a
+            # bogus tab and rules like zaklenipolja report false positives.
             tab_val = coerce_str(row.get("Zavihek", "")).strip()
-            if tab_val:
+            if _is_usable_zavihek_name(tab_val):
                 current_tab = tab_val
             ctx.tab_by_row[excel_row] = current_tab
             self._scan_row_controls(ctx, row, excel_row, current_tab, step_num, key)
@@ -274,7 +284,7 @@ class SharedContextBuilder:
                     ctx.zakleni_checkbox_steps.add(step_num)
                 self._scan_zakleni_control(ctx, row, tab, ctrl_num, key_here)
             elif ctrl_name_ns == "aliobstajapogoj" and step_num is not None:
-                self._scan_aliobstajapogoj_control(ctx, row, excel_row, tab, step_num, ctrl_col, ctrl_num)
+                self._scan_aliobstajapogoj_control(ctx, excel_row, tab, step_num, ctrl_col)
 
     def _scan_zakleni_control(
         self,
@@ -311,12 +321,10 @@ class SharedContextBuilder:
     def _scan_aliobstajapogoj_control(
         self,
         ctx: SharedContext,
-        row: Mapping[str, Any],
         excel_row: int,
         tab: str,
         step_num: int,
         ctrl_col: str,
-        ctrl_num: int,
     ) -> None:
         if step_num not in ctx.ali_pogoj_step_locations:
             ctx.ali_pogoj_step_locations[step_num] = (excel_row, ctrl_col)
@@ -324,21 +332,6 @@ class SharedContextBuilder:
         ctx.ali_pogoj_step_locations_by_tab.setdefault(tab, {}).setdefault(step_num, []).append(
             (excel_row, ctrl_col)
         )
-
-        p1_col = ctx.param1_columns.get(ctrl_num)
-        p2_col = ctx.param2_columns.get(ctrl_num)
-        if not p1_col or not p2_col:
-            return
-
-        p1_val = coerce_str(row.get(p1_col, ""))
-        p2_val = coerce_str(row.get(p2_col, ""))
-        try:
-            parsed_p2 = int(float(p2_val.replace(",", ".")))
-        except Exception:
-            parsed_p2 = None
-        if p1_val and parsed_p2 is not None:
-            for key in [k.strip() for k in p1_val.split(",") if k.strip()]:
-                ctx.step_key_param2[(step_num, key)] = parsed_p2
 
     def _parse_step_number(self, row: Mapping[str, Any]) -> int | None:
         step_val = coerce_str(row.get("št. Koraka", ""))

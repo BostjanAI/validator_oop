@@ -15,6 +15,7 @@ from validator_oop.core.error import Severity
 from validator_oop.rules.builtin.control import (
     AliObkljukanParamRule,
     AliObstajaPogojCombinationRule,
+    AliObstajaPogojParam1Rule,
     CheckboxAliObkljukanRequiredRule,
     ControlContextRule,
     DatumCasKonecKontrolaCasaRequiredRule,
@@ -270,16 +271,16 @@ class TestControlContextRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert any(e.code == "CTRL_INVALID_CONTEXT" for e in errors)
 
-    def test_raztopina_control_reports_param_base_mismatch(self, rule: ControlContextRule) -> None:
-        """Raztopina kontrola mora preveriti skladnost Param1 s bazo ključa."""
+    def test_raztopina_control_allows_param1_not_matching_key(self, rule: ControlContextRule) -> None:
+        """Raztopina kontrola ne zahteva ujemanja Param1 s ključem preverjanja."""
         rows = [
             {
                 "Tip objekta": "edit",
                 "Tip podatka": "raztopina1",
                 "Labela": "koda",
-                "Ključ preverjanja": "RAZTOPINA_2",
+                "Ključ preverjanja": "raz1",
                 "Kontrola-1": "kontrolaVeljavnostiRaztopine",
-                "Kontrola-1: Par 1": "NAPACNA_BAZA",
+                "Kontrola-1: Par 1": "20v-EtOH-RR",
             },
         ]
         builder = SharedContextBuilder(row_offset=2)
@@ -294,7 +295,7 @@ class TestControlContextRule:
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-        assert any(e.code == "SOLUTION_P1_BASE" for e in errors)
+        assert not any(e.code in {"SOLUTION_P1_BASE", "SOLUTION_P2_BASE"} for e in errors)
 
 
 class TestExcelErrorTokenRule:
@@ -806,6 +807,226 @@ class TestAliObstajaPogojCombinationRule:
         assert len(combo_errors) == 0
 
 
+_ALI_P1_COLUMNS = [
+    "št. Koraka",
+    "Zavihek",
+    "Ključ preverjanja",
+    "Tip objekta",
+    "Kontrola-1",
+    "Kontrola-1: Par 1",
+    "Kontrola-1: Par 2",
+]
+
+
+def _ali_p1_row(
+    step: str,
+    *,
+    key: str = "",
+    tip: str = "edit",
+    kontrola: str = "",
+    p1: str = "",
+    p2: str = "",
+    zavihek: str = "",
+) -> dict[str, str]:
+    return {
+        "št. Koraka": step,
+        "Zavihek": zavihek,
+        "Ključ preverjanja": key,
+        "Tip objekta": tip,
+        "Kontrola-1": kontrola,
+        "Kontrola-1: Par 1": p1,
+        "Kontrola-1: Par 2": p2,
+    }
+
+
+class TestAliObstajaPogojParam1Rule:
+    """Tests for AliObstajaPogojParam1Rule (owning zaklenipolja key + unique Param1)."""
+
+    @pytest.fixture
+    def rule(self) -> AliObstajaPogojParam1Rule:
+        return AliObstajaPogojParam1Rule()
+
+    def _run(self, rule: AliObstajaPogojParam1Rule, rows: list[dict[str, str]]) -> list:
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, _ALI_P1_COLUMNS)
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    def test_valid_key_from_zakleni_that_lists_the_step(self, rule: AliObstajaPogojParam1Rule) -> None:
+        """Locked fields may use any key of zaklenipolja rows that list this step."""
+        rows = [
+            _ali_p1_row("1", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="3,4"),
+            _ali_p1_row("2", key="sst_10", tip="checkbox", kontrola="zaklenipolja", p1="3,4"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("4", kontrola="aliObstajaPogoj", p1="sst_10", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code.startswith("LOCK_CONDITION_P1_")] == []
+
+    def test_same_param1_in_one_group_is_not_duplicate(self, rule: AliObstajaPogojParam1Rule) -> None:
+        """Several aliObstajaPogoj rows in the same lock group may share Param1."""
+        rows = [
+            _ali_p1_row("1", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="2,3,4"),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("4", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_DUPLICATE"] == []
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"] == []
+
+    def test_wrong_param1_from_other_sst_raises_lock_key(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """Copy-pasted sst_4 under sst_9/sst_10 lock must be flagged."""
+        rows = [
+            _ali_p1_row("1", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="3,4,5"),
+            _ali_p1_row("2", key="sst_10", tip="checkbox", kontrola="zaklenipolja", p1="3,4,5"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+            _ali_p1_row("4", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+            _ali_p1_row("5", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        lock_key = [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"]
+        assert len(lock_key) == 3
+        assert all("sst_9" in e.message and "sst_10" in e.message for e in lock_key)
+        assert all("sst_4" in e.message for e in lock_key)
+
+    def test_duplicate_param1_across_two_zakleni_groups(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """sst_4 used in two different zaklenipolja groups is a duplicate."""
+        rows = [
+            _ali_p1_row("1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="2,3"),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_4", p2="0"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="sst_4", p2="0"),
+            _ali_p1_row("4", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="6,7"),
+            _ali_p1_row("5", key="sst_10", tip="checkbox", kontrola="zaklenipolja", p1="6,7"),
+            _ali_p1_row("6", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+            _ali_p1_row("7", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        dup = [e for e in errors if e.code == "LOCK_CONDITION_P1_DUPLICATE"]
+        lock_key = [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"]
+        assert len(dup) == 2
+        assert {e.row_index for e in dup} == {7, 8}  # Excel rows of steps 6 and 7
+        assert len(lock_key) == 2
+        assert all("sst_9" in e.message and "sst_10" in e.message for e in lock_key)
+
+    def test_two_groups_with_own_keys_pass(self, rule: AliObstajaPogojParam1Rule) -> None:
+        """Independent lock groups with matching Param1 keys are valid."""
+        rows = [
+            _ali_p1_row("1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="2"),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_4", p2="0"),
+            _ali_p1_row("3", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="5"),
+            _ali_p1_row("4", key="sst_10", tip="checkbox", kontrola="zaklenipolja", p1="5"),
+            _ali_p1_row("5", kontrola="aliObstajaPogoj", p1="sst_10", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code.startswith("LOCK_CONDITION_P1_")] == []
+
+    def test_owner_is_zakleni_that_lists_the_step_not_a_nearer_one(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """Param1 must match the zaklenipolja that lists this step, even if another lock is nearer."""
+        rows = [
+            _ali_p1_row("1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="5"),
+            _ali_p1_row("2", tip="edit"),
+            _ali_p1_row("3", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="4"),
+            _ali_p1_row("4", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("5", kontrola="aliObstajaPogoj", p1="sst_4", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code.startswith("LOCK_CONDITION_P1_")] == []
+
+    def test_nearer_unrelated_zakleni_key_is_rejected(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """A nearer zaklenipolja that does not list this step must not supply the Param1 key."""
+        rows = [
+            _ali_p1_row("1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="5"),
+            _ali_p1_row("2", tip="edit"),
+            _ali_p1_row("3", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="4"),
+            _ali_p1_row("4", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("5", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        lock_key = [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"]
+        assert len(lock_key) == 1
+        assert lock_key[0].row_index == 6  # Excel row of step 5
+        assert "sst_4" in lock_key[0].message
+        assert "sst_9" in lock_key[0].message
+
+    def test_paired_zakleni_key_equivalent_to_owner(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """Param1=sst_4 Param2=1 is valid when sst_3 lists the step (DA/NE pair)."""
+        rows = [
+            _ali_p1_row("109", key="sst_3", tip="checkbox", kontrola="zaklenipolja", p1="110,111"),
+            _ali_p1_row("110", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="109"),
+            _ali_p1_row("111", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"] == []
+
+    def test_paired_zakleni_key_allowed_even_if_it_does_not_list_the_step(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """Adjacent DA/NE zaklenipolja keys are both allowed for locked fields."""
+        rows = [
+            _ali_p1_row("1", key="sst_3", tip="checkbox", kontrola="zaklenipolja", p1="3"),
+            _ali_p1_row("2", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="1"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="sst_4", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"] == []
+
+    def test_owner_key_with_param2_zero_still_passes(self, rule: AliObstajaPogojParam1Rule) -> None:
+        rows = [
+            _ali_p1_row("109", key="sst_3", tip="checkbox", kontrola="zaklenipolja", p1="110,111"),
+            _ali_p1_row("110", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="109"),
+            _ali_p1_row("111", kontrola="aliObstajaPogoj", p1="sst_3", p2="0"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_LOCK_KEY"] == []
+
+    def test_aliob_not_listed_in_zakleni_param1_is_skipped(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        """Standalone aliObstajaPogoj (not listed in any zaklenipolja Param1) is not checked."""
+        rows = [
+            _ali_p1_row("1", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="2"),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_9", p2="0"),
+            _ali_p1_row("3", kontrola="aliObstajaPogoj", p1="odrez1", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code.startswith("LOCK_CONDITION_P1_")] == []
+
+    def test_excel_formula_param1_is_skipped(self, rule: AliObstajaPogojParam1Rule) -> None:
+        rows = [
+            _ali_p1_row("1", key="sst_9", tip="checkbox", kontrola="zaklenipolja", p1="2"),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="=$F$58", p2="1"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code.startswith("LOCK_CONDITION_P1_")] == []
+
+    def test_same_param1_on_different_tabs_no_duplicate(
+        self, rule: AliObstajaPogojParam1Rule
+    ) -> None:
+        rows = [
+            _ali_p1_row(
+                "1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="2", zavihek="Tab1"
+            ),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_4", p2="0", zavihek="Tab1"),
+            _ali_p1_row(
+                "1", key="sst_4", tip="checkbox", kontrola="zaklenipolja", p1="2", zavihek="Tab2"
+            ),
+            _ali_p1_row("2", kontrola="aliObstajaPogoj", p1="sst_4", p2="0", zavihek="Tab2"),
+        ]
+        errors = self._run(rule, rows)
+        assert [e for e in errors if e.code == "LOCK_CONDITION_P1_DUPLICATE"] == []
+
+
 class TestZakleniUniqueKeyRule:
     """Tests for ZakleniUniqueKeyRule."""
 
@@ -1182,6 +1403,41 @@ class TestZakleniInverseRule:
         inverse_errors = [e for e in errors if e.code == "LOCK_P1_MISSING_FOR_CONDITION"]
         assert len(inverse_errors) == 3
 
+    def test_zavihek_space_does_not_cause_inverse_lock_error(self, rule: ZakleniInverseRule) -> None:
+        """Spaced Zavihek must not hide zaklenipolja Param1 from later aliObstajaPogoj rows."""
+        rows = [
+            {
+                "Zavihek": "Tab1",
+                "št. Koraka": "1",
+                "Ključ preverjanja": "ZK1",
+                "Kontrola-1": "zaklenipolja",
+                "Kontrola-1: Par 1": "3",
+            },
+            {"Zavihek": "Tab 1", "št. Koraka": "2", "Kontrola-1": "", "Kontrola-1: Par 1": ""},
+            {
+                "Zavihek": "",
+                "št. Koraka": "3",
+                "Kontrola-1": "aliObstajaPogoj",
+                "Kontrola-1: Par 1": "X",
+                "Kontrola-1: Par 2": "1",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = [
+            "Zavihek",
+            "št. Koraka",
+            "Ključ preverjanja",
+            "Kontrola-1",
+            "Kontrola-1: Par 1",
+            "Kontrola-1: Par 2",
+        ]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "LOCK_P1_MISSING_FOR_CONDITION"] == []
+
 
 class TestAliObkljukanParamRule:
     """Tests for AliObkljukanParamRule."""
@@ -1320,6 +1576,46 @@ class TestKontrolaIntervalAdvancedRule:
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_gte_cv_with_ml_range_accepts_volume_bounds(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """'≥ 3 CV (120000 - 340000 mL)' uses the mL range: Param1=119999, Param2=340001."""
+        errors = self._run_pm(
+            rule,
+            "Skozi kolono prečrpano ≥ 3 CV nalagalnega pufra (120000 - 340000 mL)",
+            "119999",
+            "340001",
+        )
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_gte_cv_with_ml_range_does_not_use_cv_count(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """Param1 from ≥ 3 CV (2) is not required when the mL range is present."""
+        errors = self._run_pm(
+            rule,
+            "Skozi kolono prečrpano ≥ 3 CV nalagalnega pufra (120000 - 340000 mL)",
+            "2",
+            "340001",
+        )
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert "119999" in p1_errors[0].message
+        assert "meja − korak" not in p1_errors[0].message
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_TARGET_")] == []
+
+    def test_cv_range_with_ml_range_uses_volume(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """'1.0 - 1.1 CV (40000 - 44000 mL)' uses 40000–44000 mL, not 1.0–1.1 CV."""
+        errors = self._run_pm(
+            rule,
+            "Volumen nal. pufra za krožno črpanje 1.0 - 1.1 CV (40000 - 44000 mL)",
+            "39999",
+            "44001",
+        )
         assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
 
     def test_inequality_gte_double_value_navodilo_accepts_correct_params(
@@ -1465,6 +1761,31 @@ class TestKontrolaIntervalAdvancedRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert "CTRL_INTERVAL_PM_P1" in [e.code for e in errors]
 
+    def test_pm_cv_with_volume_uses_ml_not_cv(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """'10 ± 0.1 CV (80 ± 8 mL)' uses 80 ± 8 mL: Param1=71 and Param2=89 are valid."""
+        errors = self._run_pm(rule, "Prečrpano 10 ± 0.1 CV (80 ± 8 mL)", "71.0", "89.0")
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_pm_cv_with_volume_rejects_cv_bounds(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Bounds from 10 ± 0.1 CV are not accepted when a parenthetical mL volume is present."""
+        errors = self._run_pm(rule, "Prečrpano 10 ± 0.1 CV (80 ± 8 mL)", "9.84", "10.15")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P2"]
+        assert len(p1_errors) == 1
+        assert len(p2_errors) == 1
+        assert "10.0 ± 0.1" not in p1_errors[0].message
+        assert "10.0 ± 0.1" not in p2_errors[0].message
+        assert "± 8" in p1_errors[0].message or "± 8.00" in p1_errors[0].message
+        assert "80" in p1_errors[0].message
+
+    def test_pm_cv_without_volume_still_uses_cv_count(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Without a volume in parentheses, 10 ± 0.1 CV stays the tolerance."""
+        errors = self._run_pm(rule, "Prečrpano 10 ± 0.1 CV", "71.0", "89.0")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
+        assert len(p1_errors) == 1
+        assert "10.0 ± 0.1" in p1_errors[0].message or "10.00 ± 0.10" in p1_errors[0].message
+        assert "9.84" in p1_errors[0].message
+
     def test_pm_tolerance_14_01_014_param2_accepts_14160(self, rule: KontrolaIntervalAdvancedRule) -> None:
         """For 14.01 +/- 0.14, Param2=14.160 must be valid."""
         rows = [
@@ -1483,6 +1804,210 @@ class TestKontrolaIntervalAdvancedRule:
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def _run_pm(
+        self,
+        rule: KontrolaIntervalAdvancedRule,
+        navodilo: str,
+        p1: str,
+        p2: str,
+    ) -> list:
+        rows = [
+            {
+                "Navodilo": navodilo,
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": p1,
+                "Kontrola-1: Par 2": p2,
+            }
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    def test_pm_rounding_band_accepts_635_to_664(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, Param1/Param2 in 6.35–6.64 round into [6.40, 6.60] and must pass."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.35", "6.64")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_rounding_band_accepts_process_bounds(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, Param1=6.40 and Param2=6.60 (interval bounds) must pass."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.40", "6.60")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_rounding_band_accepts_mid_interval(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, values inside 6.40–6.60 (e.g. 6.50) must pass."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.50", "6.50")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_rounding_band_accepts_canonical_639_661(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Canonical Param1=6.39 / Param2=6.61 remain valid."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.39", "6.61")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_rounding_band_accepts_634_and_665(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, 6.34→6.30 and 6.65→6.70 (canonical bounds) must pass."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.34", "6.65")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_rounding_band_accepts_one_decimal_navodilo_634(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.1 (kanonski Param1=6.30) je 6.34 sprejemljiv, ker se zaokroži na 6.30."""
+        errors = self._run_pm(rule, "6.50 ± 0.1", "6.34", "6.70")
+        assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
+
+    def test_pm_error_message_p1_shows_band_floor(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param1=6.33 must say 'mora biti 6.34', not canonical 6.30/6.39 or the band hint."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.33", "6.61")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
+        assert len(p1_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 6.34 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.33"
+        )
+
+    def test_pm_error_message_p2_shows_band_ceiling(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param2=6.66 must say 'mora biti 6.65', without the old 'naslednja vrednost' text."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.39", "6.66")
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P2"]
+        assert len(p2_errors) == 1
+        assert p2_errors[0].message == (
+            "Param2 mora biti 6.65 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.66"
+        )
+
+    def test_pm_rounding_band_rejects_633(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, Param1=6.33 must be an error (floor is 6.34)."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.33", "6.61")
+        assert "CTRL_INTERVAL_PM_P1" in [e.code for e in errors]
+
+    def test_pm_rounding_band_rejects_666(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, Param2=6.66 must be an error (ceiling is 6.65)."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.39", "6.66")
+        assert "CTRL_INTERVAL_PM_P2" in [e.code for e in errors]
+
+    def test_pm_rounding_band_rejects_below_canonical(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 6.50 ± 0.10, Param1=6.24 rounds to 6.20 and must remain an error."""
+        errors = self._run_pm(rule, "6.50 ± 0.10", "6.24", "6.61")
+        assert "CTRL_INTERVAL_PM_P1" in [e.code for e in errors]
+
+    def test_range_rounding_accepts_005_to_304(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 0.01–0.30, 0.005 rounds up to 0.01 and 0.304 rounds down to 0.30."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.005", "0.304")
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_rounding_accepts_param_floor_004(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param1=0.004 (prag pod 0.005) in Param2=0.304 sta veljavna."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.004", "0.304")
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_rounding_accepts_param2_ceiling_305(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param2=0.305 je prag nad zadnjo meritvijo 0.304."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.004", "0.305")
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_rounding_rejects_canonical_p2_310(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Canonical Param2=0.310 is above 0.305 and must be an error."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.004", "0.310")
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert len(p2_errors) == 1
+        assert p2_errors[0].message == (
+            "Param2 mora biti 0.305 – iz navodila t0 (0.01 - 0.30 min). "
+            "Trenutno v recepturi: 0.310"
+        )
+
+    def test_range_rounding_rejects_canonical_p2_610(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 0.01–0.60, Param2=0.610 is above 0.605 and must be an error."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.60 min)", "0.004", "0.610")
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert len(p2_errors) == 1
+        assert p2_errors[0].message == (
+            "Param2 mora biti 0.605 – iz navodila t0 (0.01 - 0.60 min). "
+            "Trenutno v recepturi: 0.610"
+        )
+
+    def test_range_rounding_rejects_param1_zero(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param1=0 / 0.000 is below 0.004 and must be an error."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0", "0.304")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 0.004 – iz navodila t0 (0.01 - 0.30 min). "
+            "Trenutno v recepturi: 0.000"
+        )
+
+    def test_range_rounding_rejects_003(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param1=0.003 is below the control floor 0.004."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.003", "0.304")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 0.004 – iz navodila t0 (0.01 - 0.30 min). "
+            "Trenutno v recepturi: 0.003"
+        )
+
+    def test_range_rounding_rejects_306(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param2=0.306 is above the control ceiling 0.305."""
+        errors = self._run_pm(rule, "t0 (0.01 - 0.30 min)", "0.004", "0.306")
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert len(p2_errors) == 1
+        assert p2_errors[0].message == (
+            "Param2 mora biti 0.305 – iz navodila t0 (0.01 - 0.30 min). "
+            "Trenutno v recepturi: 0.306"
+        )
+
+    def test_range_one_decimal_accepts_canonical_474_526(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 47.5–52.5 (1 decimal), Param1=47.4 and Param2=52.6 are a−eps / b+eps."""
+        errors = self._run_pm(
+            rule, "Dejanski φ MF1 (47.5 - 52.5 mL/min)", "47.4", "52.6"
+        )
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_one_decimal_rejects_extra_precision_4744(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 47.5–52.5, Param1 must stay at 1 decimal (47.4), not 47.44."""
+        errors = self._run_pm(
+            rule, "Dejanski φ MF1 (47.5 - 52.5 mL/min)", "47.44", "52.6"
+        )
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 47.4 – iz navodila Dejanski φ MF1 (47.5 - 52.5 mL/min). "
+            "Trenutno v recepturi: 47.44"
+        )
+
+    def test_range_one_decimal_50_100_accepts_49_101(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 5.0–10.0, Param1=4.9 and Param2=10.1 remain canonical."""
+        errors = self._run_pm(rule, "5.0 - 10.0", "4.9", "10.1")
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_two_decimal_accepts_canonical_017_023(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 0.18–0.22, Param1=0.17 and Param2=0.23 are a−eps / b+eps (not 0.174)."""
+        errors = self._run_pm(
+            rule, "Izmerjen pretok (0,18 - 0,22 L/min)", "0.17", "0.23"
+        )
+        assert "CTRL_INTERVAL_P1_BOUND" not in [e.code for e in errors]
+        assert "CTRL_INTERVAL_P2_BOUND" not in [e.code for e in errors]
+
+    def test_range_two_decimal_rejects_extra_precision_0174(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """For 0.18–0.22, Param1 must stay at 2 decimals (0.17), not 0.174."""
+        errors = self._run_pm(
+            rule, "Izmerjen pretok (0,18 - 0,22 L/min)", "0.174", "0.23"
+        )
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 0.17 – iz navodila Izmerjen pretok (0,18 - 0,22 L/min). "
+            "Trenutno v recepturi: 0.174"
+        )
 
 
 class TestZakleniCheckboxRule:
@@ -1780,12 +2305,34 @@ class TestNavodiloIntervalKontrolaIntervalRequiredRule:
         rows = [
             {
                 "Navodilo": "3 - 6",
+                "Tip objekta": "edit",
                 "Kontrola-1": "kontrolaIntervala",
             },
         ]
 
         builder = SharedContextBuilder(row_offset=2)
-        columns = ["Navodilo", "Kontrola-1"]
+        columns = ["Navodilo", "Tip objekta", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "CTRL_INTERVAL_REQUIRED" not in error_codes
+
+    def test_navodilo_with_interval_and_kontrolarazlika_no_error(
+        self, rule: NavodiloIntervalKontrolaIntervalRequiredRule
+    ) -> None:
+        """Če Navodilo vsebuje interval in je prisotna kontrolarazlika, napake ne sme biti."""
+        rows = [
+            {
+                "Navodilo": "3 - 6",
+                "Tip objekta": "edit",
+                "Kontrola-1": "kontrolarazlika",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Tip objekta", "Kontrola-1"]
         ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
 

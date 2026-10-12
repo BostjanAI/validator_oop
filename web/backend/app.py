@@ -300,6 +300,7 @@ def _register_routes(
         sop: UploadFile | None = File(None, description="Opcijski SOP .docx"),
         catalog_raztopine: UploadFile | None = File(None, description="Opcijski šifrant raztopin (.xlsx)"),
         catalog_kemikalije: UploadFile | None = File(None, description="Opcijski šifrant kemikalij (.xlsx)"),
+        catalog_repro: UploadFile | None = File(None, description="Opcijski šifrant repro materiala (.xlsx)"),
         user: User = Depends(current_user),
     ) -> JSONResponse:
         if not recipes:
@@ -322,6 +323,8 @@ def _register_routes(
             _check_extension(catalog_raztopine, CATALOG_EXTENSIONS, "šifrant raztopin")
         if catalog_kemikalije:
             _check_extension(catalog_kemikalije, CATALOG_EXTENSIONS, "šifrant kemikalij")
+        if catalog_repro:
+            _check_extension(catalog_repro, CATALOG_EXTENSIONS, "šifrant repro materiala")
 
         recipe_payloads = await _read_uploads(recipes, settings.max_upload_bytes)
         sop_payload = (await _read_single(sop, settings.max_upload_bytes)) if sop else None
@@ -335,6 +338,11 @@ def _register_routes(
             if catalog_kemikalije
             else None
         )
+        repro_payload = (
+            await _read_single(catalog_repro, settings.max_upload_bytes)
+            if catalog_repro
+            else None
+        )
 
         job_id = job_manager.create_job(
             config=cfg,
@@ -342,6 +350,7 @@ def _register_routes(
             sop_file=sop_payload,
             catalog_raztopine=razt_payload,
             catalog_kemikalije=kem_payload,
+            catalog_repro=repro_payload,
             owner=user.username,
         )
         _audit(

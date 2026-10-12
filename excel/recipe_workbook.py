@@ -26,12 +26,23 @@ def sheet_has_required_columns(columns: Iterable[str]) -> bool:
     return all(col in columns_norm for col in REQUIRED_COLUMNS)
 
 
+def sheet_has_any_required_column(columns: Iterable[str]) -> bool:
+    """Return True if a sheet contains at least one IPO recipe column."""
+    columns_norm = normalize_column_names(columns)
+    return any(col in columns_norm for col in REQUIRED_COLUMNS)
+
+
 def workbook_has_required_columns(
     workbook_path: str | Path,
     *,
     parser: WorkbookParser | None = None,
 ) -> bool:
-    """Return True if workbook has at least one sheet with recipe columns."""
+    """Return True if any sheet contains at least one IPO recipe column.
+
+    A workbook that is only missing some required columns is still included.
+    ``RequiredColumnsRule`` reports each missing column as ``MISSING_COLUMN``.
+    Workbooks with no recipe column on any sheet are skipped.
+    """
     resolved_path = Path(workbook_path).expanduser().resolve()
     if not resolved_path.exists() or not resolved_path.is_file():
         return False
@@ -46,7 +57,7 @@ def workbook_has_required_columns(
 
     try:
         for sheet in workbook.worksheets:
-            if sheet_has_required_columns(workbook_parser.get_headers(sheet)):
+            if sheet_has_any_required_column(workbook_parser.get_headers(sheet)):
                 return True
         return False
     finally:

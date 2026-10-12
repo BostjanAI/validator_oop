@@ -133,6 +133,13 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Excel šifrant kemikalij (Izvoz_kem.xlsx) za preverjanje šifer",
     )
 
+    parser.add_argument(
+        "--catalog-repro",
+        type=Path,
+        default=None,
+        help="Excel šifrant repro materiala (stolpec material_sifra) za preverjanje šifer",
+    )
+
     # --- MES / MySQL integracija (opcijsko; zahteva requirements-db.txt) ---
     parser.add_argument(
         "--db-source",
@@ -444,23 +451,29 @@ def main(args: list[str] | None = None) -> int:
             include_formulas=parsed.include_formulas,
             catalog_raztopine_path=parsed.catalog_raztopine,
             catalog_kemikalije_path=parsed.catalog_kemikalije,
+            catalog_repro_path=parsed.catalog_repro,
         )
 
         catalog_data = None
         catalog_paths: dict[str, str] = {}
         if config.enable_catalog_validation and (
-            config.catalog_raztopine_path or config.catalog_kemikalije_path
+            config.catalog_raztopine_path
+            or config.catalog_kemikalije_path
+            or config.catalog_repro_path
         ):
             from validator_oop.excel.catalog_loader import load_catalogs
 
             catalog_data = load_catalogs(
                 raztopine_path=config.catalog_raztopine_path,
                 kemikalije_path=config.catalog_kemikalije_path,
+                repro_path=config.catalog_repro_path,
             )
             if config.catalog_raztopine_path:
                 catalog_paths["raztopina"] = str(config.catalog_raztopine_path)
             if config.catalog_kemikalije_path:
                 catalog_paths["kemikalija"] = str(config.catalog_kemikalije_path)
+            if config.catalog_repro_path:
+                catalog_paths["repro"] = str(config.catalog_repro_path)
             if catalog_data:
                 logger.info("Catalogs loaded for validation: %s", ", ".join(catalog_data))
 

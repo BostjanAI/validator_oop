@@ -109,6 +109,26 @@ def normalize_column_names(columns: Sequence[str] | None) -> list[str]:
     ]
 
 
+STEP_NUMBER_COLUMN = "št. Koraka"
+_STEP_COLUMN_LETTERS = frozenset({"štkoraka", "stkoraka", "štkor", "stkor"})
+
+
+def is_step_number_column(name: str) -> bool:
+    """True, če je ime stolpca številka koraka (št. Koraka, št. Kor., prelom vrstice)."""
+    letters = re.sub(r"[^a-zš]", "", norm_text(name))
+    return letters in _STEP_COLUMN_LETTERS
+
+
+def canonicalize_header(name: str) -> str:
+    """Collapse whitespace/newlines in a header and map step-number aliases to št. Koraka."""
+    text = coerce_str(name)
+    text = re.sub(r"[\r\n]+", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    if is_step_number_column(text):
+        return STEP_NUMBER_COLUMN
+    return text
+
+
 # ==============================================================================
 # CHECKBOX STATE PARSING
 # ==============================================================================
@@ -149,7 +169,7 @@ def has_only_comma_separated_ints(text: str) -> bool:
 
 
 _HYPHEN_LETTER_INSTANCE = re.compile(r"(-[A-Za-z]+)\d+$")
-_SHORT_CODE_INSTANCE = re.compile(r"^[A-Za-z]{2}\d+$")
+_SHORT_CODE_INSTANCE = re.compile(r"^[A-Za-z]{2,}\d+$")
 _UNDERSCORE_NUM_SUFFIX = re.compile(r"^(.+)_(\d+)$")
 
 
@@ -158,7 +178,8 @@ def base_key_no_trailing_number(key: str) -> str:
 
     Handles:
     - ``-GK1`` / ``-GK10`` at end of solution keys -> ``-GK`` (not ``pH5.0`` -> ``pH5.``)
-    - short IPO codes ``GK1`` -> ``GK`` (not ``H2SO4`` -> ``H2SO``)
+    - letter-only IPO codes ``GK1`` / ``EtOH1`` / ``NaCl2`` -> ``GK`` / ``EtOH`` / ``NaCl``
+      (not ``H2SO4`` -> ``H2SO``, because digits in the middle stay)
     - underscore suffix ``KEY_2`` -> ``KEY``
     """
     key = key.strip()
@@ -176,7 +197,7 @@ def base_key_no_trailing_number(key: str) -> str:
 
 
 def strip_instance_suffix(key: str) -> str:
-    """Alias for catalog / šifrant lookup (GK1 -> GK, -GK10 -> -GK)."""
+    """Alias for catalog / šifrant lookup (GK1 -> GK, EtOH1 -> EtOH, -GK10 -> -GK)."""
     return base_key_no_trailing_number(key)
 
 
@@ -768,12 +789,45 @@ def parse_navodilo_interval(
     return (a, b, unit, step)
 
 
+_PM_VOLUME_UNITS = frozenset({"ml", "l", "ul"})
+
+
+def _pm_unit(match: Match) -> str | None:
+    unit = match.group("unit")
+    if not unit:
+        return None
+    return unit.replace("µ", "u").lower()
+
+
+def _pm_is_column_volume(text: str, match: Match) -> bool:
+    """True when ± is a column-volume count (CV), not a measured volume."""
+    return re.match(r"\s*CV\b", text[match.end() :], flags=re.IGNORECASE) is not None
+
+
+def match_navodilo_pm(text: str) -> Match | None:
+    """Pick the ± expression used for checks.
+
+    ``10 ± 0.1 CV (80 ± 8 mL)`` uses the parenthetical volume, not the CV count.
+    A lone ± (including ``10 ± 0.1 CV`` without a volume) stays the first match.
+    """
+    text = _normalize_spaced_decimal_separator(coerce_str(text))
+    matches = list(PM_RE.finditer(text))
+    if not matches:
+        return None
+    volume_matches = [m for m in matches if _pm_unit(m) in _PM_VOLUME_UNITS]
+    if volume_matches and any(_pm_is_column_volume(text, m) for m in matches):
+        return volume_matches[-1]
+    return matches[0]
+
+
 def parse_navodilo_pm(
     navodilo: str,
 ) -> tuple[float | None, float | None, str | None, float | None]:
     """Parse ± notation from navodilo.
 
-    Handles formats like: "25 ± 2 °C", "10.5 +/- 0.5 g"
+    Handles formats like: "25 ± 2 °C", "10.5 +/- 0.5 g".
+    When both a CV count and a volume are present (``10 ± 0.1 CV (80 ± 8 mL)``),
+    the volume in mL/L is used.
 
     Args:
         navodilo: Instruction text.
@@ -781,8 +835,7 @@ def parse_navodilo_pm(
     Returns:
         Tuple of (center, tolerance, unit, step) or (None, None, None, None).
     """
-    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
-    match = PM_RE.search(text)
+    match = match_navodilo_pm(navodilo)
     if not match:
         return (None, None, None, None)
 
@@ -839,6 +892,24 @@ def parse_navodilo_inequality(
     step = 10 ** (-d) if d > 0 else 1.0
 
     return (op, x, unit, step)
+
+
+_CV_AFTER_INEQUALITY_RE = re.compile(
+    r"\s*(?:[-–—]\s*[+-]?\d+(?:[.,]\d+)?\s*)?CV\b",
+    flags=re.IGNORECASE,
+)
+
+
+def inequality_is_column_volume(navodilo: str) -> bool:
+    """True when an inequality is a column-volume count (CV), not a measured volume.
+
+    Matches ``≥ 3 CV`` and ``≥ 10 - 11 CV``.
+    """
+    text = _normalize_spaced_decimal_separator(coerce_str(navodilo))
+    return any(
+        _CV_AFTER_INEQUALITY_RE.match(text[match.end() :])
+        for match in INEQ_RE.finditer(text)
+    )
 
 
 def parse_navodilo_single(
@@ -905,31 +976,41 @@ def column_letter_to_number(letter: str) -> int:
 
 def parse_index_match_formula(formula: str) -> tuple[str, int, str] | None:
     """Parse INDEX MATCH formula to extract sheet, column, and lookup cell.
-    
-    Parses formulas like: =INDEX(Podatki!$A:$AP,MATCH($A$2,Podatki!$A:$A,0),24)
-    
+
+    Parses formulas like:
+        =INDEX(Podatki!$A:$AP,MATCH($A$2,Podatki!$A:$A,0),24)
+        =INDEX(Podatki!$A:$BY,MATCH($D$2,Podatki!$A:$A,0),60)
+        =INDEX(Podatki!$A:$BY;MATCH($D$2;Podatki!$A:$A;0);60)
+
     Args:
         formula: Excel formula string.
-    
+
     Returns:
         Tuple of (sheet_name, column_number, lookup_cell) or None if not parseable.
         Example: ("Podatki", 24, "$A$2")
     """
-    if not formula or not formula.strip().startswith("="):
+    if not formula:
         return None
-    
-    # Pattern: INDEX(Sheet!Range, MATCH(lookup_cell, Sheet!Range, 0), column_num)
-    # More flexible pattern to handle various formats
-    pattern = r'INDEX\s*\(\s*([^!]+)![^,]+,\s*MATCH\s*\(\s*([^,]+),\s*[^!]+![^,]+,\s*0\s*\)\s*,\s*(\d+)\s*\)'
-    match = re.search(pattern, formula, re.IGNORECASE)
-    
+    text = str(formula).strip()
+    if not text.startswith("="):
+        return None
+
+    # INDEX(Sheet!Range, MATCH(lookup_cell, Sheet!Range, 0), column_num)
+    # Comma or semicolon separators (EN vs SI Excel).
+    pattern = (
+        r"INDEX\s*\(\s*'?(?P<sheet>[^'!]+)'?\s*![^,;]+"
+        r"[,;]\s*MATCH\s*\(\s*(?P<lookup>[^,;]+)"
+        r"[,;]\s*[^'!]+![^,;]+"
+        r"[,;]\s*0\s*\)\s*"
+        r"[,;]\s*(?P<col>\d+)\s*\)"
+    )
+    match = re.search(pattern, text, re.IGNORECASE)
     if not match:
         return None
-    
-    sheet_name = match.group(1).strip()
-    lookup_cell = match.group(2).strip()
-    column_num = int(match.group(3))
-    
+
+    sheet_name = match.group("sheet").strip().strip("'\"")
+    lookup_cell = match.group("lookup").strip()
+    column_num = int(match.group("col"))
     return (sheet_name, column_num, lookup_cell)
 
 

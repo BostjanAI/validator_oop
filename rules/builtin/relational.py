@@ -346,6 +346,94 @@ class MassOwnerRule(SheetRule):
 
 
 @register
+class OwnerMassPairRule(SheetRule):
+    """kemikalija/raztopina must have masa with the same key; volumen is not a substitute (except dH2O)."""
+
+    name = "owner_mass_pair_rule"
+    description = (
+        "Tip podatka kemikalija/raztopina mora imeti vrstico 'masa' z enakim ključem; "
+        "'volumen' z istim ključem ni dovoljen (izjema dH2O)."
+    )
+
+    OWNER_CODES = {
+        "kemikalija": "PAIR_CHEM_WITHOUT_MASS",
+        "raztopina": "PAIR_SOL_WITHOUT_MASS",
+    }
+
+    def evaluate_sheet(
+        self,
+        rows: Sequence[Mapping[str, object]],
+        context: RuleContext,
+        *,
+        row_offset: int = 2,
+    ) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+
+        tab_by_row = shared.tab_by_row
+        masa_keys = shared.get_keys_for_type("masa")
+        vol_keys = shared.get_keys_for_type("volumen")
+        errors = []
+        reported_vol_rows: set[int] = set()
+
+        def _same_tab(row_numbers: Sequence[int], tab: str) -> list[int]:
+            return [r for r in row_numbers if tab_by_row.get(r, "") == tab]
+
+        for row_idx, row in enumerate(rows, start=row_offset):
+            tip_data = norm_text(coerce_str(row.get("Tip podatka", "")))
+            code = self.OWNER_CODES.get(tip_data)
+            if not code:
+                continue
+
+            key = coerce_str(row.get("Ključ preverjanja", "")).strip()
+            if not key:
+                continue
+
+            tab = tab_by_row.get(row_idx, "")
+            masa_rows = _same_tab(masa_keys.get(key, []), tab)
+            vol_rows = _same_tab(vol_keys.get(key, []), tab)
+
+            if is_water_key(key):
+                if not vol_rows:
+                    errors.append(
+                        self.build_error(
+                            f"Za ključ '{key}' mora biti tip podatka 'volumen' (dH2O), ne 'masa'.",
+                            context=context.with_row(row_idx),
+                            column="Tip podatka",
+                            code="PAIR_WATER_WITHOUT_VOLUME",
+                        )
+                    )
+                continue
+
+            for vol_row in vol_rows:
+                if vol_row in reported_vol_rows:
+                    continue
+                reported_vol_rows.add(vol_row)
+                errors.append(
+                    self.build_error(
+                        f"Tip podatka 'volumen' z enakim ključem preverjanja '{key}' ni dovoljen. "
+                        "Uporabite tip 'masa' (izjema je samo dH2O).",
+                        context=context.with_row(vol_row),
+                        column="Tip podatka",
+                        code="PAIR_VOLUME_NOT_ALLOWED",
+                    )
+                )
+
+            if not masa_rows:
+                type_label = "kemikalijo" if tip_data == "kemikalija" else "raztopino"
+                errors.append(
+                    self.build_error(
+                        f"Za {type_label} s ključem '{key}' manjka vrstica z tipom podatka 'masa' in enakim ključem.",
+                        context=context.with_row(row_idx),
+                        column="Tip podatka",
+                        code=code,
+                    )
+                )
+        return errors
+
+
+@register
 class ReproKolicinaOwnerRule(SheetRule):
     """Ensure every kolicina has a preceding repro with the same key."""
 

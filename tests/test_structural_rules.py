@@ -227,6 +227,22 @@ class TestStepNumberingRule:
         error_codes = [e.code for e in errors]
         assert "STEP_TAB_NOT_FROM_ONE" in error_codes
 
+    def test_zavihek_space_does_not_split_tab_numbering(self, rule: StepNumberingRule) -> None:
+        """Spaced Zavihek must not create a new tab that 'does not start at 1'."""
+        rows = [
+            {"št. Koraka": "1", "Tip objekta": "edit", "Zavihek": "Tab1"},
+            {"št. Koraka": "2", "Tip objekta": "edit", "Zavihek": "Tab 1"},
+            {"št. Koraka": "3", "Tip objekta": "edit", "Zavihek": ""},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["št. Koraka", "Tip objekta", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code == "STEP_TAB_NOT_FROM_ONE"] == []
+
     def test_row_index_in_error(self, rule: StepNumberingRule) -> None:
         """Test that errors contain the correct Excel row index."""
         rows = [

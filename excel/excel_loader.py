@@ -192,7 +192,7 @@ class ExcelLoader:
         return result
 
     def has_required_columns(self, workbook_path: str | Path) -> bool:
-        """Return True if workbook has at least one sheet with IPO recipe columns."""
+        """Return True if any sheet contains at least one IPO recipe column."""
         return workbook_has_required_columns(
             workbook_path,
             parser=self._parser,

@@ -66,15 +66,17 @@ def load_sop(sop_path: Path | None) -> Any | None:
 def load_catalog_data(
     raztopine_path: Path | None,
     kemikalije_path: Path | None,
+    repro_path: Path | None = None,
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
-    """Naloži šifrante kemikalij/raztopin (oba opcijska)."""
+    """Naloži šifrante kemikalij/raztopin/repro materiala (vsi opcijski)."""
     catalog_paths: dict[str, str] = {}
-    if load_catalogs is None or (not raztopine_path and not kemikalije_path):
+    if load_catalogs is None or (not raztopine_path and not kemikalije_path and not repro_path):
         return None, catalog_paths
     try:
         data = load_catalogs(
             raztopine_path=raztopine_path,
             kemikalije_path=kemikalije_path,
+            repro_path=repro_path,
         )
     except Exception as exc:
         logger.warning("Nalaganje šifrantov ni uspelo: %s", exc)
@@ -83,6 +85,8 @@ def load_catalog_data(
         catalog_paths["raztopina"] = str(raztopine_path)
     if kemikalije_path:
         catalog_paths["kemikalija"] = str(kemikalije_path)
+    if repro_path:
+        catalog_paths["repro"] = str(repro_path)
     return data, catalog_paths
 
 

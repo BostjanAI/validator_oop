@@ -114,7 +114,7 @@ def test_control_regression_cases(control_regression_case: dict[str, Any]) -> No
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("slot", CONTROL_SLOTS)
-@pytest.mark.parametrize("control_name", ["kontrolaInterval", "kontrolaIntervala"])
+@pytest.mark.parametrize("control_name", ["kontrolaInterval", "kontrolaIntervala", "kontrolarazlika"])
 def test_navodilo_interval_requirement_is_satisfied_by_any_control_slot(
     slot: int, control_name: str
 ) -> None:

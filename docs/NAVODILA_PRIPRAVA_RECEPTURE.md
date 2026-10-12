@@ -212,7 +212,7 @@ Vsi spodnji stolpci **morajo biti prisotni** v glavi lista (1. vrstica):
 |----------|------|-----------------|
 | `kemikalija` | Kemikalija (vnosna koda) | `koda` |
 | `raztopina` | Raztopina (vnosna koda) | `koda` |
-| `masa` | Masa/teža ali volumen | enota (npr. `mL`, `g`) |
+| `masa` | Masa/teža ali volumen; točno `masa` (ne `masa1`) | enota (npr. `mL`, `g`) |
 | `embalaza` | Embalaža | `koda` |
 | `zaposleni` | Zaposlen (operater/vodja) | `koda` |
 | `monolit` | Monolit (koda sestavka) | `koda` |
@@ -245,7 +245,7 @@ Vsi spodnji stolpci **morajo biti prisotni** v glavi lista (1. vrstica):
 
 ## 8. Ključ preverjanja (`Ključ preverjanja`)
 
-- Vsak korak, ki zbira podatke, **mora imeti ključ preverjanja** (razen `naslov`, `crta` in `checkbox` brez obveznega vnosa).
+- Vsak korak, ki zbira podatke, **mora imeti ključ preverjanja** (razen `naslov`, `crta`, `checkbox` in **opreme**). Pri opremi s `Tip objekta = spustniseznam` je namesto ključa obvezen stolpec `Vrednost`.
 - Ključ je **identifikator** tega koraka za sistem IPO.
 - **Dovoljeni znaki:** samo `A-Z`, `a-z`, `0-9`, `-`, `_`, `.` – brez presledkov, šumnikov ali posebnih znakov.
 - Primeri veljavnih ključev: `pretok_mf1`, `tehtnica_1`, `2.73mp-NaCl_13.87mp-EtOH-GK`, `locba_1`
@@ -311,8 +311,8 @@ Vsak korak ima lahko **do 4 kontrole**. Vsaka kontrola ima:
 | `aliisto` | Vrednost mora biti enaka vrednosti drugega koraka | referenca na korak (npr. `=C13`) | (prazno) |
 | `kontrolaveljavnostiopreme` | Oprema mora biti veljavna (kalibrirana) | tip opreme (npr. `HPLC`, `tehtnica`) | (prazno) |
 | `kontrolaustreznostiopreme` | Oprema mora biti primerna za postopek | tip opreme | (prazno) |
-| `kontrolaveljavnostiraztopine` | Raztopina mora biti veljavna (v roku) | baza ključa raztopine | (prazno) |
-| `kontrolaustreznostiraztopine` | Raztopina mora biti ustrezna | baza ključa raztopine | (prazno) |
+| `kontrolaveljavnostiraztopine` | Raztopina mora biti veljavna (v roku) | parameter kontrole (ni treba, da se ujema s ključem) | (prazno) |
+| `kontrolaustreznostiraztopine` | Raztopina mora biti ustrezna | parameter kontrole (ni treba, da se ujema s ključem) | (prazno) |
 | `kontrolaveljavnostimonolita` | Monolit mora biti veljaven | (prazno) | (prazno) |
 | `kontrolaustreznostimonolita` | Monolit mora biti ustrezen za serijo | koda tipa(ov), npr. `SES` ali `MOD,SPIR` | (prazno) |
 | `kontrolaveljavnostikemikalije` | Kemikalija mora biti veljavna | (prazno) | (prazno) |
@@ -336,8 +336,8 @@ Kontrola 2: kontrolapraznopolje
 
 **Raztopina:**
 ```
-Kontrola 1: kontrolaveljavnostiraztopine  |  Par 1: baza_kljuca_raztopine
-Kontrola 2: kontrolaustreznostiraztopine  |  Par 1: baza_kljuca_raztopine
+Kontrola 1: kontrolaveljavnostiraztopine  |  Par 1: parameter kontrole
+Kontrola 2: kontrolaustreznostiraztopine  |  Par 1: parameter kontrole
 Kontrola 3: kontrolapraznopolje
 ```
 
@@ -393,6 +393,8 @@ Kontrola 1: aliobstajapogoj  |  Par 1: odrez1  |  Par 2: 1
 ```
 > Korak je obvezen samo, kadar je korak z ključem `odrez1` označen/izpolnjen.
 
+Pri zaklepanju s `zaklenipolja` mora biti Par 1 pri `aliobstajapogoj` **ključ sklopa, ki ta korak zaklene**: ključ vrstice, ki korak navaja v Param1 (npr. `sst_3` s Param2=`0`), ali parni ključ (npr. `sst_4` s Param2=`1`). Istega ključa ne kopirajte v nov SST sklop.
+
 *Varianta 2 – referenca na celico (Excel formula):*
 ```
 Kontrola 1: aliobstajapogoj  |  Par 1: =$F$58  |  Par 2: 1
@@ -417,8 +419,9 @@ V kontrolah `alipravavlogakoda` in `kdoizpolni` se navede ime vloge iz sistema:
 ### 13.1 Naslov razdelka / začetek zavihka (`naslov`)
 
 ```
-Zavihek:     nova koda zavihka (pri Receptura_2) ali prazno (pri Receptura)
-Navodilo:    Besedilo naslova
+št. Koraka:  1 (nov zavihek) ali =C_prej+1   *(obvezno)*
+Navodilo:    Besedilo naslova                 *(obvezno)*
+Zavihek:     prazno ali monolit1 / monolit2 / … (enako kot pri crta)
 Tip podatka: (prazno)
 Tip objekta: naslov
 Vse kontrole: (prazne)
@@ -427,8 +430,9 @@ Vse kontrole: (prazne)
 ### 13.2 Ločnik (`crta`)
 
 ```
-Zavihek:     =B_prejšnja (ali prazno)
+št. Koraka:  =C_prej+1 (ali 1)   *(obvezno – crta mora imeti številko koraka)*
 Navodilo:    (prazno)
+Zavihek:     prazno ali monolit1 / monolit2 / …
 Tip podatka: (prazno)
 Tip objekta: crta
 Vse kontrole: (prazne)
@@ -503,9 +507,9 @@ To omogoča, da se isto navodilo prilagodi za vsako velikost recepture – **ne 
 ## 15. Pravila za ključe kontrole raztopine
 
 Ko je `Tip podatka` = `raztopina`:
-- `Ključ preverjanja` je **unikatna koda** (npr. `2.73mp-NaCl_13.87mp-EtOH-GK1`)
-- V kontroli `kontrolaveljavnostiraztopine` je **Par 1 = baza ključa brez numerične pripone** (npr. `2.73mp-NaCl_13.87mp-EtOH-GK`)
-- To pomeni: če imate 3 enake raztopine z ključi `GK1`, `GK2`, `GK3` – vse tri imajo isto Par 1 = `GK` (brez številke)
+- `Ključ preverjanja` je **unikatna koda** (npr. `raz1` ali `2.73mp-NaCl_13.87mp-EtOH-GK1`)
+- V kontroli `kontrolaveljavnostiraztopine` / `kontrolaustreznostiraztopine` mora biti Par 1 zapolnjen
+- **Ni potrebno**, da se Par 1 ujema s ključem preverjanja (npr. ključ `raz1` in Par 1 `20v-EtOH-RR` je veljavno)
 
 ---
 
@@ -522,6 +526,8 @@ Ko je `Tip podatka` = `raztopina`:
 | `LABELA_KODA` | Za `zaposleni`/`kemikalija`/`monolit` labela ni `koda` | Nastavite `Labela` = `koda` |
 | `KEY_FORMAT` | Ključ vsebuje prepovedane znake | Odstranite presledke, šumnike, posebne znake |
 | `ZAKLENI_PAR1_FORMAT` | Par 1 pri `zaklenipolja` ni seznam celih števil | Vnesite npr. `45,46,47` – samo številke, ločene z vejicami |
+| `LOCK_CONDITION_P1_LOCK_KEY` | Pri `aliobstajapogoj` je napačen ključ (kopiran iz drugega sklopa) | V Par 1 vpišite ključ sklopa, ki ta korak zaklene (`sst_3`/0 ali parni `sst_4`/1) |
+| `LOCK_CONDITION_P1_DUPLICATE` | Isti Par 1 pri `aliobstajapogoj` v dveh sklopih `zaklenipolja` | Vsak sklop zaklepanja mora imeti svoj ključ |
 
 ---
 

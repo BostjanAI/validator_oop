@@ -53,7 +53,7 @@ class ValidatorEngine:
             include_formulas: If True, load cell formulas for formula validation.
             sop_data: Optional SOP data for compliance validation.
             catalog_data: Optional catalog data for code validation.
-            catalog_paths: Optional paths to catalog files (raztopina, kemikalija keys).
+            catalog_paths: Optional paths to catalog files (raztopina, kemikalija, repro keys).
         """
         self._rule_engine = rule_engine
         self._excel_loader = excel_loader
@@ -83,10 +83,13 @@ class ValidatorEngine:
         resolved_path = Path(workbook_path).expanduser().resolve()
         self._logger.info("Validating workbook %s", resolved_path)
 
+        # Catalog INDEX/MATCH into Podatki needs formula text, not cached values.
+        include_formulas = self._include_formulas or bool(self._catalog_data)
+
         # Load workbook
         loaded = self._excel_loader.load(
             resolved_path,
-            include_formulas=self._include_formulas,
+            include_formulas=include_formulas,
         )
 
         # Filter sheets: only validate sheets that have at least one REQUIRED_COLUMN
@@ -101,9 +104,9 @@ class ValidatorEngine:
             filtered_values,
             workbook_name=resolved_path.name,
             sheet_headers=filtered_headers,
-            workbook_values=loaded.raw_workbook_values if self._include_formulas else None,
-            workbook_formulas=loaded.raw_workbook_formulas if self._include_formulas else None,
-            parsed_formulas=loaded.formulas if self._include_formulas else None,
+            workbook_values=loaded.raw_workbook_values if include_formulas else None,
+            workbook_formulas=loaded.raw_workbook_formulas if include_formulas else None,
+            parsed_formulas=loaded.formulas if include_formulas else None,
             all_workbook_data=loaded.values,  # Add original unfiltered data
             all_workbook_headers=loaded.headers,  # Add original unfiltered headers
         )
@@ -144,6 +147,7 @@ class ValidatorEngine:
             errors,
             raztopine_path=self._catalog_paths.get("raztopina"),
             kemikalije_path=self._catalog_paths.get("kemikalija"),
+            repro_path=self._catalog_paths.get("repro"),
         )
 
     def _filter_sheets_by_required_columns(
@@ -224,13 +228,18 @@ class ValidatorEngine:
         # Pass original (unfiltered) data for SOP compliance rule – same as
         # validate(); defaults from the LoadedWorkbook keep this backward
         # compatible for any data source (Excel or SQL loader).
+        use_formulas = (
+            self._include_formulas
+            or bool(self._catalog_data)
+            or bool(loaded.formulas)
+        )
         errors = self._rule_engine.run(
             filtered_values,
             workbook_name=source_path.name if loaded.source_path else None,
             sheet_headers=filtered_headers,
-            workbook_values=loaded.raw_workbook_values if self._include_formulas else None,
-            workbook_formulas=loaded.raw_workbook_formulas if self._include_formulas else None,
-            parsed_formulas=loaded.formulas if self._include_formulas else None,
+            workbook_values=loaded.raw_workbook_values if use_formulas else None,
+            workbook_formulas=loaded.raw_workbook_formulas if use_formulas else None,
+            parsed_formulas=loaded.formulas if use_formulas else None,
             all_workbook_data=loaded.values,
             all_workbook_headers=loaded.headers,
         )

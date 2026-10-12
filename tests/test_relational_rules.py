@@ -15,6 +15,7 @@ from validator_oop.rules.builtin.relational import (
     DuplicateKeyRule,
     KeyNumberingRule,
     MassOwnerRule,
+    OwnerMassPairRule,
     ReproKolicinaOwnerRule,
     TehtnicaMasaPairRule,
     TehtnicaVrednostFromFormulaRule,
@@ -249,6 +250,102 @@ class TestMassOwnerRule:
 
         error_codes = [e.code for e in errors]
         assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
+
+
+class TestOwnerMassPairRule:
+    """Tests for OwnerMassPairRule."""
+
+    @pytest.fixture
+    def rule(self) -> OwnerMassPairRule:
+        return OwnerMassPairRule()
+
+    def _run(self, rule: OwnerMassPairRule, rows: list[dict[str, Any]]):
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka", "Zavihek"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    def test_kemikalija_with_masa_passes(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "NaCl1", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": "NaCl1", "Tip podatka": "masa"},
+        ]
+        assert [e.code for e in self._run(rule, rows)] == []
+
+    def test_raztopina_with_masa_passes(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "raz1", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "masa"},
+        ]
+        assert [e.code for e in self._run(rule, rows)] == []
+
+    def test_kemikalija_without_masa_raises(self, rule: OwnerMassPairRule) -> None:
+        rows = [{"Ključ preverjanja": "NaCl1", "Tip podatka": "kemikalija"}]
+        errors = self._run(rule, rows)
+        assert "PAIR_CHEM_WITHOUT_MASS" in [e.code for e in errors]
+
+    def test_raztopina_without_masa_raises(self, rule: OwnerMassPairRule) -> None:
+        rows = [{"Ključ preverjanja": "raz1", "Tip podatka": "raztopina"}]
+        errors = self._run(rule, rows)
+        assert "PAIR_SOL_WITHOUT_MASS" in [e.code for e in errors]
+
+    def test_raztopina_with_volumen_instead_of_masa_raises(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "raz1", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "volumen"},
+        ]
+        codes = [e.code for e in self._run(rule, rows)]
+        assert "PAIR_SOL_WITHOUT_MASS" in codes
+        assert "PAIR_VOLUME_NOT_ALLOWED" in codes
+
+    def test_volumen_same_key_forbidden_even_if_masa_exists(
+        self, rule: OwnerMassPairRule
+    ) -> None:
+        rows = [
+            {"Ključ preverjanja": "raz1", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "masa"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "volumen"},
+        ]
+        codes = [e.code for e in self._run(rule, rows)]
+        assert "PAIR_VOLUME_NOT_ALLOWED" in codes
+        assert "PAIR_SOL_WITHOUT_MASS" not in codes
+
+    def test_standalone_volumen_other_key_allowed(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "raz1", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "masa"},
+            {"Ključ preverjanja": "padec_tlaka", "Tip podatka": "volumen"},
+        ]
+        assert [e.code for e in self._run(rule, rows)] == []
+
+    def test_dh2o_volumen_with_raztopina_allowed(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "dH2O_1", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "dH2O_1", "Tip podatka": "volumen"},
+        ]
+        codes = [e.code for e in self._run(rule, rows)]
+        assert "PAIR_VOLUME_NOT_ALLOWED" not in codes
+        assert "PAIR_SOL_WITHOUT_MASS" not in codes
+        assert "PAIR_WATER_WITHOUT_VOLUME" not in codes
+
+    def test_dh2o_standalone_volumen_allowed(self, rule: OwnerMassPairRule) -> None:
+        rows = [{"Ključ preverjanja": "dH2O", "Tip podatka": "volumen"}]
+        assert [e.code for e in self._run(rule, rows)] == []
+
+    def test_dh2o_raztopina_without_volumen_raises(self, rule: OwnerMassPairRule) -> None:
+        rows = [{"Ključ preverjanja": "dH2O_1", "Tip podatka": "raztopina"}]
+        errors = self._run(rule, rows)
+        assert "PAIR_WATER_WITHOUT_VOLUME" in [e.code for e in errors]
+        assert "PAIR_SOL_WITHOUT_MASS" not in [e.code for e in errors]
+
+    def test_masa_on_other_tab_is_not_pair(self, rule: OwnerMassPairRule) -> None:
+        rows = [
+            {"Ključ preverjanja": "raz1", "Tip podatka": "raztopina", "Zavihek": "A"},
+            {"Ključ preverjanja": "raz1", "Tip podatka": "masa", "Zavihek": "B"},
+        ]
+        errors = self._run(rule, rows)
+        assert "PAIR_SOL_WITHOUT_MASS" in [e.code for e in errors]
 
 
 class TestReproKolicinaOwnerRule:

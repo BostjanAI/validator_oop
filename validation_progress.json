@@ -5072,6 +5072,1582 @@
       "errors": 130,
       "warnings": 0,
       "valid": false
+    },
+    {
+      "zaporedna_stevilka": 635,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje SOP-77 v5 1-800 SS 260826BK.xlsm",
+      "date": "2026-08-26T07:54:47.318666+00:00",
+      "errors": 52,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 636,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje SOP-77 v5 1-800 SS 260826BK.xlsm",
+      "date": "2026-08-26T08:37:35.109260+00:00",
+      "errors": 38,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 637,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260624BK.xlsm",
+      "date": "2026-08-26T12:40:18.847828+00:00",
+      "errors": 111,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 638,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260624BK.xlsm",
+      "date": "2026-08-26T12:49:02.689036+00:00",
+      "errors": 49,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 639,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje SOP-77 v5 1-800 SS 260827BK.xlsm",
+      "date": "2026-08-27T13:01:05.360675+00:00",
+      "errors": 44,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 640,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260622 KČ.xlsm",
+      "date": "2026-08-31T09:13:45.514308+00:00",
+      "errors": 103,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 641,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260622 KČ.xlsm",
+      "date": "2026-08-31T10:22:36.117233+00:00",
+      "errors": 175,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 642,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260622 KČ.xlsm",
+      "date": "2026-08-31T10:42:45.433433+00:00",
+      "errors": 129,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 643,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260831BK.xlsm",
+      "date": "2026-08-31T12:11:51.568414+00:00",
+      "errors": 100,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 644,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260622 KČ.xlsm",
+      "date": "2026-08-31T12:27:48.664301+00:00",
+      "errors": 129,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 645,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\10 TEST\\TES-SDVB\\Test KL SDVB 260831BK.xlsm",
+      "date": "2026-08-31T12:44:01.587033+00:00",
+      "errors": 53,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 646,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260827 IS.xlsm",
+      "date": "2026-08-31T12:55:56.974850+00:00",
+      "errors": 88,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 647,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-096 Oligo 4-800\\Test KL Oligo 260831 IS.xlsm",
+      "date": "2026-08-31T12:58:09.118281+00:00",
+      "errors": 341,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 648,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260831 KČ.xlsm",
+      "date": "2026-09-01T06:53:22.053989+00:00",
+      "errors": 242,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 649,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260831 KČ.xlsm",
+      "date": "2026-09-01T06:56:28.192132+00:00",
+      "errors": 112,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 650,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260901BK.xlsm",
+      "date": "2026-09-01T08:34:33.522502+00:00",
+      "errors": 83,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 651,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260901BK.xlsm",
+      "date": "2026-09-01T08:37:19.154133+00:00",
+      "errors": 107,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 652,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260901BK.xlsm",
+      "date": "2026-09-01T09:09:20.924814+00:00",
+      "errors": 45,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 653,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-096 Oligo 4-800\\Test KL Oligo 260831 IS.xlsm",
+      "date": "2026-09-01T11:59:15.288317+00:00",
+      "errors": 46,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 654,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-096 Oligo 4-800\\Test KL Oligo 260901BK.xlsm",
+      "date": "2026-09-01T12:06:07.204914+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 655,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260902_BK.xlsm",
+      "date": "2026-09-02T08:46:58.800473+00:00",
+      "errors": 37,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 656,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260902_BK.xlsm",
+      "date": "2026-09-02T12:03:56.806028+00:00",
+      "errors": 45,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 657,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260902_BK.xlsm",
+      "date": "2026-09-02T12:28:48.416571+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 658,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260902_BK.xlsm",
+      "date": "2026-09-02T12:36:30.407952+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 659,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260902_BK.xlsm",
+      "date": "2026-09-02T12:37:45.575449+00:00",
+      "errors": 27,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 660,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIMm 4-8 GMP, 40-8000 260827 KČ.xlsm",
+      "date": "2026-09-03T04:52:09.842149+00:00",
+      "errors": 519,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 661,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260903BK.xlsm",
+      "date": "2026-09-03T07:30:24.369634+00:00",
+      "errors": 28,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 662,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260903BK.xlsm",
+      "date": "2026-09-03T07:35:32.116014+00:00",
+      "errors": 22,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 663,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260903BK.xlsm",
+      "date": "2026-09-03T08:18:38.484819+00:00",
+      "errors": 19,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 664,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260903BK.xlsm",
+      "date": "2026-09-03T08:21:01.416524+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 665,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIM 1-800 SS 260903BK.xlsm",
+      "date": "2026-09-04T06:11:25.147908+00:00",
+      "errors": 43,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 666,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-087 DEAE 4-800\\IPO_TES-DEAE 4-800 260907BK.xlsm",
+      "date": "2026-09-07T07:34:29.330000+00:00",
+      "errors": 57,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 667,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-087 DEAE 4-800\\IPO_TES-DEAE 4-800 260907BK.xlsm",
+      "date": "2026-09-07T07:57:28.732442+00:00",
+      "errors": 44,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 668,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-087 DEAE 4-800\\IPO_TES-DEAE 4-800 260907BK.xlsm",
+      "date": "2026-09-07T08:02:43.281461+00:00",
+      "errors": 40,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 669,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\422-zzz, 422-zzz T QH-16000_260709_JJ.xlsm",
+      "date": "2026-09-08T06:46:33.102848+00:00",
+      "errors": 207,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 670,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\422-zzz, 422-zzz T QH-16000_260709_JJ.xlsm",
+      "date": "2026-09-09T05:59:57.846895+00:00",
+      "errors": 207,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 671,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-09T07:17:42.442097+00:00",
+      "errors": 190,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 672,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-09T08:38:59.040484+00:00",
+      "errors": 197,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 673,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-09T08:39:10.098505+00:00",
+      "errors": 197,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 674,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-09T10:05:03.661909+00:00",
+      "errors": 177,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 675,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 16-160 mL\\Test QA_HR 16 - 160 260908 JJ.xlsm",
+      "date": "2026-09-09T13:09:04.392787+00:00",
+      "errors": 43,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 676,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\test.xlsm",
+      "date": "2026-09-09T13:26:17.230250+00:00",
+      "errors": 177,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 677,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\test.xlsm",
+      "date": "2026-09-10T05:00:23.053821+00:00",
+      "errors": 181,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 678,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\test.xlsm",
+      "date": "2026-09-10T09:58:13.903976+00:00",
+      "errors": 173,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 679,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\test.xlsm",
+      "date": "2026-09-10T10:13:24.744039+00:00",
+      "errors": 167,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 680,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-091 SO4 4-800\\SO4 4-800 260829 KČ.xlsm",
+      "date": "2026-09-10T10:14:59.930837+00:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 681,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\test.xlsm",
+      "date": "2026-09-10T10:18:03.965289+00:00",
+      "errors": 167,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 682,
+      "path": "C:\\Users\\boskom\\Desktop\\Poročilo\\test.xlsm",
+      "date": "2026-09-10T11:15:34.275429+00:00",
+      "errors": 168,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 683,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\9 SEST\\IPO-Sestavljanje CIMm 4-8 GMP, 40-8000 260903BK.xlsm",
+      "date": "2026-09-10T11:20:30.935653+00:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 684,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T11:22:14.276138+00:00",
+      "errors": 60,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 685,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL skrajšano testiranje\\Skrajšano test QA_HR 8-800 260809 JJ.xlsm",
+      "date": "2026-09-10T11:43:14.848071+00:00",
+      "errors": 22,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 686,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T11:45:55.883432+00:00",
+      "errors": 59,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 687,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL skrajšano testiranje\\Skrajšano test QA_HR 8-800 260809 JJ.xlsm",
+      "date": "2026-09-10T12:12:16.244131+00:00",
+      "errors": 22,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 688,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T12:18:27.521180+00:00",
+      "errors": 61,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 689,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T12:19:23.585493+00:00",
+      "errors": 61,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 690,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T12:19:31.400125+00:00",
+      "errors": 61,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 691,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T12:27:49.851209+00:00",
+      "errors": 52,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 692,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-10T12:43:58.289156+00:00",
+      "errors": 48,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 693,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-091 SO4 4-800\\SO4 4-800 260829 KČ.xlsm",
+      "date": "2026-09-10T12:46:22.781639+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 694,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-045 QA\\KL SOP-124 v8 420-045 QA-MOD 1 - 8000 260807BK.xlsm",
+      "date": "2026-09-10T12:48:50.334187+00:00",
+      "errors": 96,
+      "warnings": 14,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 695,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 260620 KČ.xlsm",
+      "date": "2026-09-10T12:48:51.309416+00:00",
+      "errors": 87,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 696,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-046 OH\\KL SOP-125 420-046 OH-MOD 1 - 8000 260824 KČ.xlsm",
+      "date": "2026-09-10T12:48:52.261458+00:00",
+      "errors": 83,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 697,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-047 SO3\\KL SOP-126 v5 420-047 Priloga 1 MOD SO3 1 - 8000 260515BK.xlsm",
+      "date": "2026-09-10T12:48:53.479686+00:00",
+      "errors": 88,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 698,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-049 COOH\\KL SOP-252 v2 420-049 COOH-MOD 1 - 800 260717BK.xlsm",
+      "date": "2026-09-10T12:48:53.906872+00:00",
+      "errors": 21,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 699,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-051 SO4\\KL SOP-359 420-051 SO4-MOD 1 - 8000 260826 KČ.xlsm",
+      "date": "2026-09-10T12:48:56.158692+00:00",
+      "errors": 47,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 700,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-052 PrimaS + PrimaS HR\\KL SOP-153 v3 420-052 MOD AM + SH 1 - 8000 260821 KČ.xlsm",
+      "date": "2026-09-10T12:48:57.986717+00:00",
+      "errors": 59,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 701,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 260729BK.xlsm",
+      "date": "2026-09-10T12:48:59.827591+00:00",
+      "errors": 90,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 702,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 261106_JJ.xlsm",
+      "date": "2026-09-10T12:49:02.202981+00:00",
+      "errors": 115,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 703,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260818BK.xlsm",
+      "date": "2026-09-10T12:49:02.954668+00:00",
+      "errors": 645,
+      "warnings": 9,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 704,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-091 PrimaH + Swiper\\KL SOP-323 v2 420-091 SW-MOD 1 - 8000 260514BK.xlsm",
+      "date": "2026-09-10T12:49:04.463109+00:00",
+      "errors": 16,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 705,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260715 JJ.xlsm",
+      "date": "2026-09-10T12:49:05.098670+00:00",
+      "errors": 14,
+      "warnings": 3,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 706,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\KL SOP-339 v2 420-092 BT-MOD 1-800 260814 JJ.xlsm",
+      "date": "2026-09-10T12:49:05.797544+00:00",
+      "errors": 17,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 707,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-600 OH-MOD CIMac\\KL SOP-292 v2 420-600 OH-MOD CIMac 260820BK.xlsm",
+      "date": "2026-09-10T12:49:06.071508+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 708,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-601 CDI-MOD CIMac in CIMmic\\KL SOP-293 v3 420-601 CDI-MOD CIMac in CIMmic 260818BK.xlsm",
+      "date": "2026-09-10T12:49:06.419993+00:00",
+      "errors": 15,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 709,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-603 rPA-MOD CIMac\\KL SOP-169 v3 420-603 rPA-MOD CIMac 260727BK.xlsm",
+      "date": "2026-09-10T12:49:08.069211+00:00",
+      "errors": 11,
+      "warnings": 3,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 710,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-606 CO-MOD CIMac\\KL SOP-253 v2 420-606 CO-MOD CIMac 260818BK.xlsm",
+      "date": "2026-09-10T12:49:08.349567+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 711,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-607 rPL-MOD CIMac\\KL SOP-xxx 420-607 rPL-MOD CIMac 260818BK.xlsm",
+      "date": "2026-09-10T12:49:08.860556+00:00",
+      "errors": 28,
+      "warnings": 3,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 712,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-609 IDA-MOD CIMac\\KL SOP-379 v1 420-609 IDA-MOD CIMac 260818 BK.xlsm",
+      "date": "2026-09-10T12:49:09.159477+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 713,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-621 QA-MOD CIMac\\KL SOP-245 v2 420-621 QA-MOD CIMac 260818BK.xlsm",
+      "date": "2026-09-10T12:49:09.646884+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 714,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-622 SO3-MOD CIMac\\420-622 SO3-MOD CIMac 260818BK.xlsm",
+      "date": "2026-09-10T12:49:09.963515+00:00",
+      "errors": 8,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 715,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T05:38:46.022187+00:00",
+      "errors": 213,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 716,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T05:51:40.219331+00:00",
+      "errors": 89,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 717,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T06:40:48.599251+00:00",
+      "errors": 67,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 718,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T08:00:15.554341+00:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 719,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-091 SO4 4-800\\SO4 4-800 260829 KČ.xlsm",
+      "date": "2026-09-15T08:29:18.674120+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 720,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260904_BK2.xlsm",
+      "date": "2026-09-15T08:44:28.158001+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 721,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260914_BK2.xlsm",
+      "date": "2026-09-15T08:44:30.148527+00:00",
+      "errors": 29,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 722,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-087 DEAE 4-800\\IPO_TES-DEAE 4-800 260907BK.xlsm",
+      "date": "2026-09-15T08:44:31.425760+00:00",
+      "errors": 13,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 723,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-088 SO3 4-800\\SO3 4-800 260911BK.xlsm",
+      "date": "2026-09-15T08:44:32.490179+00:00",
+      "errors": 58,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 724,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-088 SO3 4-800\\SOP-198 SO3 test 260212BK.xlsx",
+      "date": "2026-09-15T08:44:34.183975+00:00",
+      "errors": 864,
+      "warnings": 17,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 725,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-090 PrimaT 4 - 800\\Test PrimaT 4-800 260820 KČ.xlsm",
+      "date": "2026-09-15T08:44:35.567952+00:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 726,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-091 SO4 4-800\\SO4 4-800 260829 KČ.xlsm",
+      "date": "2026-09-15T08:44:38.205598+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 727,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T08:44:40.165242+00:00",
+      "errors": 58,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 728,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260907 BK.xlsm",
+      "date": "2026-09-15T08:44:40.920619+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 729,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-096 Oligo 1-800\\Test KL Oligo 260910BK.xlsm",
+      "date": "2026-09-15T08:44:42.162605+00:00",
+      "errors": 12,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 730,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-15T08:44:44.241728+00:00",
+      "errors": 48,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 731,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260827 IS.xlsm",
+      "date": "2026-09-15T08:44:48.552025+00:00",
+      "errors": 37,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 732,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-137 (422-133) DEAE 4000+8000\\IPO_TES-DEAE 4000-8000 251112 BK.xlsx",
+      "date": "2026-09-15T08:44:49.233295+00:00",
+      "errors": 61,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 733,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-141 SO4 4000+8000\\422-141 SO4-4000, 8000_260607 KČ.xlsm",
+      "date": "2026-09-15T08:44:52.791983+00:00",
+      "errors": 173,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 734,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-147 (422-141) SDVB 4000+8000\\422-141 T SDVB-4000, 8000_260202 PL.xlsm",
+      "date": "2026-09-15T08:44:55.091848+00:00",
+      "errors": 87,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 735,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260402 KČ.xlsm",
+      "date": "2026-09-15T08:44:59.693914+00:00",
+      "errors": 105,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 736,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Vzorec za pripravo IPO KL-ja QA in QA_HR 4-800.xlsx",
+      "date": "2026-09-15T08:45:00.596910+00:00",
+      "errors": 118,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 737,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260826 KČ.xlsm",
+      "date": "2026-09-15T08:45:07.588187+00:00",
+      "errors": 509,
+      "warnings": 101,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 738,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260908 BM.xlsm",
+      "date": "2026-09-15T08:45:14.824772+00:00",
+      "errors": 515,
+      "warnings": 102,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 739,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Vzorčne raztopine 260908 BM.xlsm",
+      "date": "2026-09-15T08:45:15.522678+00:00",
+      "errors": 89,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 740,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 16-160 mL\\Test QA_HR 16 - 160 260908 JJ.xlsm",
+      "date": "2026-09-15T08:45:18.290363+00:00",
+      "errors": 13,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 741,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-15T08:45:20.740669+00:00",
+      "errors": 164,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 742,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 16000 mL\\422-zzz, 422-zzz T QH-16000_260709_JJ.xlsm",
+      "date": "2026-09-15T08:45:23.479532+00:00",
+      "errors": 198,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 743,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL skrajšano testiranje\\Skrajšano test QA_HR 8-800 260809 JJ.xlsm",
+      "date": "2026-09-15T08:45:25.578858+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 744,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Swiper - GMP testiranje\\422-ccc SW 4-800mL Testiranje\\Test SW 4-800 260528_IS.xlsm",
+      "date": "2026-09-15T08:45:28.058176+00:00",
+      "errors": 324,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 745,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Swiper - GMP testiranje\\422-ccc SW 8L Testiranje\\422-131 SW-4000, 8000_260518 BK.xlsm",
+      "date": "2026-09-15T08:45:30.360876+00:00",
+      "errors": 171,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 746,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260904_BK2.xlsm",
+      "date": "2026-09-15T08:49:08.816770+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 747,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260914_BK2.xlsm",
+      "date": "2026-09-15T08:49:10.626726+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 748,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-087 DEAE 4-800\\IPO_TES-DEAE 4-800 260907BK.xlsm",
+      "date": "2026-09-15T08:49:12.008431+00:00",
+      "errors": 13,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 749,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-088 SO3 4-800\\SO3 4-800 260911BK.xlsm",
+      "date": "2026-09-15T08:49:12.820632+00:00",
+      "errors": 59,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 750,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-088 SO3 4-800\\SOP-198 SO3 test 260212BK.xlsx",
+      "date": "2026-09-15T08:49:14.205602+00:00",
+      "errors": 871,
+      "warnings": 17,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 751,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-090 PrimaT 4 - 800\\Test PrimaT 4-800 260820 KČ.xlsm",
+      "date": "2026-09-15T08:49:15.273354+00:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 752,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-091 SO4 4-800\\SO4 4-800 260829 KČ.xlsm",
+      "date": "2026-09-15T08:49:17.529600+00:00",
+      "errors": 10,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 753,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-093 OH 4-800\\OH 4-800 260915BK.xlsm",
+      "date": "2026-09-15T08:49:19.021384+00:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 754,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-095 CDI 4-800\\Test KL CDI 260907 BK.xlsm",
+      "date": "2026-09-15T08:49:19.639432+00:00",
+      "errors": 2,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 755,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-096 Oligo 1-800\\Test KL Oligo 260910BK.xlsm",
+      "date": "2026-09-15T08:49:20.630501+00:00",
+      "errors": 13,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 756,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-097 SDVB 4 - 800\\Test KL SDVB 260827 KČ.xlsm",
+      "date": "2026-09-15T08:49:22.555467+00:00",
+      "errors": 48,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 757,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-100 QA HR 4-800\\Test QA in QA_HR 4-800 260827 IS.xlsm",
+      "date": "2026-09-15T08:49:26.034688+00:00",
+      "errors": 40,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 758,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-137 (422-133) DEAE 4000+8000\\IPO_TES-DEAE 4000-8000 251112 BK.xlsx",
+      "date": "2026-09-15T08:49:26.861210+00:00",
+      "errors": 61,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 759,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-141 SO4 4000+8000\\422-141 SO4-4000, 8000_260607 KČ.xlsm",
+      "date": "2026-09-15T08:49:31.795889+00:00",
+      "errors": 176,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 760,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-147 (422-141) SDVB 4000+8000\\422-141 T SDVB-4000, 8000_260202 PL.xlsm",
+      "date": "2026-09-15T08:49:33.898275+00:00",
+      "errors": 87,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 761,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-150 (422-143) QA HR 4000+8000\\422-135, 422-143 T QA in QH-4000, 8000_260402 KČ.xlsm",
+      "date": "2026-09-15T08:49:37.083140+00:00",
+      "errors": 108,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 762,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Vzorec za pripravo IPO KL-ja QA in QA_HR 4-800.xlsx",
+      "date": "2026-09-15T08:49:37.812285+00:00",
+      "errors": 118,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 763,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260826 KČ.xlsm",
+      "date": "2026-09-15T08:49:43.849684+00:00",
+      "errors": 509,
+      "warnings": 101,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 764,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260908 BM.xlsm",
+      "date": "2026-09-15T08:49:49.898700+00:00",
+      "errors": 515,
+      "warnings": 102,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 765,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Vzorčne raztopine 260908 BM.xlsm",
+      "date": "2026-09-15T08:49:50.625345+00:00",
+      "errors": 114,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 766,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 16-160 mL\\Test QA_HR 16 - 160 260908 JJ.xlsm",
+      "date": "2026-09-15T08:49:52.619280+00:00",
+      "errors": 16,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 767,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 1600 mL\\422-zzz, 422-zzz T QH-1600_260909_JJ.xlsm",
+      "date": "2026-09-15T08:49:55.064182+00:00",
+      "errors": 169,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 768,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL 16000 mL\\422-zzz, 422-zzz T QH-16000_260709_JJ.xlsm",
+      "date": "2026-09-15T08:49:57.308290+00:00",
+      "errors": 205,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 769,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-116 QA Splitter 2x 3x\\IPO KL\\IPO KL skrajšano testiranje\\Skrajšano test QA_HR 8-800 260809 JJ.xlsm",
+      "date": "2026-09-15T08:49:59.264434+00:00",
+      "errors": 1,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 770,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Swiper - GMP testiranje\\422-ccc SW 4-800mL Testiranje\\Test SW 4-800 260528_IS.xlsm",
+      "date": "2026-09-15T08:50:01.438251+00:00",
+      "errors": 334,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 771,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-xxx-01 Swiper testiranje\\Swiper - GMP testiranje\\422-ccc SW 8L Testiranje\\422-131 SW-4000, 8000_260518 BK.xlsm",
+      "date": "2026-09-15T08:50:03.776963+00:00",
+      "errors": 179,
+      "warnings": 4,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 772,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-092 PrimaT\\4_8 L\\KL SOP-339 v2 420-092 BT-MOD 1-800 260814 JJ.xlsm",
+      "date": "2026-09-16T10:27:25.546026+00:00",
+      "errors": 162,
+      "warnings": 5,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 773,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\4 OBD\\Jure za PrimaT\\IPO+SOP-109 v12 420-028 4000-OBDSPIR_260909_JJ.xlsm",
+      "date": "2026-09-16T10:59:55.301445+00:00",
+      "errors": 6,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 774,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260917BK.xlsm",
+      "date": "2026-09-17T07:10:32.489773+00:00",
+      "errors": 37,
+      "warnings": 1,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 775,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\SOP za pripravo reagentov\\Raztopine in MF 260921BK.xlsm",
+      "date": "2026-09-21T10:37:36.206829+00:00",
+      "errors": 499,
+      "warnings": 101,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 776,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T07:42:38.724892+00:00",
+      "errors": 117,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 777,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T07:55:32.991274+00:00",
+      "errors": 64,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 778,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T08:11:13.767287+00:00",
+      "errors": 43,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 779,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T08:12:27.264328+00:00",
+      "errors": 40,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 780,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T08:17:56.888755+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 781,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T08:18:54.923117+00:00",
+      "errors": 24,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 782,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-098 PrimaS 4-800\\PrimaS 4-800 260922BK.xlsm",
+      "date": "2026-09-22T08:25:16.130899+00:00",
+      "errors": 9,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 783,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260915BK.xlsm",
+      "date": "2026-09-25T07:04:17.424095+00:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 784,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260925BK.xlsm",
+      "date": "2026-09-25T07:19:41.976229+00:00",
+      "errors": 27,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 785,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\422 Testiranje\\422-086 C4 HLD 4-800\\Test C4 HLD 4 - 800 260925BK.xlsm",
+      "date": "2026-09-25T07:25:11.760154+00:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 786,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260606 KČ.xlsm",
+      "date": "2026-09-25T10:45:10.278783+00:00",
+      "errors": 452,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 787,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 800 C4 HLD 25092026 BK.xlsm",
+      "date": "2026-09-25T10:49:32.922857+00:00",
+      "errors": 89,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 788,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 800 C4 HLD 260925BK.xlsm",
+      "date": "2026-09-25T12:34:12.014478+00:00",
+      "errors": 3,
+      "warnings": 2,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 789,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T05:26:35.456325+00:00",
+      "errors": 491,
+      "warnings": 9,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 790,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260606 KČ.xlsm",
+      "date": "2026-09-29T06:17:40.592118+00:00",
+      "errors": 452,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 791,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T06:17:41.617545+00:00",
+      "errors": 523,
+      "warnings": 9,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 792,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-242 420-030 SPIR AK 260519BK.xlsm",
+      "date": "2026-09-29T06:17:42.029959+00:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 793,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260928 MBBS.xlsm",
+      "date": "2026-09-29T09:28:24.285475+02:00",
+      "errors": 116,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 794,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260606 KČ.xlsm",
+      "date": "2026-09-29T07:33:32.413258+00:00",
+      "errors": 452,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 795,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T07:33:33.677563+00:00",
+      "errors": 423,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 796,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260507BK.xlsm",
+      "date": "2026-09-29T07:33:41.174195+00:00",
+      "errors": 282,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 797,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-242 420-030 SPIR AK 260519BK.xlsm",
+      "date": "2026-09-29T07:33:41.689793+00:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 798,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260606 KČ.xlsm",
+      "date": "2026-09-29T10:16:13.435992+02:00",
+      "errors": 452,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 799,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T10:16:14.739975+02:00",
+      "errors": 423,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 800,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 XY + C4 A  260507BK.xlsm",
+      "date": "2026-09-29T10:16:24.065856+02:00",
+      "errors": 282,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 801,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-8000 SDVB 260706 KČ.xlsm",
+      "date": "2026-09-29T10:16:24.964083+02:00",
+      "errors": 309,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 802,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-242 420-030 SPIR AK 260519BK.xlsm",
+      "date": "2026-09-29T10:16:25.526311+02:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 803,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\Spiranje recepture CC 250525 KČ.xlsx",
+      "date": "2026-09-29T10:16:28.252541+02:00",
+      "errors": 6618,
+      "warnings": 118,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 804,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T11:20:22.240433+02:00",
+      "errors": 423,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 805,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-29T11:25:17.611200+02:00",
+      "errors": 107,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 806,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-09-30T07:37:39.663346+02:00",
+      "errors": 87,
+      "warnings": 10,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 807,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260929 KČ.xlsm",
+      "date": "2026-09-30T09:55:25.330016+02:00",
+      "errors": 202,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 808,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\staro\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260921BK.xlsm",
+      "date": "2026-09-30T10:09:53.048399+02:00",
+      "errors": 46,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 809,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260929 BS.xlsm",
+      "date": "2026-09-30T10:11:01.004341+02:00",
+      "errors": 246,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 810,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260929 BS.xlsm",
+      "date": "2026-09-30T10:19:01.420927+02:00",
+      "errors": 246,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 811,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 BS.xlsm",
+      "date": "2026-09-30T13:17:14.795178+02:00",
+      "errors": 190,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 812,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 BK.xlsm",
+      "date": "2026-09-30T13:40:28.165493+02:00",
+      "errors": 174,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 813,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 BK.xlsm",
+      "date": "2026-09-30T13:56:32.235537+02:00",
+      "errors": 167,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 814,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 BS.xlsm",
+      "date": "2026-09-30T13:59:24.242832+02:00",
+      "errors": 168,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 815,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 BK.xlsm",
+      "date": "2026-09-30T14:01:30.992087+02:00",
+      "errors": 144,
+      "warnings": 6,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 816,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 260930 KČ.xlsm",
+      "date": "2026-10-01T07:41:07.126500+02:00",
+      "errors": 37,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 817,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261002 BS.xlsm",
+      "date": "2026-10-02T09:54:55.937508+02:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 818,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261002 BS.xlsm",
+      "date": "2026-10-02T11:24:25.728786+02:00",
+      "errors": 30,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 819,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-10-02T13:59:08.298210+02:00",
+      "errors": 82,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 820,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-10-02T13:59:52.924682+02:00",
+      "errors": 82,
+      "warnings": 8,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 821,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 BS.xlsm",
+      "date": "2026-10-06T08:45:52.390130+02:00",
+      "errors": 31,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 822,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 BS A.xlsm",
+      "date": "2026-10-06T09:29:54.957398+02:00",
+      "errors": 66,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 823,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 BS A.xlsm",
+      "date": "2026-10-06T09:38:10.096024+02:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 824,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 BS A.xlsm",
+      "date": "2026-10-06T09:38:36.839406+02:00",
+      "errors": 65,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 825,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 BS A.xlsm",
+      "date": "2026-10-06T11:02:00.691455+02:00",
+      "errors": 20,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 826,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\AK\\420-608 DEAE-MOD CIMac\\420-608 DEAE-MOD CIMac 261008 KČ.xlsm",
+      "date": "2026-10-09T08:32:16.153322+02:00",
+      "errors": 25,
+      "warnings": 1,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 827,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 260729BK.xlsm",
+      "date": "2026-10-09T11:00:22.292588+02:00",
+      "errors": 112,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 828,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-089 CDI\\KL SOP-144 v2 420-089 Priloga 1 MOD CDI 1 - 8000 260729BK.xlsm",
+      "date": "2026-10-09T11:45:40.850728+02:00",
+      "errors": 112,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 829,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\5 SPIR\\SOP-110 420-031 SPIR 1-40000 C4 HLD 260928a BK.xlsm",
+      "date": "2026-10-09T11:51:29.276507+02:00",
+      "errors": 66,
+      "warnings": 7,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 830,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\staro\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 KČ.xlsm",
+      "date": "2026-10-12T12:02:04.417572+02:00",
+      "errors": 14,
+      "warnings": 0,
+      "valid": false
+    },
+    {
+      "zaporedna_stevilka": 831,
+      "path": "\\\\srvfs01.biasep.local\\BIASEP_podjetje\\Proizvodnja\\Sistem kakovosti\\12_SOPi\\IPO postopki\\6 MOD\\420-090 v5 1 - 8000 mL Oligo dT18 modifikacija\\staro\\KL SOP-145 v5 420-090 Oligo-MOD 1 - 8000 261006 KČ.xlsm",
+      "date": "2026-10-12T12:17:38.277081+02:00",
+      "errors": 26,
+      "warnings": 0,
+      "valid": false
     }
   ]
 }

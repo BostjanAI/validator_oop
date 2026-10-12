@@ -1,6 +1,6 @@
 # Pravila validatorja – pregled in opis
 
-Validator OOP izvaja **41 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
+Validator OOP izvaja **42 validacijskih pravil**, razporejenih v 4 module. Vsako pravilo preverja določen vidik Excel recepture (IPO datoteke) in ob kršitvi javi napako ali opozorilo.
 
 ---
 
@@ -69,6 +69,31 @@ Preverja, da je kombinacija `Tip podatka` + `Tip objekta` smiselna glede na pred
 
 ---
 
+### 2.2.1 Tip podatka `masa`
+
+Preverja, da je masa zapisana točno kot `masa`, ne kot oštevilčena različica.
+
+| | |
+|---|---|
+| **Preverja** | `Tip podatka` ne sme biti `masa1`, `masa2`, `masa_1` ipd.; dovoljena je samo vrednost `masa` (številka sodi v `Ključ preverjanja`) |
+| **Napaka** | `DATA_TYPE_MASA_INVALID` – oštevilčen tip podatka za maso ni veljaven |
+| **Opomba** | Tipi `masakonec` in `summasa` ostanejo veljavni |
+
+---
+
+### 2.2.2 Tip podatka `posebnosti` / `posebnostimon`
+
+Preverja, da tip podatka za posebnosti ustreza temu, ali receptura uporablja zavihek.
+
+| | |
+|---|---|
+| **Preverja** | Če na listu ni uporabnega zavihka (stolpec `Zavihek` prazen ali s presledkom), sme biti tip `posebnosti`. Če list ima zavihek, mora biti tip `posebnostimon`. |
+| **Napake** | `DATA_TYPE_POSEBNOSTI_REQUIRED` – receptura nima zavihka, `Tip podatka` pa je `posebnostimon` |
+| | `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – receptura ima zavihek, `Tip podatka` pa je `posebnosti` |
+| **Opomba** | Ostali tipi podatka se ne preverjajo. Presledek v `Zavihek` zavihka ne odpre. |
+
+---
+
 ### 2.3 Zahteve za Labelo
 
 Preverja pravilno vrednost in enoto v stolpcu `Labela`.
@@ -98,19 +123,33 @@ Preverja, da je stolpec `Vrednost` zapolnjen pri poljih tipa spustni seznam.
 
 | | |
 |---|---|
-| **Preverja** | Kadar je `Tip objekta` = `spustniseznam`, mora biti `Vrednost` neprazna (oznaka šifranta, npr. `HPLC`, `tehtnica`) |
+| **Preverja** | Kadar je `Tip objekta` = `spustniseznam`, mora biti `Vrednost` neprazna (oznaka šifranta, npr. `HPLC`, `tehtnica`). Pri opremi je `Vrednost` obvezna namesto ključa preverjanja. |
 | **Napaka** | `SPUSTNISEZNAM_VREDNOST_EMPTY` – vrednost manjka pri spustnem seznamu |
 
 ---
 
 ### 2.6 Prazni stolpci pri ločniku (`crta`)
 
-Preverja, da vrstice tipa ločnik ne vsebujejo podatkov v drugih stolpcih.
+Preverja, da vrstice tipa ločnik ne vsebujejo podatkov v drugih stolpcih, številka koraka pa mora biti zapolnjena.
 
 | | |
 |---|---|
-| **Preverja** | Kadar je `Tip objekta` = `crta`, morajo biti prazni vsi stolpci razen `št. Koraka`, `Tip podatka` in `Tip objekta` |
-| **Napaka** | `CRTA_COLUMN_NOT_EMPTY` – stolpec vsebuje vrednost, čeprav mora biti prazen pri ločniku |
+| **Preverja** | Kadar je `Tip objekta` = `crta`, mora biti `št. Koraka` zapolnjen (tudi okrajšava `št. Kor.`); prazni morajo biti vsi ostali stolpci razen `Tip podatka` in `Tip objekta`; `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, ...) |
+| **Napake** | `CRTA_STEP_EMPTY` – manjka številka koraka pri ločniku |
+| | `CRTA_COLUMN_NOT_EMPTY` – stolpec vsebuje vrednost, čeprav mora biti prazen pri ločniku |
+
+---
+
+### 2.6.1 Stolpci pri naslovu (`naslov`)
+
+Preverja obvezna polja naslova in da ostali stolpci ostanejo prazni.
+
+| | |
+|---|---|
+| **Preverja** | Kadar je `Tip objekta` (ali `Tip podatka`) = `naslov`, morata biti zapolnjena `št. Koraka` in `Navodilo`; `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, ...) kot pri `crta`; ostali stolpci morajo biti prazni |
+| **Napake** | `NASLOV_STEP_EMPTY` – manjka številka koraka pri naslovu |
+| | `NASLOV_NAVODILO_EMPTY` – manjka `Navodilo` pri naslovu |
+| | `NASLOV_COLUMN_NOT_EMPTY` – stolpec vsebuje vrednost, čeprav mora biti pri naslovu prazen |
 
 ---
 
@@ -120,9 +159,9 @@ Preverja sintakso in prisotnost vrednosti v stolpcu `Ključ preverjanja`.
 
 | | |
 |---|---|
-| **Preverja** | Vrednost mora ustrezati vzorcu `KEY_PATTERN`; pri tipih `kemikalija`, `raztopina`, `masa`, `tehtnica` ključ ne sme biti prazen |
-| **Napake** | `KLJUC_NAPAKEN_FORMAT` – oblika ključa ni pravilna (navede prvi napačen znak) |
-| | `KLJUC_ZAHTEVAN` – ključ manjka pri tipu podatka, ki ga zahteva |
+| **Preverja** | Vrednost mora ustrezati vzorcu `KEY_PATTERN`; ključ je obvezen pri `kemikalija`, `raztopina`, `masa` in časovnem paru. Oprema in checkbox ključa ne zahtevata (pri `spustniseznam` je obvezna `Vrednost`). |
+| **Napake** | `KEY_INVALID_FORMAT` – oblika ključa ni pravilna (navede prvi napačen znak) |
+| | `KEY_REQUIRED` – ključ manjka pri tipu podatka, ki ga zahteva |
 
 ---
 
@@ -132,9 +171,10 @@ Preverja pravilno obliko vsebine `Vrednost` pri formulah.
 
 | | |
 |---|---|
-| **Preverja** | Kadar je `Tip objekta` ∈ {`formula`, `formula0`, `formula1`}: `Vrednost` se mora začeti z `=` in vsebovati `$` (sklici na korake) |
+| **Preverja** | Kadar je `Tip objekta` ∈ {`formula`, `formula0`, `formula1`}: `Vrednost` se mora začeti z `=` in vsebovati `$` (sklici na korake). Zapis `&$` ni dovoljen. |
 | **Napake** | `FORMULA_SINTAKSA` – `Vrednost` se ne začne z `=` |
 | | `FORMULA_BREZ_SKLICA` – formula ne vsebuje sklica na korak (`$`) |
+| | `FORMULA_AMPERSAND_DOLLAR` – formula vsebuje `&$` (sklic zapišite kot `"$"&` in celico, npr. `"$"&C12`) |
 
 ---
 
@@ -155,7 +195,7 @@ Zaznava presledke v vrednostih celic.
 
 | | |
 |---|---|
-| **Preverja** | Nobena vrednost (razen `Navodilo` in `Labela`) ne sme vsebovati presledkov |
+| **Preverja** | Nobena vrednost (razen `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`) ne sme vsebovati presledkov. Presledek v `Zavihek` ne odpira novega zavihka (ostane samo ta napaka). |
 | **Napaka** | `PRESLEDEK_NEDOVOLJEN` |
 
 ---
@@ -208,6 +248,21 @@ Preverja, da ima vsaka vrstica z maso ustrezno „lastniško" vrstico kemikalije
 | **Preverja** | Vsaka vrstica `masa` (razen vode) mora imeti najbližjo predhodno vrstico `kemikalija`, `raztopina` ali `monomerna` (vključno z oštevilčenimi variantami, npr. `monomerna1`) z ujemajočim baznim ključem na istem zavihku; ključ mase mora biti enak polnemu ključu lastnika |
 | **Napake** | `PAR_MASA_BREZ_LASTNIKA` – masa nima ustreznega lastnika |
 | | `PAR_MASA_NAPACEN_RAZD` – masa je v napačnem razdelku glede na lastnika |
+
+---
+
+### 3.2.1 Par kemikalija/raztopina in masa
+
+Preverja obratno smer para: vsaka kemikalija ali raztopina mora imeti vrstico `masa` z **enakim** ključem preverjanja. `volumen` z istim ključem ni nadomestilo za maso.
+
+| | |
+|---|---|
+| **Preverja** | `kemikalija` in `raztopina` na istem zavihku imata vrstico `masa` z enakim ključem; vrstica `volumen` z istim ključem ni dovoljena |
+| **Izjema** | Ključ vode (`dH2O`, `dH2O_1`, …): zahtevan je tip `volumen`, ne `masa` |
+| **Napake** | `PAIR_CHEM_WITHOUT_MASS` – kemikalija nima vrstice `masa` |
+| | `PAIR_SOL_WITHOUT_MASS` – raztopina nima vrstice `masa` |
+| | `PAIR_VOLUME_NOT_ALLOWED` – `volumen` z istim ključem kot kemikalija/raztopina |
+| | `PAIR_WATER_WITHOUT_VOLUME` – pri ključu dH2O manjka vrstica `volumen` |
 
 ---
 
@@ -291,7 +346,7 @@ Preverja, ali je kontrola dovoljena glede na tip podatka, tip objekta, Labelo in
 
 | | |
 |---|---|
-| **Preverja** | `aliobkljukan` le pri checkboxu; kontrole opreme pri dropdownu, Labeli `koda` ali tipih/ključih opreme; `aliisto` le pri `kemikalija`/`raztopina`/oprema; `kontrolacasa` le pri `datumcaskonec`; raztopinske kontrole potrebujejo ujemajoč ključ in parametre |
+| **Preverja** | `aliobkljukan` le pri checkboxu; kontrole opreme pri dropdownu, Labeli `koda` ali tipih/ključih opreme; `aliisto` le pri `kemikalija`/`raztopina`/oprema; `kontrolacasa` le pri `datumcaskonec`; raztopinske kontrole potrebujejo ključ in Param1 (ujemanje Param1 s ključem se ne zahteva) |
 | **Napake** | `KONTROLA_NAPACEN_KONTEKST` – kontrola ni dovoljena v tem kontekstu |
 | | `RAZTOPINA_*` – napake pri raztopinskih kontrolah |
 
@@ -348,18 +403,19 @@ Preverja ujemanje parov Param1/Param2 pri `aliobstajapogoj`.
 
 ---
 
-### 4.7 Odvečni koraki v Param1
+### 4.6a Param1 pri aliobstajapogoj (ključ zaklenipolja)
 
-Preverja odvečne vnose v Param1 pri `zaklenipolja`.
+Preverja, da je Param1 pri `aliobstajapogoj` skladen z `zaklenipolja`, ki ta korak zaklene, in da ni podvojen med sklopi.
 
 | | |
 |---|---|
-| **Preverja** | Param1 navaja korak, za katerega ima `aliobstajapogoj` z istim ključem vrednost Param2 = 1 (korak je torej vedno aktiven – vnos v Param1 je odveč) |
-| **Napaka** | `ZAKLENI_P1_ODVECNI_KORAKI` |
+| **Preverja** | Param1 mora biti ključ preverjanja sklopa `zaklenipolja`, ki ta korak zaklene: ključ vrstice, ki korak navaja v Param1 (npr. `sst_3` s Param2=0), ali parni ključ istega sklopa (npr. `sst_4` s Param2=1). Isti Param1 ne sme biti uporabljen pri dveh različnih sklopih `zaklenipolja` na istem zavihku. Excelove formule v Param1 (`=$F$58`) se preskočijo. |
+| **Napake** | `LOCK_CONDITION_P1_LOCK_KEY` – Param1 ni ključ sklopa `zaklenipolja`, ki ta korak zaklene |
+| | `LOCK_CONDITION_P1_DUPLICATE` – Param1 je podvojen med različnimi sklopi `zaklenipolja` |
 
 ---
 
-### 4.8 Enoličnost ključa pri zaklenipolja
+### 4.7 Enoličnost ključa pri zaklenipolja
 
 Preverja, da isti ključ nima dveh vrstic `zaklenipolja` v istem zavihku.
 
@@ -370,7 +426,7 @@ Preverja, da isti ključ nima dveh vrstic `zaklenipolja` v istem zavihku.
 
 ---
 
-### 4.9 Vsak pogoj pokrit z zaklenipolja
+### 4.8 Vsak pogoj pokrit z zaklenipolja
 
 Preverja, da je vsak `aliobstajapogoj` dejansko naveden v Param1 nekega `zaklenipolja`.
 
@@ -381,7 +437,7 @@ Preverja, da je vsak `aliobstajapogoj` dejansko naveden v Param1 nekega `zakleni
 
 ---
 
-### 4.10 Checkbox in zaklenipolja
+### 4.9 Checkbox in zaklenipolja
 
 Preverja nedovoljene kombinacije `zaklenipolja` z `aliobkljukan` pri checkboxih.
 
@@ -394,7 +450,7 @@ Preverja nedovoljene kombinacije `zaklenipolja` z `aliobkljukan` pri checkboxih.
 
 ---
 
-### 4.11 Parameter aliobkljukan
+### 4.10 Parameter aliobkljukan
 
 Preverja parametre kontrole `aliobkljukan`.
 
@@ -406,7 +462,7 @@ Preverja parametre kontrole `aliobkljukan`.
 
 ---
 
-### 4.12 Parametri intervalnih kontrol
+### 4.11 Parametri intervalnih kontrol
 
 Preverja osnovno veljavnost parametrov pri `kontrolainterval` / `kontrolaintervala`.
 
@@ -419,7 +475,7 @@ Preverja osnovno veljavnost parametrov pri `kontrolainterval` / `kontrolainterva
 
 ---
 
-### 4.13 Napredna validacija intervalnih parametrov
+### 4.12 Napredna validacija intervalnih parametrov
 
 Preverja, da se parametri kontrole `kontrolainterval` / `kontrolaintervala` (Param1 = spodnja meja, Param2 = zgornja meja) ujemajo z vrednostjo ali intervalom, zapisanim v stolpcu `Navodilo`. Pravilo prepozna tri oblike zapisa v Navodilu in za vsako določi drugačna pravila za izračun zahtevanih vrednosti Param1 in Param2.
 
@@ -497,6 +553,10 @@ Param2 = (xpm + tpm) + eps
 | `90 ± 2` | `1` | `88` | `87` | `92` | `93` |
 | `90.0 ± 2` | `0.1` | `88.0` | `87.9` | `92.0` | `92.1` |
 
+Kanonski Param1/Param2 ostaneta priporočeni vrednosti. Dodatno je sprejet numerični pas okoli intervala `[xpm − tpm, xpm + tpm]`: od pol koraka minus eno fino mesto pod spodnjo mejo do pol koraka nad zgornjo mejo.
+
+**Primer:** `6.50 ± 0.10` → interval `[6.40, 6.60]`, dovoljeni pas **`[6.34, 6.65]`**. `6.34` in `6.65` sta OK. `6.33` in `6.66` (ter `6.24` / `6.75`) ostaneta napaki. Kanonski `6.39` / `6.61` ostaneta veljavna.
+
 ---
 
 #### Oblika 3: Razpon `a–b` (npr. `5–10`)
@@ -514,9 +574,15 @@ Param2 = b + eps
 | `5.0–10.0` | 0.1 | `4.9` | `10.1` |
 | `5.00–10.00` | 0.01 | `4.99` | `10.01` |
 
+Pri razponu ostaneta Param1/Param2 na **istih decimalkah** kot meji: `47.5–52.5` → `47.4` / `52.6`; `0.18–0.22` → `0.17` / `0.23` (ne `0.174`).
+
+Izjema, kadar bi bil `a − eps` enak **0** (`0.01–0.30`): MES prag na eno mesto več.
+
+**Primer:** `0.01–0.30` → dovoljeni pas Param1/Param2 **`[0.004, 0.305]`** (Param1 prag pod meritvijo `0.005`, Param2 prag nad zadnjo meritvijo `0.304`). Param1 `0` in Param2 `0.306` / `0.310` so napake. `0.01–0.60` → zgornja meja Param2 **`0.605`** (ne `0.610`).
+
 ---
 
-### 4.14 Parametri kontrole časa
+### 4.13 Parametri kontrole časa
 
 Preverja veljavnost parametrov `kontrolacasa`.
 
@@ -532,7 +598,7 @@ Preverja veljavnost parametrov `kontrolacasa`.
 
 ---
 
-### 4.15 Zahtevana kontrola časa
+### 4.14 Zahtevana kontrola časa
 
 Preverja, da ima vsak `datumcaskonec` kontrolo `kontrolacasa`.
 
@@ -543,18 +609,18 @@ Preverja, da ima vsak `datumcaskonec` kontrolo `kontrolacasa`.
 
 ---
 
-### 4.16 Zahtevana intervalna kontrola
+### 4.15 Zahtevana intervalna kontrola
 
 Preverja, da je intervalna kontrola prisotna, kadar jo Navodilo nakazuje.
 
 | | |
 |---|---|
-| **Preverja** | Kadar `Navodilo` vsebuje numeričen interval (razpon / ± / neenačba), `Tip objekta` je `edit`/formula tip, ni `datumcaskonec`, ni checkbox in `Labela` ≠ `koda` → mora biti prisotna `kontrolainterval` ali `kontrolaintervala` |
+| **Preverja** | Kadar `Navodilo` vsebuje numeričen interval (razpon / ± / neenačba), `Tip objekta` je `edit`/formula tip, ni `datumcaskonec`, ni checkbox in `Labela` ≠ `koda` → mora biti prisotna `kontrolainterval`, `kontrolaintervala` ali `kontrolarazlika` |
 | **Napaka** | `KONTROLA_INTERVAL_ZAHTEVANA` |
 
 ---
 
-### 4.17 Zahtevana aliobkljukan pri checkboxu
+### 4.16 Zahtevana aliobkljukan pri checkboxu
 
 Preverja, da ima checkbox z Labelo `DA (kljukica)` kontrolo `aliobkljukan`.
 
@@ -565,7 +631,7 @@ Preverja, da ima checkbox z Labelo `DA (kljukica)` kontrolo `aliobkljukan`.
 
 ---
 
-### 4.18 Zahtevana kontrola vloge
+### 4.17 Zahtevana kontrola vloge
 
 Preverja, da ima vsaka vrstica `zaposleni` kontrolo `alipravavlogakoda`.
 
@@ -576,7 +642,7 @@ Preverja, da ima vsaka vrstica `zaposleni` kontrolo `alipravavlogakoda`.
 
 ---
 
-### 4.19 Zahtevani kontroli za monolit
+### 4.18 Zahtevani kontroli za monolit
 
 Preverja, da ima monolit obe predpisani kontroli.
 
@@ -588,7 +654,7 @@ Preverja, da ima monolit obe predpisani kontroli.
 
 ---
 
-### 4.20 Kontrola mase brez vrednosti
+### 4.19 Kontrola mase brez vrednosti
 
 Preverja, da masa brez vrednosti nima kontrole mase.
 

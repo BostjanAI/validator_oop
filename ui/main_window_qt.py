@@ -396,7 +396,7 @@ class MainWindowQt(QMainWindow):
 
         if not discovered and not existing_parts:
             self.log(
-                f"V {source_label} ni najdenih Excel receptur z zahtevanimi stolpci."
+                f"V {source_label} ni najdenih Excel receptur (noben stolpec recepture)."
             )
 
     def _pick_report(self) -> None:

@@ -170,7 +170,7 @@ Teh vrstic ne brišite!
 |-------------|------|------------------|---------------------------|
 | `kemikalija` | Kemikalija (vnos QR kode) | `koda` | `edit` |
 | `raztopina` | Raztopina iz modula RAZTOPINE | `koda` | `edit` |
-| `masa` | Masa ali volumen porabljene raztopine/kemikalije | enota (`g`, `mL`, `kg`) | `edit`, `klictehtnice1` |
+| `masa` | Masa ali volumen porabljene raztopine/kemikalije. **Točno `masa`** – `masa1` ni veljaven tip (številka sodi v `Ključ preverjanja`) | enota (`g`, `mL`, `kg`) | `edit`, `klictehtnice1` |
 | `monolit` | Monolit (QR koda sestavka) | `koda` | `edit` |
 | `zaposleni` | Operater/Vodja (QR koda zaposlenega) | `koda` | `edit` |
 | `embalaza` | Embalaža | `koda` | `edit` |
@@ -187,7 +187,7 @@ Teh vrstic ne brišite!
 | `naslov` | Naslov sekcije/zavihka | *(prazno)* | `naslov` |
 | `crta` | Ločnik | *(prazno)* | `crta` |
 
-> **Pozor – voda:** Ko se uporablja voda, **tip podatka ni `masa`**, ker vode ne vnašamo v modul RAZTOPINE. Uporabite tip `volumen` z enoto `mL` (ali brez tipa, samo `edit`).
+> **Pozor – voda:** Ko se uporablja voda, **tip podatka ni `masa`**, ker vode ne vnašamo v modul RAZTOPINE. Uporabite tip `volumen` z enoto `mL` in ključem `dH2O`. Pri kemikaliji/raztopini **ni dovoljen** `volumen` z istim ključem – tam mora biti `masa`.
 
 > **Opomba:** Pri tipu `masa` **vedno** vnesete porabljeno količino – tudi če jo vpišete v mL, se iz gostote avtomatsko poračuna masa, ki se odšteje od zaloge raztopine.
 
@@ -218,8 +218,9 @@ Teh vrstic ne brišite!
 
 | Tip vrstice | Ključ obvezen? |
 |-------------|----------------|
-| `kemikalija`, `raztopina`, `masa`, `tehtnica` (in ostala oprema), `checkbox` s pogojem, `datumcaszacetek`, `datumcaskonec` | **DA** |
-| `naslov`, `crta` | NE |
+| `kemikalija`, `raztopina`, `masa`, `datumcaszacetek`, `datumcaskonec` | **DA** |
+| oprema (`tehtnica`, `termometer`, `HPLC` …) | **NE** – pri `Tip objekta = spustniseznam` je namesto ključa obvezen stolpec `Vrednost` (oznaka šifranta) |
+| `naslov`, `crta`, `checkbox` | NE |
 | `zaposleni` (vodja/operater) | NE (običajno) |
 
 
@@ -228,23 +229,25 @@ Teh vrstic ne brišite!
 - **Raztopine in kemikalije istega tipa** se oštevilčijo s številčno pripono (`GK1`, `GK2`, `GK3` ali `NaCl1`, `NaCl2` ...).
 - Oštevilčenje se **začne z `1`** in poteka **brez vrzeli**.
 - Masa mora imeti **enak ključ kot njena kemikalija/raztopina**, nad katero stoji (par).
+- Kemikalija/raztopina **mora imeti** parno vrstico `masa` z istim ključem. Tip `volumen` z istim ključem **ni dovoljen**.
+- **Izjema – voda:** pri ključu `dH2O` je parni tip `volumen`, ne `masa`.
 - Kolicina mora imeti **enak ključ kot njen repro**, nad katerim stoji (par).
 
 
-### 8.4 Baza ključa (uporaba v kontrolah)
+### 8.4 Parametri kontrol raztopine
 
-Pri kontrolah `kontrolaveljavnostiraztopine` in `kontrolaustreznostiraztopine` se v `Par1` vpiše **baza ključa brez številčne pripone**:
+Pri kontrolah `kontrolaveljavnostiraztopine` in `kontrolaustreznostiraztopine` mora biti `Par1` zapolnjen. **Ni potrebno**, da se `Par1` ujema s ključem preverjanja (niti z bazo ključa brez številčne pripone).
 
 **Primer**:
 
 ```
-Navodilo:           Raztopina 2.73 ut% NaCl + 13.87 ut% EtOH
+Navodilo:           Raztopina 20% v/v EtOH
 Tip podatka:        raztopina
-Ključ preverjanja:  2.73mp-NaCl_13.87mp-EtOH-GK1
+Ključ preverjanja:  raz1
 Labela:             koda
 Tip objekta:        edit
 Kontrola 2:         kontrolaveljavnostiraztopine
-Kontrola 2 - par 1: 2.73mp-NaCl_13.87mp-EtOH-GK   ← baza (brez "1")
+Kontrola 2 - par 1: 20v-EtOH-RR   ← ni treba, da se ujema s ključem raz1
 ```
 
 ---
@@ -281,12 +284,14 @@ Spodaj so **vse dovoljene kontrole** (40 imen). Validator sprejme samo ta imena.
 |--------------|-------|-------|-------|
 | `aliobkljukan` | Checkbox mora biti označen. | `DA` ali `NE` | *(prazno)* |
 | `aliniobkljukan` | Checkbox ne sme biti označen. | `DA` ali `NE` | *(prazno)* |
-| `aliobstajapogoj` | Polje je aktivno, če pogoj velja. | ključ ali referenca celice (`=$F$58`) | `0` ali `1` |
+| `aliobstajapogoj` | Polje je aktivno, če pogoj velja. | ključ sklopa `zaklenipolja` (npr. `sst_3` ali parni `sst_4`) ali referenca celice (`=$F$58`) | `0` ali `1` |
 | `aliobstajapogoj_ali` | Pogoj z logiko ALI (vsaj eden od navedenih). | ključi ali referenca | `0` ali `1` |
 | `zaklenipolja` | Zaklene naštete korake, če je polje označeno. | seznam številk korakov ločenih z vejico (npr. `45,46,47`) | *(prazno)* |
 | `kdoizpolni` | Določa, kdo sme izpolniti polje. | `ROLE_HEAD` ali `ROLE_OPERATOR` | *(prazno)* |
 | `alipravavloga` | Preverja vlogo operaterja. | `ROLE_HEAD` ali `ROLE_OPERATOR` | *(prazno)* |
 | `alipravavlogakoda` | Preverja vlogo operaterja po kodi (QR). | `ROLE_HEAD` ali `ROLE_OPERATOR` | *(prazno)* |
+
+> **Pozor – `aliobstajapogoj` in `zaklenipolja`:** V Par 1 pri `aliobstajapogoj` navedite **ključ sklopa `zaklenipolja`, ki ta korak zaklene**. Dovoljen je ključ vrstice, ki korak navaja v Param1 (npr. `sst_3` s Param2=`0`), ali parni ključ (npr. `sst_4` s Param2=`1`). Istega ključa ne uporabljajte pri dveh različnih sklopih zaklepanja.
 
 #### Kemikalija / masa / embalaža
 
@@ -313,8 +318,8 @@ Spodaj so **vse dovoljene kontrole** (40 imen). Validator sprejme samo ta imena.
 |--------------|-------|-------|-------|
 | `kontrolaveljavnostimonolita` | Monolit mora biti veljaven. | *(prazno)* | *(prazno)* |
 | `kontrolaustreznostimonolita` | Monolit mora biti pravi tip (npr. sestavljen). | koda tipa ali seznam (`SES`, `MOD,SPIR`) | *(prazno)* |
-| `kontrolaveljavnostiraztopine` | Raztopina mora biti v roku. | baza ključa raztopine | *(prazno)* |
-| `kontrolaustreznostiraztopine` | Raztopina mora ustrezati šifri raztopine. | baza ključa raztopine | *(prazno)* |
+| `kontrolaveljavnostiraztopine` | Raztopina mora biti v roku. | parameter kontrole (ni treba, da se ujema s ključem) | *(prazno)* |
+| `kontrolaustreznostiraztopine` | Raztopina mora ustrezati šifri raztopine. | parameter kontrole (ni treba, da se ujema s ključem) | *(prazno)* |
 | `kontrolaveljavnostirepro` | Repro mora biti veljaven. | šifra repro | *(prazno)* |
 | `kontrolaustreznostirepro` | Repro mora biti ustrezen. | šifra repro | *(prazno)* |
 | `kontrolaprimernostirepro` | Repro mora biti primeren za postopek. | prazno | *(prazno)* |
@@ -362,7 +367,8 @@ Sistem IPO loči dve vlogi za izpolnjevanje recepture:
 
 - Označuje **začetek sekcije ali zavihka**.
 - V Excelu je **rumena vrstica**.
-- Ima številko koraka in besedilo naslova, ostalo je prazno.
+- **Mora imeti** številko koraka (`št. Koraka`) in besedilo naslova (`Navodilo`); ostalo je prazno.
+- `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, …) – enako kot pri `crta`.
 - **Nikoli** ne dodajajte `kontrolapraznopolje` na naslov.
 
 
@@ -370,6 +376,7 @@ Sistem IPO loči dve vlogi za izpolnjevanje recepture:
 
 - Vizualni **ločnik med sklopi**. V IPO se izpiše kot vodoravna črta.
 - **Mora imeti svojo številko koraka.**
+- `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, …).
 - Ostali stolpci so prazni.
 - **Nikoli** ne dodajajte `kontrolapraznopolje` na črto.
 

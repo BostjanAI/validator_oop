@@ -96,10 +96,10 @@ Vrednosti v tehničnih stolpcih pišite **z malimi črkami, brez presledkov in b
 ### Pogoste kombinacije
 
 **Raztopina** – `Tip podatka = raztopina`, `Labela = koda`, `Tip objekta = edit`.  
-Kontrole: `kontrolaveljavnostiraztopine` + `kontrolaustreznostiraztopine` (Par 1 = baza ključa **brez** `1`/`2`/`3`) + `kontrolapraznopolje`.  
-Takoj za njo pride **masa** z **istim ključem** (`Tip podatka = masa`), da se poraba odšteje od zaloge. Porabo vpišete v mL; masa se izračuna iz gostote.
+Kontrole: `kontrolaveljavnostiraztopine` + `kontrolaustreznostiraztopine` (Par 1 zapolnjen; **ni treba**, da se ujema s ključem preverjanja) + `kontrolapraznopolje`.  
+Takoj za njo pride **masa** z **istim ključem** (`Tip podatka = masa`, ne `masa1` in ne `volumen`), da se poraba odšteje od zaloge. Porabo vpišete v mL; masa se izračuna iz gostote.
 
-**Voda** ni `masa` (ni v modulu RAZTOPINE) – uporabite `volumen`.
+**Voda** ni `masa` (ni v modulu RAZTOPINE) – uporabite `volumen` s ključem `dH2O`.
 
 **Oprema** – `Tip objekta = spustniseznam`, `Vrednost` = oznaka šifranta, `Labela = naziv opreme`.  
 Kontrole: `kontrolaveljavnostiopreme` + `kontrolaustreznostiopreme` + `kontrolapraznopolje`.

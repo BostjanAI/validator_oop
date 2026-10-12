@@ -8,7 +8,7 @@ Shranjevanje v eni JSON datoteki (validation_progress.json) v mapi projekta:
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -71,7 +71,7 @@ def record_run(
     entry = {
         "zaporedna_stevilka": zaporedna_stevilka,
         "path": str(path_resolved),
-        "date": datetime.now(timezone.utc).isoformat(),
+        "date": datetime.now().astimezone().isoformat(),
         "errors": errors,
         "warnings": warnings,
         "valid": valid,

@@ -100,6 +100,23 @@ class TestWorkbookParser:
 
         assert headers == ["Col1", "Col2", "column_2", "Col4"]
 
+    @pytest.mark.parametrize(
+        "header, expected",
+        [
+            ("št. Koraka", "št. Koraka"),
+            ("št. Kor.", "št. Koraka"),
+            ("št. Kor.\naka", "št. Koraka"),
+            ("st. Koraka", "št. Koraka"),
+            ("  Navodilo  ", "Navodilo"),
+        ],
+    )
+    def test_normalize_headers_step_aliases(
+        self, parser: WorkbookParser, header: str, expected: str
+    ) -> None:
+        """Okrajšave in prelomi št. Koraka se kanonizirajo na št. Koraka."""
+        headers = parser._normalize_headers([header])
+        assert headers == [expected]
+
     def test_normalize_headers_empty(self, parser: WorkbookParser) -> None:
         """Test header normalization with empty input."""
         headers = parser._normalize_headers([])

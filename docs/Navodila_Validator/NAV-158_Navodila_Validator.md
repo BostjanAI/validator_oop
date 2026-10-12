@@ -2,8 +2,8 @@
 
 **Dokument:** NAV-158  
 **Naslov:** Navodila za uporabo aplikacije IPO Validator  
-**Verzija:** 4  
-**Datum veljavnosti:** 25. 3. 2026  
+**Verzija:** 5  
+**Datum veljavnosti:** 1. 9. 2026  
   
 
 ---
@@ -349,6 +349,36 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 
 ---
 
+#### `DATA_TYPE_MASA_INVALID` – Tip podatka mora biti `masa`
+
+**Opis:** V stolpcu `Tip podatka` je oštevilčena različica mase (npr. `masa1`, `masa2`).
+
+**Vzrok:** Številka je vpisana v tip podatka namesto v `Ključ preverjanja`.
+
+**Rešitev:** V `Tip podatka` vpišite točno `masa`. Različne mase ločite s ključem preverjanja (npr. `NaCl1`, `NaCl2`), ne z `masa1`.
+
+---
+
+#### `DATA_TYPE_POSEBNOSTI_REQUIRED` – Brez zavihka mora biti `posebnosti`
+
+**Opis:** Receptura nima zavihka, v `Tip podatka` pa je `posebnostimon`.
+
+**Vzrok:** Tip za posebnosti je izbran, kot da receptura uporablja zavihke monolitov.
+
+**Rešitev:** Če stolpec `Zavihek` ni uporabljen, v `Tip podatka` vpišite `posebnosti`.
+
+---
+
+#### `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – Z zavihkom mora biti `posebnostimon`
+
+**Opis:** Receptura ima zavihek, v `Tip podatka` pa je `posebnosti`.
+
+**Vzrok:** Tip za posebnosti ne ustreza recepturi z zavihki.
+
+**Rešitev:** Če je v stolpcu `Zavihek` koda zavihka (npr. `monolit1`), v `Tip podatka` vpišite `posebnostimon`.
+
+---
+
 #### `OBJECT_TYPE_MISMATCH` – Tip objekta ne ustreza tipu podatka
 
 **Opis:** Kombinacija `Tip podatka` in `Tip objekta` ni veljavna.
@@ -420,11 +450,65 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 
 #### `KEY_REQUIRED` – Manjka ključ preverjanja
 
-**Opis:** Vrstica tipa `kemikalija`, `raztopina`, `masa` ali `tehtnica` nima ključa preverjanja.
+**Opis:** Vrstica tipa `kemikalija`, `raztopina`, `masa` ali časovni par nima ključa preverjanja. Oprema in checkbox ključa ne zahtevata.
 
 **Vzrok:** Stolpec `Ključ preverjanja` je pri tej vrstici puščen prazen.
 
-**Rešitev:** Dodajte unikaten ključ preverjanja (glejte format zgoraj). Ključ je obvezen za vse vrstice, ki zbirajo podatke.
+**Rešitev:** Dodajte unikaten ključ preverjanja (glejte format zgoraj). Pri opremi s `Tip objekta = spustniseznam` namesto ključa zapolnite stolpec `Vrednost` (oznaka šifranta).
+
+---
+
+#### `SPUSTNISEZNAM_VREDNOST_EMPTY` – Manjka vrednost pri spustnem seznamu
+
+**Opis:** Vrstica s `Tip objekta = spustniseznam` nima zapolnjenega stolpca `Vrednost`. Pri opremi je ta stolpec obvezen namesto ključa preverjanja.
+
+**Vzrok:** Stolpec `Vrednost` je prazen, čeprav gre za spustni seznam (dropdown šifranta opreme).
+
+**Rešitev:** V stolpec `Vrednost` vpišite oznako šifranta (npr. `HPLC`, `tehtnica`, `TEH-KLA`).
+
+---
+
+#### `CRTA_STEP_EMPTY` – Pri `crta` manjka številka koraka
+
+**Opis:** Vrstica s `Tip objekta = crta` nima zapolnjenega stolpca `št. Koraka`.
+
+**Vzrok:** Ločilna vrstica je brez številke koraka (ali je stolpec pomotoma izpraznjen).
+
+**Rešitev:** V `št. Koraka` vpišite formulo `=C_prej+1` (ali `1` na začetku zavihka). Vrstice tipa `crta` **morajo imeti** številko koraka.
+
+---
+
+#### `CRTA_COLUMN_NOT_EMPTY` – Pri `crta` mora biti stolpec prazen
+
+**Opis:** Vrstica s `Tip objekta = crta` ima zapolnjen stolpec, ki mora biti prazen.
+
+**Vzrok:** V ločilno vrstico so vpisani podatki (npr. `Navodilo`, ključ, kontrole).
+
+**Rešitev:** Pri `crta` pustite prazne vse stolpce razen `št. Koraka` (obvezen), `Tip objekta` in po potrebi `Tip podatka`. `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, …).
+
+---
+
+#### `NASLOV_STEP_EMPTY` – Pri `naslov` manjka številka koraka
+
+**Opis:** Vrstica s `Tip objekta = naslov` nima zapolnjenega stolpca `št. Koraka`.
+
+**Rešitev:** V `št. Koraka` vpišite `1` (nov zavihek) ali formulo `=C_prej+1`.
+
+---
+
+#### `NASLOV_NAVODILO_EMPTY` – Pri `naslov` manjka Navodilo
+
+**Opis:** Vrstica s `Tip objekta = naslov` nima besedila v stolpcu `Navodilo`.
+
+**Rešitev:** V `Navodilo` vpišite naslov razdelka (besedilo, ki ga vidi operater).
+
+---
+
+#### `NASLOV_COLUMN_NOT_EMPTY` – Pri `naslov` mora biti stolpec prazen
+
+**Opis:** Vrstica s `Tip objekta = naslov` ima zapolnjen stolpec, ki mora biti prazen.
+
+**Rešitev:** Pri `naslov` zapolnite samo `št. Koraka` in `Navodilo`. `Zavihek` sme biti prazen ali koda monolita (`monolit1`, `monolit2`, …), enako kot pri `crta`. Ostali stolpci (ključ, vrednost, labela, kontrole) naj bodo prazni.
 
 ---
 
@@ -438,6 +522,16 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 ```
 ="=($"&C113&"-"&"$"&C108&")/($"&C108&"-$"&C89&")"
 ```
+
+---
+
+#### `FORMULA_AMPERSAND_DOLLAR` – Formula vsebuje nedovoljen zapis `&$`
+
+**Opis:** Pri vrsticah s tipom objekta `formula`, `formula0` ali `formula1` stolpec `Vrednost` vsebuje zaporedje `&$`.
+
+**Vzrok:** Sklic na korak je zapisan kot `&$…` (npr. `&$12` ali `&$C12`) namesto kot spoj znaka `$` in celice s številko koraka.
+
+**Rešitev:** Sklic zapišite kot `"$"&` in celico s številko koraka, npr. `"$"&C12`. Zapis `&$` odstranite.
 
 ---
 
@@ -483,11 +577,13 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 
 #### `SPACE_NOT_ALLOWED` – Nedovoljen presledek v vrednosti
 
-**Opis:** Vrednost v enem od stolpcev (razen `Navodilo` in `Labela`) vsebuje presledek.
+**Opis:** Vrednost v enem od stolpcev (razen `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`) vsebuje presledek.
 
 **Vzrok:** Presledek je bil vstavljen med tipkanjem ali pri lepljenju vrednosti iz drugega vira.
 
-**Rešitev:** Odstranite presledek iz vrednosti v navedenem stolpcu. Presledki so dovoljeni samo v stolpcih `Navodilo` in `Labela`.
+**Rešitev:** Odstranite presledek iz vrednosti v navedenem stolpcu. Presledki so dovoljeni v stolpcih `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`.
+
+**Posebej – stolpec `Zavihek`:** Presledek v `Zavihek` **ne odpira novega zavihka**. Validator javi napako v tem stolpcu; pravil `zaklenipolja` in številčenja korakov zaradi tega ne razbije. Popravite celico v `Zavihek`.
 
 ---
 
@@ -517,6 +613,46 @@ Te napake se nanašajo na logične odnose med vrsticami (pari masa/kemikalija, z
 - Kemikalija: ključ `NaCl1`
 - Masa: ključ `NaCl1` ✓ (ujemanje)
 - Masa: ključ `NaCl2` ✗ (ne ujema se)
+
+---
+
+#### `PAIR_CHEM_WITHOUT_MASS` – Za kemikalijo manjka ustrezna masa
+
+**Opis:** Vrstica `kemikalija` nima vrstice `masa` z enakim ključem preverjanja.
+
+**Vzrok:** Manjka parna vrstica ali je namesto `masa` vpisan `volumen`.
+
+**Rešitev:** Dodajte vrstico z `Tip podatka = masa` in **istim** ključem. `volumen` z istim ključem ni dovoljen (razen pri `dH2O`).
+
+---
+
+#### `PAIR_SOL_WITHOUT_MASS` – Za raztopino manjka ustrezna masa
+
+**Opis:** Vrstica `raztopina` nima vrstice `masa` z enakim ključem preverjanja.
+
+**Vzrok:** Manjka parna vrstica ali je namesto `masa` vpisan `volumen`.
+
+**Rešitev:** Dodajte vrstico z `Tip podatka = masa` in **istim** ključem. Za porabo raztopine ne uporabljajte tipa `volumen`.
+
+---
+
+#### `PAIR_VOLUME_NOT_ALLOWED` – Volumen z istim ključem ni dovoljen
+
+**Opis:** Ob kemikaliji/raztopini obstaja vrstica `volumen` z enakim ključem preverjanja.
+
+**Vzrok:** Poraba je vpisana kot `volumen` namesto `masa`.
+
+**Rešitev:** Spremenite `Tip podatka` v `masa`. Izjema: ključ `dH2O` (takrat je `volumen` pravilen).
+
+---
+
+#### `PAIR_WATER_WITHOUT_VOLUME` – Za dH2O mora biti volumen
+
+**Opis:** Kemikalija/raztopina s ključem vode nima vrstice `volumen`.
+
+**Vzrok:** Pri vodi je vpisan `masa` ali pa parna vrstica manjka.
+
+**Rešitev:** Za `dH2O` uporabite `Tip podatka = volumen` (voda ni v modulu RAZTOPINE).
 
 ---
 
@@ -732,7 +868,7 @@ Te napake se nanašajo na pravilnost kontrol v stolpcih `Kontrola 1` do `Kontrol
 | Tip podatka | Pričakovane kontrole |
 |-------------|---------------------|
 | `kemikalija` | `kontrolaveljavnostikemikalije`, `kontrolaustreznostikemikalije`, `kontrolapraznopolje` |
-| `raztopina` | `kontrolaveljavnostiraztopine` (Par1: baza ključa), `kontrolaustreznostiraztopine` (Par1: baza ključa), `kontrolapraznopolje` |
+| `raztopina` | `kontrolaveljavnostiraztopine` (Par1 zapolnjen, ujemanje s ključem se ne zahteva), `kontrolaustreznostiraztopine` (Par1 zapolnjen, ujemanje s ključem se ne zahteva), `kontrolapraznopolje` |
 | `monolit` | `kontrolaustreznostimonolita` (Par1: kode tipov), `kontrolaveljavnostimonolita`, `kontrolapraznopolje` |
 | `tehtnica`/oprema | `kontrolaveljavnostiopreme` (Par1: tip), `kontrolaustreznostiopreme` (Par1: tip), `kontrolapraznopolje` |
 | `checkbox` (DA) | `aliobkljukan` (Par1: `DA`) |
@@ -783,8 +919,8 @@ Vrednosti sta lahko Excelovi formuli (npr. `=INDEX(Podatki!...)`).
 
 **Rešitev:** Preverite, da parametri intervala ustrezajo pravilom:
 
-- **Razpon** (npr. Navodilo: `5–10`, korak eps=1): `Par1 = 4`, `Par2 = 11`
-- **Toleranca ±** (npr. Navodilo: `6.50 ± 0.10`, eps=0.01): `Par1 = 6.39`, `Par2 = 6.61`
+- **Razpon** (npr. Navodilo: `5–10`, korak eps=1): kanonsko `Par1 = 4`, `Par2 = 11`; pri `47.5–52.5` `Par1 = 47.4`, `Par2 = 52.6`; pri `0.18–0.22` `Par1 = 0.17`, `Par2 = 0.23`; pri `0.01–0.30` (kjer bi bil `a − eps` enak 0) so sprejemljive vrednosti v `[0.004, 0.305]` (`0`, `0.003`, `0.306` in `0.310` so napake).
+- **Toleranca ±** (npr. Navodilo: `6.50 ± 0.10`, eps=0.01): kanonsko `Par1 = 6.39`, `Par2 = 6.61`; sprejemljive so tudi vrednosti v `[6.34, 6.65]`. `6.33` in `6.66` sta napaki.
 - **Neenačba** (npr. Navodilo: `> 5`): `Par1 = 5`, `Par2 ≥ 6`
 
 ---
@@ -811,13 +947,13 @@ Vrednosti sta lahko Excelovi formuli (npr. `=INDEX(Podatki!...)`).
 
 ---
 
-#### `CTRL_INTERVAL_REQUIRED` – Manjka kontrola `kontrolainterval`
+#### `CTRL_INTERVAL_REQUIRED` – Manjka kontrola `kontrolainterval` ali `kontrolarazlika`
 
-**Opis:** Stolpec `Navodilo` vsebuje numeričen interval (razpon, ±, neenačba), a kontrola `kontrolainterval` manjka.
+**Opis:** Stolpec `Navodilo` vsebuje numeričen interval (razpon, ±, neenačba), a ni ne `kontrolainterval` ne `kontrolarazlika`.
 
 **Vzrok:** Kontrola ni bila dodana, čeprav navodilo zahteva preverjanje vrednosti.
 
-**Rešitev:** Dodajte `kontrolainterval` s pravilnimi mejami (glejte pravila za izračun v razdelku `CTRL_INTERVAL_P1_BOUND`).
+**Rešitev:** Dodajte `kontrolainterval` s pravilnimi mejami (glejte pravila za izračun v razdelku `CTRL_INTERVAL_P1_BOUND`) ali `kontrolarazlika`.
 
 ---
 
@@ -888,6 +1024,26 @@ Kontrola 3: kontrolapraznopolje
 
 ---
 
+#### `LOCK_CONDITION_P1_LOCK_KEY` – Napačen ključ v Par1 pri `aliobstajapogoj`
+
+**Opis:** Param1 pri kontroli `aliobstajapogoj` ni ključ sklopa `zaklenipolja`, ki ta korak zaklene.
+
+**Vzrok:** Pogosto kopiranje SST (ali podobnega) bloka: v Par1 ostane ključ prejšnjega sklopa (npr. `sst_4`), čeprav ta korak zaklene drug `zaklenipolja` (npr. `sst_9` / `sst_10`).
+
+**Rešitev:** V Par1 vpišite **ključ tistega `zaklenipolja`, ki v Param1 navaja ta korak**, ali **parni ključ istega sklopa**. Primer: `sst_3` s Param2=`0` je enakovreden `sst_4` s Param2=`1`, če sta `sst_3` in `sst_4` par DA/NE.
+
+---
+
+#### `LOCK_CONDITION_P1_DUPLICATE` – Podvojen Par1 pri `aliobstajapogoj`
+
+**Opis:** Isti Param1 pri `aliobstajapogoj` je uporabljen pri dveh različnih sklopih `zaklenipolja` na istem zavihku.
+
+**Vzrok:** Kopiran blok zaklepanja, v katerem Par1 ni bil posodobljen na ključ novega `zaklenipolja`.
+
+**Rešitev:** Vsak sklop `zaklenipolja` naj ima v Par1 pri `aliobstajapogoj` **svoj** ključ. Več vrstic v **istem** sklopu sme imeti enak Param1.
+
+---
+
 #### `SOLUTION_KEY_MISSING` – Kontrola raztopine brez ključa v vrstici
 
 **Opis:** Vrstica z raztopino ima kontrolo `kontrolaveljavnostiraztopine` ali `kontrolaustreznostiraztopine`, a v vrstici manjka ključ preverjanja.
@@ -895,18 +1051,6 @@ Kontrola 3: kontrolapraznopolje
 **Vzrok:** Stolpec `Ključ preverjanja` je prazen pri vrstici, ki vsebuje kontrolo raztopine.
 
 **Rešitev:** Dodajte ključ preverjanja (npr. `GK1`) v stolpec `Ključ preverjanja` za to vrstico.
-
----
-
-#### `SOLUTION_P1_BASE` – Par1 kontrole raztopine ne ustreza bazi ključa
-
-**Opis:** Par1 pri `kontrolaveljavnostiraztopine` ali `kontrolaustreznostiraztopine` ni enak baznem delu ključa preverjanja vrstice.
-
-**Vzrok:** Pri raztopinah z oštevilčenimi ključi (npr. `GK1`, `GK2`, `GK3`) mora Par1 biti baza brez numerične pripone (tj. `GK`), ne pa celotni ključ.
-
-**Rešitev:** Vpišite v Par1 ključ brez numerične pripone:
-- Ključ raztopine: `2.73mp-NaCl_13.87mp-EtOH-GK1`
-- Pravilni Par1: `2.73mp-NaCl_13.87mp-EtOH-GK` (brez `1`)
 
 ---
 
@@ -938,6 +1082,9 @@ Kontrola 3: kontrolapraznopolje
 | 2 | Odstranjene vsebine o SOP validaciji (poglavja 3.4, 3.8, 4.5); posodobljene kode napak v razdelku 4.2 na dejanske kode iz izvorne kode (`OBJECT_TYPE_UNKNOWN`, `KEY_INVALID_FORMAT` itd.); dodana napaka `SPACE_NOT_ALLOWED` | 25. 3. 2026 |
 | 3 | Posodobljene vse kode napak v razdelkih 4.1, 4.3 in 4.4 iz slovenščine v angleščino (kode iz izvorne kode validatorja); dodane manjkajoče kode: `KEY_DUP_MASS`, `KEY_DUP_MASS_SECTION`, `CTRL_INVALID_CONTEXT`, `SOLUTION_KEY_MISSING` | 25. 3. 2026 |
 | 4 | Posodobljeno besedilo o sprejemljivosti recepture: pripravljalec mora vsako napako validatorja individualno preveriti in presoditi; receptura je primerna za prenos v proizvodnjo tudi, če napaka ne odraža dejanske nepravilnosti. Usklajene definicije (razdelek 2), postopek (razdelek 3.3) in odgovornosti (razdelek 5). | 25. 3. 2026 |
+| 5 | Odstranjena napaka `SOLUTION_P1_BASE`: Par1 pri kontrolah raztopine se ne preverja več proti ključu preverjanja | 1. 9. 2026 |
+| 6 | Dodana napaka `DATA_TYPE_MASA_INVALID`: `Tip podatka` za maso sme biti samo `masa` (`masa1` ni veljaven) | 9. 9. 2026 |
+| 7 | Par kemikalija/raztopina–masa: obvezen `masa` z istim ključem; `volumen` z istim ključem ni dovoljen (izjema `dH2O`) | 9. 9. 2026 |
 
 ---
 
@@ -948,16 +1095,24 @@ Kontrola 3: kontrolapraznopolje
 | Napaka | Pogost vzrok | Hitra rešitev |
 |--------|--------------|---------------|
 | `OBJECT_TYPE_UNKNOWN` | Tipkarska napaka v `Tip objekta` | Preverite črkovanje (male črke, brez presledkov) |
+| `DATA_TYPE_MASA_INVALID` | `Tip podatka` je `masa1` namesto `masa` | Vpišite točno `masa`; številko dajte v ključ preverjanja |
 | `OBJECT_TYPE_MISMATCH` | Napačen `Tip objekta` za ta `Tip podatka` | Glejte tabelo ujemanja v razdelku 4.2 |
 | `LABEL_MUST_BE_KODA` | Napačna Labela | Nastavite `Labela = koda` za kemikalija, zaposleni, monolit |
 | `KEY_INVALID_FORMAT` | Prepovedani znaki v ključu | Odstranite presledke, šumnike, posebne znake |
+| `SPUSTNISEZNAM_VREDNOST_EMPTY` | Prazna `Vrednost` pri `spustniseznam` (npr. oprema) | Vpišite oznako šifranta (npr. `HPLC`, `tehtnica`) |
+| `CRTA_STEP_EMPTY` | Ločnik `crta` brez številke koraka | V `št. Koraka` vpišite `=C_prej+1` (ali `1`) |
+| `NASLOV_NAVODILO_EMPTY` | Naslov brez besedila | V `Navodilo` vpišite naslov razdelka |
 | `COMMA_NOT_ALLOWED` | Vejica kot decimalno ločilo | Zamenjajte vejico s piko v numeričnih vrednostih |
-| `SPACE_NOT_ALLOWED` | Presledek v vrednosti stolpca | Odstranite presledek (dovoljeno le v `Navodilo` in `Labela`) |
+| `SPACE_NOT_ALLOWED` | Presledek v vrednosti stolpca | Odstranite presledek (dovoljeno v `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`) |
 | `FORMULA_INVALID_REFERENCE` | Formula kaže na izbrisan korak | Preverite `$N` reference v formulah |
 | `STEP_DUPLICATE` | Kopirana vrstica brez popravka | Preverite formule v stolpcu `št. Koraka` |
 | `STEP_GAPS` | Izbrisana vrstica ali `crta` brez koraka | Zagotovite neprekinjeno zaporedje; `crta` mora imeti korak |
 | `LOCK_P1_FORMAT` | Napačen Par1 pri `zaklenipolja` | Vnesite samo cela števila, ločena z vejicami: `45,46,47` |
+| `LOCK_CONDITION_P1_LOCK_KEY` | Pri `aliobstajapogoj` je napačen ključ (npr. `sst_4` iz drugega sklopa) | V Par1 vpišite ključ sklopa, ki ta korak zaklene (`sst_3`/0 ali parni `sst_4`/1) |
+| `LOCK_CONDITION_P1_DUPLICATE` | Isti Par1 pri `aliobstajapogoj` v dveh sklopih zaklepanja | Vsak sklop `zaklenipolja` mora imeti svoj ključ v Par1 |
 | `PAIR_MASS_WITHOUT_OWNER` | Masa brez kemikalije/raztopine | Preverite ujemanje ključev med maso in lastnikom |
+| `PAIR_CHEM_WITHOUT_MASS` / `PAIR_SOL_WITHOUT_MASS` | Kemikalija/raztopina brez mase | Dodajte vrstico `masa` z istim ključem |
+| `PAIR_VOLUME_NOT_ALLOWED` | `volumen` z istim ključem kot raztopina | Spremenite v `masa` (razen `dH2O`) |
 
 ---
 

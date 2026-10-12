@@ -128,6 +128,10 @@ DATA_OBJECT_MAPPING: Dict[str, FrozenSet[str]] = {
     "formula": frozenset({"formula", "formula0", "formula1"}),
 }
 
+# Tip podatka za posebnosti: brez zavihka `posebnosti`, z zavihkom `posebnostimon`.
+TIP_PODATKA_POSEBNOSTI: str = "posebnosti"
+TIP_PODATKA_POSEBNOSTIMON: str = "posebnostimon"
+
 # Types that require Labela = 'koda'
 LABELA_KODA_TYPES: FrozenSet[str] = frozenset({
     "kemikalija", "raztopina", "embalaza",
@@ -148,9 +152,6 @@ REQUIRED_KEY_TYPES: FrozenSet[str] = frozenset({
 })
 REQUIRED_KEY_TIME_TYPES: FrozenSet[str] = frozenset({
     "datumcaszacetek", "datumcaskonec",
-})
-REQUIRED_KEY_CHECKBOX_CONDITION_CONTROLS: FrozenSet[str] = frozenset({
-    "aliobstajapogoj", "aliobstajapogoj_ali", "zaklenipolja",
 })
 
 # Dovoljeni vrednosti Labela za Tip objekta checkbox (po normalizaciji: lowercase, collapse spaces)
@@ -348,6 +349,9 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "OBJECT_TYPE_EMPTY": "Tip objekta ni določen",
     "OBJECT_TYPE_UNKNOWN": "Neznan tip objekta",
     "OBJECT_TYPE_MISMATCH": "Tip objekta ne ustreza tipu podatka",
+    "DATA_TYPE_MASA_INVALID": "Tip podatka mora biti 'masa' (npr. masa1 ni veljaven)",
+    "DATA_TYPE_POSEBNOSTI_REQUIRED": "Receptura nima zavihka, zato mora biti Tip podatka 'posebnosti'",
+    "DATA_TYPE_POSEBNOSTIMON_REQUIRED": "Receptura ima zavihek, zato mora biti Tip podatka 'posebnostimon'",
     # --- Field: label ---
     "LABEL_MUST_BE_KODA": "Labela mora biti 'koda'",
     "LABEL_MUST_BE_NAZIV_OPREME": "Labela mora biti 'naziv opreme'",
@@ -356,16 +360,19 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "LABEL_CHECKBOX_FORMAT": "Pri tipu objekta checkbox mora biti Labela 'DA (kljukica)' ali 'DA (kljukica)/NE (prazno)'",
     # --- Field: key ---
     "KEY_INVALID_FORMAT": "Nepravilen zapis ključa",
-    "KEY_REQUIRED": "Manjka ključ preverjanja (obvezen za kemikalijo, raztopino, maso, opremo, časovni par ali checkbox s pogojem)",
+    "KEY_REQUIRED": "Manjka ključ preverjanja (obvezen za kemikalijo, raztopino, maso ali časovni par)",
     # --- Field: formula ---
     "FORMULA_SYNTAX": "Nepravilen zapis formule",
     "FORMULA_NO_REFERENCE": "Formula nima sklica na korake",
+    "FORMULA_AMPERSAND_DOLLAR": "Formula vsebuje nedovoljen zapis '&$'",
     "FORMULA_INVALID_REFERENCE": "Formula se sklicuje na neobstoječi korak",
     "FORMULA_STEP_INVALID_TYPE": "Korak, na katerega se formula sklicuje, nima dovoljenega Tip objekta ('edit', 'formula', 'formula0', 'formula1' ali 'klictehtnice1')",
     # --- Field: value ---
-    "CRTA_COLUMN_NOT_EMPTY": "Pri tipu objekta crta mora biti stolpec prazen",
-    "NASLOV_COLUMN_NOT_EMPTY": "Pri naslovu mora biti stolpec prazen (dovoljena sta le št. Koraka, Navodilo ter identifikator tipa)",
-    "MASS_WATER_SHOULD_BE_VOLUME": "Tip podatka ne sme biti 'masa' pri ključu dH2O",
+    "CRTA_COLUMN_NOT_EMPTY": "Pri tipu objekta crta mora biti stolpec prazen (št. Koraka mora biti zapolnjen; Zavihek sme biti prazen ali monolit1, monolit2, ...)",
+    "CRTA_STEP_EMPTY": "Pri tipu objekta crta mora biti stolpec št. Koraka zapolnjen",
+    "NASLOV_COLUMN_NOT_EMPTY": "Pri naslovu mora biti stolpec prazen (dovoljena sta le št. Koraka in Navodilo; Zavihek sme biti prazen ali monolit1, monolit2, ...)",
+    "NASLOV_STEP_EMPTY": "Pri naslovu mora biti stolpec št. Koraka zapolnjen",
+    "NASLOV_NAVODILO_EMPTY": "Pri naslovu mora biti stolpec Navodilo zapolnjen",
     "SPUSTNISEZNAM_VREDNOST_EMPTY": "Pri spustnem seznamu mora biti stolpec Vrednost zapolnjen",
     "COMMA_NOT_ALLOWED": "Vrednost vsebuje nedovoljeno vejico v številu",
     "SPACE_NOT_ALLOWED": "Vrednost vsebuje nedovoljen presledek",
@@ -386,6 +393,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     # --- Relational: pairs ---
     "PAIR_CHEM_WITHOUT_MASS": "Za kemikalijo manjka ustrezna masa",
     "PAIR_SOL_WITHOUT_MASS": "Za raztopino manjka ustrezna masa",
+    "PAIR_VOLUME_NOT_ALLOWED": "Tip podatka 'volumen' ni dovoljen z istim ključem kot kemikalija/raztopina",
+    "PAIR_WATER_WITHOUT_VOLUME": "Za ključ dH2O mora biti tip podatka 'volumen'",
     "PAIR_MASS_WITHOUT_OWNER": "Masa nima pripadajoče kemikalije, raztopine ali monomerne",
     "PAIR_MASS_SECTION_MISMATCH": "Ključ preverjanja za 'masa' se ne ujema z lastnikom (kemikalija/raztopina/monomerna)",
     "PAIR_KOLICINA_WITHOUT_OWNER": "Kolicina nima pripadajočega repro pred tem korakom",
@@ -420,7 +429,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "CTRL_INTERVAL_TARGET_P2": "Param2 ne sledi zgornji meji iz navodila",
     "CTRL_INTERVAL_TARGET_P1_MAX": "Param1 je nad dovoljeno spodnjo mejo",
     "CTRL_INTERVAL_TARGET_P2_MIN": "Param2 je pod zahtevano zgornjo mejo",
-    "CTRL_INTERVAL_REQUIRED": "Manjka kontrola 'kontrolaInterval'",
+    "CTRL_INTERVAL_REQUIRED": "Manjka kontrola 'kontrolaInterval' ali 'kontrolarazlika'",
     # --- Control: time (casa) ---
     "CTRL_CASA_MIN": "Kontrola časa brez minimalne vrednosti",
     "CTRL_CASA_MIN_NOT_NUMBER": "Minimalna vrednost časa ni številčna",
@@ -453,14 +462,15 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "LOCK_P1_STEP_MISSING": "Korak iz Param1 ne obstaja",
     "LOCK_P1_MISSING_FOR_CONDITION": "Korak z 'aliObstajaPogoj' ni naveden v Param1 pri 'zaklenipolja'",
     "LOCK_CONDITION_P1P2": "Korak iz Param1 nima zahtevane kombinacije Param1/Param2 za 'aliObstajaPogoj'",
-    "LOCK_P1_EXTRA_STEPS": "Pri zaklenipolja v Param1 so odvečni koraki",
+    "LOCK_CONDITION_P1_LOCK_KEY": "Param1 pri 'aliObstajaPogoj' ni ključ sklopa zaklenipolja",
+    "LOCK_CONDITION_P1_DUPLICATE": "Param1 pri 'aliObstajaPogoj' je podvojen med različnimi sklopi 'zaklenipolja'",
     "LOCK_P1_EXCEL_ERROR": "Param1 pri 'zaklenipolja' vsebuje Excel napako",
     "LOCK_P1_FORMAT": "Param1 pri 'zaklenipolja' ni v pravilnem formatu",
     "LOCK_KEY_DUPLICATE": "Kontrola 'zaklenipolja' ima podvojen ključ preverjanja",
     "CTRL_ALIOB_NOT_ALLOWED": "Pri 'aliObstajaPogoj' na checkboxu ni dovoljena kontrola 'aliObkljukan'",
     # --- Control: solution (raztopina) ---
     "SOLUTION_KEY_MISSING": "Kontrola raztopine brez ključa v vrstici",
-    "SOLUTION_P1_MISSING": "Kontrola raztopine brez baze ključa (Param1)",
+    "SOLUTION_P1_MISSING": "Kontrola raztopine brez Param1",
     "SOLUTION_P1_BASE": "Param1 ne ustreza bazi ključa",
     "SOLUTION_P2_BASE": "Param2 ne ustreza bazi ključa",
     # --- Control: equipment (oprema) ---
@@ -497,8 +507,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "SOP_MEDIUM_MISMATCH": "Medij za določeno fazo se ne ujema z medijem iz SOP-a",
     "SOP_REQUIREMENT_MISSING": "Manjka zahteva iz SOP-a",
     "SOP_LOAD_ERROR": "Napaka pri nalaganju SOP dokumenta",
-    # --- Catalog (šifranti raztopin/kemikalij) ---
-    "CATALOG_CODE_MISMATCH": "Šifra raztopine/kemikalije ni v šifrantu",
+    # --- Catalog (šifranti raztopin/kemikalij/repro) ---
+    "CATALOG_CODE_MISMATCH": "Šifra raztopine/kemikalije/repro materiala ni v šifrantu",
 }
 
 

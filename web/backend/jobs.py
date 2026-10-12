@@ -52,6 +52,7 @@ class Job:
     sop_path: Path | None = None
     catalog_raztopine_path: Path | None = None
     catalog_kemikalije_path: Path | None = None
+    catalog_repro_path: Path | None = None
     state: str = "queued"
     message: str = ""
     error: str | None = None
@@ -99,6 +100,7 @@ class JobManager:
         sop_file: tuple[str, bytes] | None = None,
         catalog_raztopine: tuple[str, bytes] | None = None,
         catalog_kemikalije: tuple[str, bytes] | None = None,
+        catalog_repro: tuple[str, bytes] | None = None,
         owner: str = "",
     ) -> str:
         """Ustvari job, shrani naložene datoteke in ga uvrsti v izvajanje."""
@@ -118,6 +120,7 @@ class JobManager:
         sop_path = self._save_optional(input_dir, sop_file)
         razt_path = self._save_optional(input_dir, catalog_raztopine)
         kem_path = self._save_optional(input_dir, catalog_kemikalije)
+        repro_path = self._save_optional(input_dir, catalog_repro)
 
         job = Job(
             job_id=job_id,
@@ -127,6 +130,7 @@ class JobManager:
             sop_path=sop_path,
             catalog_raztopine_path=razt_path,
             catalog_kemikalije_path=kem_path,
+            catalog_repro_path=repro_path,
             owner=owner,
         )
         with self._lock:
@@ -196,7 +200,9 @@ class JobManager:
             catalog_data, catalog_paths = (None, {})
             if job.config.enable_catalog_validation:
                 catalog_data, catalog_paths = load_catalog_data(
-                    job.catalog_raztopine_path, job.catalog_kemikalije_path
+                    job.catalog_raztopine_path,
+                    job.catalog_kemikalije_path,
+                    job.catalog_repro_path,
                 )
         except Exception as exc:  # pragma: no cover - defenzivno
             logger.exception("Priprava virov ni uspela: %s", exc)

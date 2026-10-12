@@ -10,6 +10,7 @@ from validator_oop.ui.input_files import (
     filter_workbooks_with_required_columns,
     format_no_valid_workbooks_message,
     is_under_staro_folder,
+    iter_excel_candidates_in_folders,
 )
 
 
@@ -27,6 +28,40 @@ class TestStaroFolderDetection:
         assert is_under_staro_folder(path) is False
 
 
+class TestIterExcelCandidatesSkipsStaro:
+    def test_does_not_yield_files_inside_staro(self, tmp_path: Path) -> None:
+        active = tmp_path / "aktivno"
+        active.mkdir()
+        (active / "receptura.xlsm").write_bytes(b"")
+        (active / "receptura_staro.xlsx").write_bytes(b"")
+        (active / "staro").mkdir()
+        (active / "staro" / "arhiv.xlsm").write_bytes(b"")
+        nested = active / "podmapa" / "STARO"
+        nested.mkdir(parents=True)
+        (nested / "arhiv2.xls").write_bytes(b"")
+        (active / "podmapa" / "veljavna.xlsx").write_bytes(b"")
+
+        found = list(iter_excel_candidates_in_folders([active]))
+
+        assert sorted(p.name for p in found) == [
+            "receptura.xlsm",
+            "receptura_staro.xlsx",
+            "veljavna.xlsx",
+        ]
+
+    def test_selected_staro_folder_yields_nothing(self, tmp_path: Path) -> None:
+        staro = tmp_path / "Staro"
+        staro.mkdir()
+        (staro / "arhiv.xlsm").write_bytes(b"")
+        logs: list[str] = []
+
+        found = list(iter_excel_candidates_in_folders([staro], log=logs.append))
+
+        assert found == []
+        assert len(logs) == 1
+        assert "Preskočena mapa 'staro'" in logs[0]
+
+
 class TestFormatNoValidWorkbooksMessage:
     def test_staro_only_single_file(self) -> None:
         result = WorkbookFilterResult(
@@ -42,8 +77,8 @@ class TestFormatNoValidWorkbooksMessage:
             skipped_no_columns=[Path(r"P:\x\receptura.xlsm")],
         )
         dialog, log_line = format_no_valid_workbooks_message(result)
-        assert dialog == "Nobena izbrana datoteka nima zahtevanih stolpcev recepture."
-        assert "zahtevanih stolpcev" in log_line
+        assert dialog == "Nobena izbrana datoteka nima stolpcev recepture."
+        assert "stolpcev recepture" in log_line
 
     def test_mixed_skip_reasons(self) -> None:
         result = WorkbookFilterResult(
@@ -52,20 +87,18 @@ class TestFormatNoValidWorkbooksMessage:
         )
         dialog, log_line = format_no_valid_workbooks_message(result)
         assert "mapi 'staro'" in dialog
-        assert "brez zahtevanih stolpcev" in dialog
+        assert "brez stolpcev recepture" in dialog
         assert "1 v mapi 'staro'" in log_line
 
 
 class TestFilterWorkbooksWithRequiredColumns:
-    def test_staro_file_is_skipped_without_column_check(self) -> None:
+    def test_manually_selected_staro_file_is_validated(self) -> None:
         loader = MagicMock()
         loader.has_required_columns.return_value = True
+        path = Path(r"P:\projekt\staro\receptura.xlsm")
 
-        result = filter_workbooks_with_required_columns(
-            [Path(r"P:\projekt\staro\receptura.xlsm")],
-            loader,
-        )
+        result = filter_workbooks_with_required_columns([path], loader)
 
-        assert result.valid == []
-        assert len(result.skipped_staro) == 1
-        loader.has_required_columns.assert_not_called()
+        assert result.valid == [path]
+        assert result.skipped_staro == []
+        loader.has_required_columns.assert_called_once_with(path)

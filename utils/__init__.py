@@ -8,7 +8,9 @@ This package provides utility functions and helpers:
 
 from validator_oop.utils.helpers import (
     base_key_no_trailing_number,
+    canonicalize_header,
     coerce_str,
+    is_step_number_column,
     decimal_places_of_first_number,
     decimals_from_eps,
     derive_decimal_step_from_text,
@@ -32,9 +34,11 @@ from validator_oop.utils.helpers import (
     find_row_by_match,
     get_cell_value_from_workbook,
     parse_index_match_formula,
+    inequality_is_column_volume,
     parse_navodilo_inequality,
     parse_navodilo_interval,
     parse_navodilo_pm,
+    match_navodilo_pm,
     parse_navodilo_single,
     parse_numeric_value,
     parse_time_lower_bound_from_navodilo,
@@ -50,7 +54,9 @@ __all__ = [
     "LoggerMixin",
     "setup_logger",
     # String normalization
+    "canonicalize_header",
     "coerce_str",
+    "is_step_number_column",
     "norm_text",
     "norm_control_name",
     "normalize_column_names",
@@ -86,6 +92,8 @@ __all__ = [
     # Navodilo parsing
     "parse_navodilo_interval",
     "parse_navodilo_pm",
+    "match_navodilo_pm",
+    "inequality_is_column_volume",
     "parse_navodilo_inequality",
     "parse_navodilo_single",
     # Excel formula parsing

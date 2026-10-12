@@ -9,6 +9,46 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Changed
+- **field/** `formula_syntax` - Če `Vrednost` pri `formula` / `formula0` / `formula1` vsebuje `&$`, se javi napaka `FORMULA_AMPERSAND_DOLLAR` *(12. 10. 2026, ~20 min)*
+- **web/** `app.tsx` - Odstranjena konfiguracija in primerjava razdelkov; v rezultatih ni filtrov in stolpca resnosti; prenos samo Excel poročila; v auditu ni stolpca Rola *(12. 10. 2026, ~40 min)*
+- **web/** `app-header` - Črna vrstica brez »d.o.o.«; v rumeni vrstici odstranjen kvadratni znak IPO *(12. 10. 2026, ~10 min)*
+- **web/** `app-header` - Glava kot na spletišču Sartorius: črna vrstica »Sartorius BIA Separations d.o.o.«, pod njo rumena vrstica z logotipom in navigacijo *(12. 10. 2026, ~25 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri `≥ 3 CV (120000 - 340000 mL)` se za Param1/Param2 vzame razpon v mL (`119999` / `340001`), ne meja iz števila CV *(1. 10. 2026, ~30 min)*
+- **field/** `no_spaces_rule` - Presledek v stolpcu `Ključ preverjanja` ni več napaka `SPACE_NOT_ALLOWED` *(30. 9. 2026, ~15 min)*
+- **control/** `navodilo_interval_kontrolainterval_required_rule` - Ob številčnem intervalu v Navodilu zadostuje tudi kontrola `kontrolarazlika` (poleg `kontrolaInterval`) *(30. 9. 2026, ~20 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri `10 ± 0.1 CV (80 ± 8 mL)` se za Param1/Param2 vzame volumen `80 ± 8 mL`, ne število CV *(30. 9. 2026, ~40 min)*
+- **ui/** `input_files` - Ročno izbrana datoteka v mapi `staro` se validira; pri izbiri celotne mape se mapa `staro` še vedno preskoči *(30. 9. 2026, ~20 min)*
+- **excel/** `recipe_workbook`, **ui/** `input_files` - Datoteka se preskoči samo, če na nobenem listu ni nobenega stolpca recepture; če manjka en ali več stolpcev, se validira in `required_columns` javi `MISSING_COLUMN` *(29. 9. 2026, ~25 min)*
+- **ui/** `input_files` - Pri validaciji celotne mape se mapa `staro` (tudi `Staro`) sploh ne odpre; datoteke v njej se ne pregledujejo *(29. 9. 2026, ~20 min)*
+- **rules/** `catalog_code_rule` - Enaka `INDEX/MATCH` → `Podatki` pot tudi za Param1 `kontrolaustreznostirepro` (vse velikosti v tem stolpcu, šifrant repro) *(15. 9. 2026, ~25 min)*
+- **rules/** `catalog_code_rule` - Preverjanje šifer raztopin je `WorkbookRule`: iz Param1 `kontrolaustreznostiraztopine` razčleni `INDEX/MATCH`, v zavihku `Podatki` pa preveri vse vrstice tega stolpca (vse velikosti recepture, ne samo trenutni dropdown) *(15. 9. 2026, ~1 h 30 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.18–0.22` sta Param1/Param2 `0.17` / `0.23` (`a − eps`); MES prag `0.174` velja samo, kadar bi bil `a − eps` enak 0 (`0.01–0.30`) *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu z eno decimalko (`47.5–52.5`) sta Param1/Param2 `47.4` / `52.6` (`a − eps` / `b + eps`); extra decimalka (`47.44`) ni več zahtevana niti dovoljena *(10. 9. 2026, ~20 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.01–0.30` je Param2 `0.305` prag nad zadnjo meritvijo `0.304` (simetrično s Param1 `0.004`); `0.306` in `0.310` ostaneta napaki; pri `0.01–0.60` zgornja meja `0.605` *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.01–0.30` / `0.01–0.60` kanonski Param2 `0.310` / `0.610` nista več dovoljena; zgornja meja je `0.304` / `0.604` *(10. 9. 2026, ~10 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.01–0.30` Param1 `0` / `0.000` ni več veljaven (vse ≤ 0.004 je izven intervala); dovoljen je pas od `0.004` *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.01–0.30` je zgornji Param2 `0.304` (ne `0.305`, ker se 0.305 zaokroži na 0.31); Param1 `0.004` ostane dovoljen *(10. 9. 2026, ~10 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `0.01–0.30` sta Param1=`0.004` in Param2=`0.305` dovoljena (prag pod/nad 0.005–0.304); napaka od `0.003` / `0.306` *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri razponu `a–b` so dovoljene vrednosti, ki se z half-up zaokrožijo v `[a, b]` (npr. `0.01–0.30`: 0.005–0.304 OK; 0.004 in 0.305 napaka); kanonski `a−eps` / `b+eps` ostaneta veljavna *(10. 9. 2026, ~25 min)*
+- **control/** `kontrola_interval_advanced_rule` - Sporočilo ± napake kaže rob pasa (`Param1 mora biti 6.34`, `Param2 mora biti 6.65`), brez kanonske meje in oklepaja »ali v …« *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri ± je dovoljeni pas `[6.34, 6.65]` (ne ves `[6.30, 6.70]`): `6.33` in `6.66` sta napaki, `6.34` in `6.65` ostaneta OK *(10. 9. 2026, ~15 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri ± se zaokrožitveni pas razširi za en korak: vrednosti, ki se zaokrožijo na kanonski Param1/Param2, niso napaka (npr. `6.50 ± 0.10`: 6.34→6.30 in 6.65→6.70 sta OK; 6.24 in 6.75 ostaneta napaki) *(10. 9. 2026, ~20 min)*
+- **control/** `kontrola_interval_advanced_rule` - Pri ± toleranci se poleg kanonskih Param1/Param2 sprejmejo vrednosti, ki se z half-up zaokrožijo v `[x−t, x+t]` (npr. `6.50 ± 0.10`: dovoljeno 6.35–6.64; 6.34 in 6.65 ostaneta napaki) *(10. 9. 2026, ~1 h)*
+- **rules/** `catalog_code_rule` - Pri `raztopina` se šifra primerja iz Param1 kontrole `kontrolaustreznostiraztopine`, ne iz ključa preverjanja *(1. 9. 2026, ~20 min)*
+- **rules/** `catalog_code_rule` - Pri `repro`/`reproodpis` se šifra primerja iz Param1 kontrole `kontrolaustreznostirepro`, ne iz ključa preverjanja *(1. 9. 2026, ~25 min)*
+- **docs/** `NAV-158`, `PRAVILA_VALIDATORJA` - Presledek v `Zavihek` ne odpira novega zavihka; ostane napaka `SPACE_NOT_ALLOWED` v tem stolpcu *(1. 9. 2026, ~5 min)*
+- **core/** `shared_context` - Vrednost v `Zavihek` s presledkom ne odpira novega zavihka (ostane napaka `SPACE_NOT_ALLOWED` v tem stolpcu, brez lažnih napak pri `zaklenipolja` / številčenju korakov) *(1. 9. 2026, ~45 min)*
+- **field/** `no_spaces_rule` - Pri presledku v stolpcu `Zavihek` sporočilo pove, da je treba popraviti to celico in da presledek ne odpira novega zavihka *(1. 9. 2026, ~10 min)*
+- **control/** `kontrolaveljavnostiraztopine`, `kontrolaustreznostiraztopine` - Param1 se ne preverja več proti bazi ključa preverjanja (`SOLUTION_P1_BASE` / `SOLUTION_P2_BASE`); ključ in Param1 se smejo razlikovati *(1. 9. 2026, ~30 min)*
+- **field/** `naslov_empty_columns_rule` - Pri `naslov` morata biti zapolnjena `št. Koraka` (`NASLOV_STEP_EMPTY`) in `Navodilo` (`NASLOV_NAVODILO_EMPTY`); `Zavihek` prazen ali `monolit1`/`monolit2`/… kot pri `crta` *(31. 8. 2026, ~25 min)*
+- **field/** `crta_empty_columns_rule` - Pri `crta` mora biti `št. Koraka` zapolnjen (tudi okrajšava `št. Kor.`; koda `CRTA_STEP_EMPTY`); `Zavihek` prazen ali `monolit1`/`monolit2`/… *(31. 8. 2026, ~25 min)*
+- **control/** `aliobstajapogoj_param1_rule` - Skrajšano sporočilo `LOCK_CONDITION_P1_LOCK_KEY` (npr. `Param1 pri 'aliObstajaPogoj' mora biti sst_9 ali sst_10, ne 'sst_4'.`) *(31. 8. 2026, ~10 min)*
+- **control/** `aliobstajapogoj_param1_rule` - Param1 sme biti tudi parni ključ istega sklopa `zaklenipolja` (npr. `sst_4` s Param2=1 je enakovreden `sst_3` s Param2=0); koda `LOCK_CONDITION_P1_LOCK_KEY` *(31. 8. 2026, ~25 min)*
+- **control/** `aliobstajapogoj_param1_rule` - Ujemanje Param1 ne temelji več na najbližjem `zaklenipolja`, temveč na ključu tiste vrstice `zaklenipolja`, ki ta korak navaja v Param1 (koda `LOCK_CONDITION_P1_LOCK_KEY`); preverba podvojenega Param1 med sklopi ostane *(31. 8. 2026, ~30 min)*
+- **field/** `key_validation` - Checkbox (tudi s kontrolo pogoja `aliobstajapogoj`/`zaklenipolja`) ne zahteva več ključa preverjanja *(26. 8. 2026, ~15 min)*
+- **field/** `key_validation` - Oprema ne zahteva več ključa preverjanja; pri `Tip objekta = spustniseznam` je namesto ključa obvezen stolpec `Vrednost` (`SPUSTNISEZNAM_VREDNOST_EMPTY`) *(26. 8. 2026, ~30 min)*
+- **field/** `naslov_empty_columns_rule` - Stolpec `Zavihek` sme biti pri `naslov` zapolnjen, če vsebuje kodo monolita (`monolit1`, `monolit2`, ...); ostali stolpci ostanejo prazni *(26. 8. 2026, ~15 min)*
+- **field/** `crta_empty_columns_rule` - Stolpec `Zavihek` sme biti pri `crta` zapolnjen, če vsebuje kodo monolita (`monolit1`, `monolit2`, ...); ostali stolpci ostanejo prazni *(26. 8. 2026, ~20 min)*
 - **field/** `water_not_masa_rule` - Opozorilo `MASS_WATER_SHOULD_BE_VOLUME` le, če je `Tip podatka = masa` in ključ preverjanja dH2O (ne več prek besedila v Navodilu) *(25. 8. 2026, ~10 min)*
 - **control/** `expected_controls_rule` - Pri `repro`/`reproodpis` sta pričakovani le `kontrolaveljavnostirepro` in `kontrolaustreznostirepro` (odstranjena napačna zahteva `kontrolaprimernostirepro`) *(25. 8. 2026, ~10 min)*
 - **field/** `label_requirements` - Labela `datum/čas` se zahteva le pri `Tip objekta = izberidatumcas` ali `gumbdatumcas`, ne za vse tipe podatka `datumcas`/`datumcaszacetek`/`datumcaskonec` *(25. 8. 2026, ~15 min)*
@@ -20,6 +60,11 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **control/** `zakleni_param_rule` - Preverba `LOCK_P1_WITHOUT_CONDITION` je zdaj privzeto vklopljena: korak v Param1 pri `zaklenipolja` mora imeti `aliObstajaPogoj`, razen če gre za drug checkbox korak z `zaklenipolja`; privzeta vrednost `bypass_zakleni_require_pogoj_for_param1_steps` je `False` *(3. 8. 2026, ~45 min)*
 
 ### Added
+- **field/** `posebnosti_tip_podatka_rule` - Brez zavihka mora biti Tip podatka `posebnosti`, z zavihkom `posebnostimon` (`DATA_TYPE_POSEBNOSTI_REQUIRED`, `DATA_TYPE_POSEBNOSTIMON_REQUIRED`) *(12. 10. 2026, ~30 min)*
+- **relational/** `owner_mass_pair_rule` - `kemikalija`/`raztopina` zahtevata vrstico `masa` z enakim ključem; `volumen` z istim ključem ni dovoljen, razen pri `dH2O` (`PAIR_CHEM_WITHOUT_MASS`, `PAIR_SOL_WITHOUT_MASS`, `PAIR_VOLUME_NOT_ALLOWED`, `PAIR_WATER_WITHOUT_VOLUME`) *(9. 9. 2026, ~40 min)*
+- **field/** `masa_tip_podatka_rule` - Tip podatka za maso sme biti samo `masa`; `masa1` in ostale oštevilčene različice niso veljavne (`DATA_TYPE_MASA_INVALID`) *(9. 9. 2026, ~25 min)*
+- **rules/** `catalog_code_rule` - Preverjanje šifer repro materiala proti šifrantu (stolpec `material_sifra`); tipi `repro`/`reproodpis`; CLI `--catalog-repro`, GUI in spletni vmesnik *(1. 9. 2026, ~1 h 30 min)*
+- **control/** `aliobstajapogoj_param1_rule` - Pri `aliObstajaPogoj` mora biti Param1 eden od ključev najbližjega `zaklenipolja` (koda `LOCK_CONDITION_P1_NEAREST_KEY`); isti Param1 ne sme biti uporabljen pri dveh različnih sklopih `zaklenipolja` (koda `LOCK_CONDITION_P1_DUPLICATE`) *(31. 8. 2026, ~1 h 30 min)*
 - **control/** `expected_controls_rule` - Pričakovane kontrole za `repro`/`reproodpis`: veljavnost in ustreznost (WARNING `CTRL_EXPECTED_MISSING`) *(25. 8. 2026, ~1 h)*
 - **relational/** `time_order_rule` - Korak `datumcaszacetek` mora imeti manjšo številko koraka kot `datumcaskonec` z istim ključem (WARNING `PAIR_TIME_ORDER`) *(25. 8. 2026, ~1 h)*
 - **field/** `naslov_empty_columns_rule` - Pri naslovu smejo biti zapolnjena le polji `št. Koraka` in `Navodilo` (koda `NASLOV_COLUMN_NOT_EMPTY`) *(25. 8. 2026, ~1 h)*
@@ -80,9 +125,13 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **rules/** `main.py` - CLI `--catalog-raztopine` / `--catalog-kemikalije`; uvoz `catalog_code_rule` za PyInstaller *(26. 5. 2026, ~15 min)*
 
 ### Removed
+- **field/** `water_not_masa_rule` - Odstranjeno opozorilo `MASS_WATER_SHOULD_BE_VOLUME` (ključ dH2O s tipom `masa` ni več napaka) *(22. 9. 2026, ~15 min)*
+- **control/** `zaklenipolja_param1_odvecni_koraki_rule` - Odstranjeno preverjanje odvečnih korakov v Param1 pri `zaklenipolja` (koda `LOCK_P1_EXTRA_STEPS`) *(26. 8. 2026, ~20 min)*
 - **excel/** `management_report` - Odstranjen modul poročila za vodstvo (.md) ter gumb v GUI (classic, themed, qt) in generiranje v spletnem API-ju *(11. 6. 2026, ~20 min)*
 
 ### Fixed
+- **utils/** `validation_progress` - Čas validacije v `validation_progress.json` je lokalni (npr. `09:28+02:00`), ne več UTC (`07:28+00:00`); popravljen tudi zapis 793 *(29. 9. 2026, ~10 min)*
+- **utils/** `base_key_no_trailing_number` / `catalog_code_rule` - Instanca na koncu črkovne šifre kemikalije (`EtOH1`, `NaCl2`) se ujema s šifrantom brez številke (`EtOH`, `NaCl`); `H2SO4` ostane nespremenjen *(3. 9. 2026, ~25 min)*
 - **control/** `kontrola_interval_advanced_rule` - Navodilo v slogu `≥ 10 - 11 CV (≥ 4000 - 4400 mL)` se obravnava kot razpon (Par 2 = zgornja meja + korak), ne kot odprta neenačba `≥` brez zgornje meje *(20. 8. 2026, ~45 min)*
 - **excel/** `catalog_loader` - Pri branju glave kataloga se preskočijo celice brez indeksa stolpca (`cell.column is None`), da odpravimo napako tipa basedpyright *(21. 7. 2026, ~10 min)*
 - **utils/** `base_key_no_trailing_number` / `strip_instance_suffix` - Oštevilčenje instance na koncu ključa (npr. `-GK1`, `-GK10` → `-GK`) se odstrani brez poseganja v kemijsko formulo (`pH5.0`, `H2SO4`); enaka logika v šifrantu in kontroli Par1 *(27. 5. 2026, ~40 min)*

@@ -59,7 +59,7 @@ CATALOG_LOOKUP_COLUMNS_BY_TIP = {
 }
 
 _HYPHEN_LETTER_INSTANCE = re.compile(r"(-[A-Za-z]+)\d+$")
-_SHORT_CODE_INSTANCE = re.compile(r"^[A-Za-z]{2}\d+$")
+_SHORT_CODE_INSTANCE = re.compile(r"^[A-Za-z]{2,}\d+$")
 _UNDERSCORE_NUM_SUFFIX = re.compile(r"^(.+)_(\d+)$")
 _NUMERIC = re.compile(r"\d+\.\d+|\d+")
 
@@ -75,7 +75,7 @@ def norm_key(s: object) -> str:
 
 
 def strip_instance_suffix(s: str) -> str:
-    """GK1, -GK10 … -> GK (večkratna uporaba iste šifre; ne posega v pH5.0 / H2SO4)."""
+    """GK1, EtOH1, -GK10 … -> GK / EtOH (večkratna uporaba iste šifre; ne posega v pH5.0 / H2SO4)."""
     s = s.strip()
     m = _HYPHEN_LETTER_INSTANCE.search(s)
     if m:
