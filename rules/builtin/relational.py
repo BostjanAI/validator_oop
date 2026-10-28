@@ -19,6 +19,10 @@ from validator_oop.utils import (
     split_key_number,
 )
 
+# Izjema pri paru repro/kolicina: monolit s ključem 'paketni' + kolicina s ključem 'paketnimonolit'.
+PAKETNI_MONOLIT_OWNER_KEY = "paketni"
+PAKETNI_MONOLIT_KOLICINA_KEY = "paketnimonolit"
+
 
 def _normalize_leading_decimal_token(key: str) -> str:
     """Normalize leading decimal number in key (e.g. 0.30M -> 0.3M)."""
@@ -41,6 +45,16 @@ def _normalize_leading_decimal_token(key: str) -> str:
 def _owner_match_base(key: str) -> str:
     """Build key base used only for owner lookup matching."""
     return _normalize_leading_decimal_token(base_key_no_trailing_number(key))
+
+
+def _tabs_message_suffix(tabs: Sequence[str]) -> str:
+    """En zavihek: 'v zavihku'; več: eno sporočilo 'v zavihkih' z vsemi imeni."""
+    named = [tab for tab in tabs if tab]
+    if not named:
+        return ""
+    quoted = ", ".join(f"'{tab}'" for tab in named)
+    label = "zavihku" if len(named) == 1 else "zavihkih"
+    return f" v {label} {quoted}"
 
 
 def _merged_mass_owner_keys(shared) -> dict[str, list[int]]:
@@ -81,18 +95,24 @@ class DuplicateKeyRule(SheetRule):
             keys = shared.get_keys_for_type(tip)
             for key, row_numbers in keys.items():
                 grouped = self._group_by_tab(row_numbers, shared)
+                duplicate_tabs: list[str] = []
+                duplicate_rows: list[int] = []
                 for tab, tab_rows in grouped.items():
                     if len(tab_rows) <= 1:
                         continue
-                    tab_suffix = f" v zavihku '{tab}'" if tab else ""
-                    errors.append(
-                        self.build_error(
-                            f"Podvojen ključ '{key}' za tip '{tip}'{tab_suffix}.",
-                            context=context,
-                            code=code,
-                            payload={"rows": tab_rows},
-                        )
+                    duplicate_tabs.append(tab)
+                    duplicate_rows.extend(tab_rows)
+                if not duplicate_tabs:
+                    continue
+                tab_suffix = _tabs_message_suffix(duplicate_tabs)
+                errors.append(
+                    self.build_error(
+                        f"Podvojen ključ '{key}' za tip '{tip}'{tab_suffix}.",
+                        context=context,
+                        code=code,
+                        payload={"rows": duplicate_rows},
                     )
+                )
 
         errors.extend(self._check_mass_duplicates(shared, context))
         return errors
@@ -124,17 +144,23 @@ class DuplicateKeyRule(SheetRule):
                 section = section_by_row.get(row, 0)
                 tab_to_sections[tab].add(section)
                 tab_to_rows[tab].append(row)
+            duplicate_tabs: list[str] = []
+            duplicate_rows: list[int] = []
             for tab, sections in tab_to_sections.items():
-                if len(sections) > 1:
-                    tab_suffix = f" v zavihku '{tab}'" if tab else ""
-                    errors.append(
-                        self.build_error(
-                            f"Isti ključ mase '{key}' nastopa v več razdelkih{tab_suffix}.",
-                            context=context,
-                            code="KEY_DUP_MASS_SECTION",
-                            payload={"rows": tab_to_rows[tab]},
-                        )
+                if len(sections) <= 1:
+                    continue
+                duplicate_tabs.append(tab)
+                duplicate_rows.extend(tab_to_rows[tab])
+            if duplicate_tabs:
+                tab_suffix = _tabs_message_suffix(duplicate_tabs)
+                errors.append(
+                    self.build_error(
+                        f"Isti ključ mase '{key}' nastopa v več razdelkih{tab_suffix}.",
+                        context=context,
+                        code="KEY_DUP_MASS_SECTION",
+                        payload={"rows": duplicate_rows},
                     )
+                )
 
         owner_keys = _merged_mass_owner_keys(shared)
 
@@ -466,16 +492,30 @@ class ReproKolicinaOwnerRule(SheetRule):
 
             owner_row = None
             owner_key = None
+            is_paketni_monolit_pair = False
             for prev_idx in range(row_idx - 1, row_offset - 1, -1):
                 prev_row = rows[prev_idx - row_offset]
                 prev_tip = norm_text(coerce_str(prev_row.get("Tip podatka", "")))
                 prev_tab = tab_by_row.get(prev_idx, "")
                 if prev_tab != kolicina_tab:
                     continue
+                if prev_tip.startswith("monolit"):
+                    # Izjema: paketni sprani monoliti (monolit/paketni + kolicina/paketnimonolit).
+                    prev_key = norm_text(coerce_str(prev_row.get("Ključ preverjanja", "")))
+                    if (
+                        prev_key == PAKETNI_MONOLIT_OWNER_KEY
+                        and norm_text(kolicina_key) == PAKETNI_MONOLIT_KOLICINA_KEY
+                    ):
+                        is_paketni_monolit_pair = True
+                        break
+                    continue
                 if prev_tip == "repro":
                     owner_row = prev_idx
                     owner_key = coerce_str(prev_row.get("Ključ preverjanja", "")).strip()
                     break
+
+            if is_paketni_monolit_pair:
+                continue
 
             if owner_row is None:
                 if not kolicina_key:
@@ -565,23 +605,31 @@ class TimePairRule(SheetRule):
                 tab = tab_by_row.get(row_idx, "")
                 end_by_tab.setdefault(tab, []).append(row_idx)
 
-            for tab in set(start_by_tab) | set(end_by_tab):
+            duplicate_tabs: list[str] = []
+            all_rows: list[int] = []
+            ordered_tabs = list(start_by_tab) + [tab for tab in end_by_tab if tab not in start_by_tab]
+            for tab in ordered_tabs:
                 tab_start_rows = start_by_tab.get(tab, [])
                 tab_end_rows = end_by_tab.get(tab, [])
                 if len(tab_start_rows) <= 1 and len(tab_end_rows) <= 1:
                     continue
+                duplicate_tabs.append(tab)
+                all_rows.extend(tab_start_rows)
+                all_rows.extend(tab_end_rows)
 
-                all_rows = tab_start_rows + tab_end_rows
-                tab_info = f" v zavihku '{tab}'" if tab else ""
-                errors.append(
-                    self.build_error(
-                        f"Ključ '{key}' se ponavlja za 'datumcaszacetek'/'datumcaskonec'{tab_info}.",
-                        context=context,
-                        column="Ključ preverjanja",
-                        code="KEY_DUP_TIME_PAIR",
-                        payload={"rows": all_rows, "tab": tab},
-                    )
+            if not duplicate_tabs:
+                continue
+
+            tab_info = _tabs_message_suffix(duplicate_tabs)
+            errors.append(
+                self.build_error(
+                    f"Ključ '{key}' se ponavlja za 'datumcaszacetek'/'datumcaskonec'{tab_info}.",
+                    context=context,
+                    column="Ključ preverjanja",
+                    code="KEY_DUP_TIME_PAIR",
+                    payload={"rows": all_rows, "tabs": duplicate_tabs},
                 )
+            )
 
         return errors
 

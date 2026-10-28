@@ -296,7 +296,12 @@ class ValidationService:
         # Excel
         excel_path = output_dir / f"{stem}_porocilo.xlsx"
         try:
-            writer.write_excel_report(excel_path, issues_writer, catalog_summary=catalog_summary)
+            writer.write_excel_report(
+                excel_path,
+                issues_writer,
+                catalog_summary=catalog_summary,
+                source_files=[recipe_path.name],
+            )
             refs.append(ReportRef(kind="excel", label=self.REPORT_LABELS["excel"], filename=excel_path.name))
         except Exception as exc:
             logger.warning("Excel poročilo ni uspelo: %s", exc)
@@ -314,7 +319,12 @@ class ValidationService:
         # TXT
         txt_path = output_dir / f"{stem}_porocilo.txt"
         try:
-            writer.write_text_report(txt_path, issues_writer, catalog_summary=catalog_summary)
+            writer.write_text_report(
+                txt_path,
+                issues_writer,
+                catalog_summary=catalog_summary,
+                source_files=[recipe_path.name],
+            )
             refs.append(ReportRef(kind="txt", label=self.REPORT_LABELS["txt"], filename=txt_path.name))
         except Exception as exc:
             logger.warning("TXT poročilo ni uspelo: %s", exc)
@@ -362,7 +372,11 @@ class ValidationService:
 
         excel_path = output_dir / f"{stem}.xlsx"
         try:
-            writer.write_excel_report(excel_path, issues_writer)
+            writer.write_excel_report(
+                excel_path,
+                issues_writer,
+                source_files=[fr.filename for fr in results],
+            )
             refs.append(ReportRef(kind="excel", label="Skupno Excel poročilo (.xlsx)", filename=excel_path.name))
         except Exception as exc:
             logger.warning("Skupno Excel poročilo ni uspelo: %s", exc)
@@ -385,7 +399,11 @@ class ValidationService:
 
         txt_path = output_dir / f"{stem}.txt"
         try:
-            writer.write_text_report(txt_path, issues_writer)
+            writer.write_text_report(
+                txt_path,
+                issues_writer,
+                source_files=[fr.filename for fr in results],
+            )
             refs.append(ReportRef(kind="txt", label="Skupno TXT poročilo (.txt)", filename=txt_path.name))
         except Exception as exc:
             logger.warning("Skupno TXT poročilo ni uspelo: %s", exc)

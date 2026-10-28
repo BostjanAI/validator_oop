@@ -548,7 +548,7 @@ class MainWindowQt(QMainWindow):
                 self._record_progress(in_path, issues)
                 self.progress_bar.setValue(i + 1)
 
-            self._write_report(out_path, all_issues)
+            self._write_report(out_path, all_issues, source_files=list(in_paths))
 
         else:
             try:
@@ -565,7 +565,7 @@ class MainWindowQt(QMainWindow):
                 self._record_progress(in_path, issues)
 
                 out_file = out_path / f"por_{in_path.stem}.xlsx"
-                self._write_report(out_file, issues)
+                self._write_report(out_file, issues, source_files=[in_path])
                 self.progress_bar.setValue(i + 1)
 
         self.progress_bar.setVisible(False)
@@ -589,7 +589,6 @@ class MainWindowQt(QMainWindow):
                 excel_loader=self._loader,
                 logger=self._logger,
                 include_formulas=True,
-                sop_data=None,
             )
 
             report = engine.validate(str(in_path))
@@ -643,12 +642,21 @@ class MainWindowQt(QMainWindow):
         except Exception:
             pass
 
-    def _write_report(self, path: Path, issues: list[dict[str, Any]]) -> None:
+    def _write_report(
+        self,
+        path: Path,
+        issues: list[dict[str, Any]],
+        source_files: list[Path] | None = None,
+    ) -> None:
         try:
             if path.suffix.lower() == ".txt":
-                self._report_writer.write_text_report(path, issues)
+                self._report_writer.write_text_report(
+                    path, issues, source_files=source_files
+                )
             else:
-                self._report_writer.write_excel_report(path, issues)
+                self._report_writer.write_excel_report(
+                    path, issues, source_files=source_files
+                )
             self.log(f"Poročilo shranjeno: {path}")
         except Exception as e:
             self.log(f"NAPAKA pri zapisovanju poročila: {e}")

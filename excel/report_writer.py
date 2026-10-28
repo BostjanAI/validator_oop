@@ -70,6 +70,19 @@ class ReportWriter:
     """Writes validation reports to Excel and text files."""
 
     @staticmethod
+    def _source_info_rows(
+        source_files: Sequence[str | Path] | None,
+    ) -> list[tuple[str, str]]:
+        """Rows with validated file(s) for the top of the report."""
+        if not source_files:
+            return []
+        files = [str(f) for f in source_files if str(f)]
+        if not files:
+            return []
+        label = "Validirana datoteka" if len(files) == 1 else "Validirane datoteke"
+        return [(label, f) for f in files]
+
+    @staticmethod
     def _catalog_info_rows(catalog_summary: Mapping[str, Any]) -> list[tuple[str, str]]:
         """Rows for catalog block on Povzetek sheet."""
         if not catalog_summary.get("enabled"):
@@ -141,6 +154,7 @@ class ReportWriter:
         issues: Sequence[Mapping[str, Any]],
         *,
         catalog_summary: Mapping[str, Any] | None = None,
+        source_files: Sequence[str | Path] | None = None,
     ) -> None:
         """Write validation issues to an Excel report.
 
@@ -148,6 +162,7 @@ class ReportWriter:
             report_path: Path to the output Excel file.
             issues: List of issue dictionaries.
             catalog_summary: Optional metadata from catalog validation (Šifranti).
+            source_files: Optional list of validated files shown on Povzetek.
 
         Raises:
             RuntimeError: If openpyxl is not installed.
@@ -173,15 +188,14 @@ class ReportWriter:
         ws.cell(row=1, column=1, value="Validator IPO Receptur")
         ws.cell(row=1, column=2, value=VERSION_REPORT)
 
+        info_rows = self._source_info_rows(source_files)
         if catalog_summary is not None:
-            info_rows = self._catalog_info_rows(catalog_summary)
-            for i, (label, value) in enumerate(info_rows):
-                r = 2 + i
-                ws.cell(row=r, column=1, value=label)
-                ws.cell(row=r, column=2, value=value)
-            header_row = 2 + len(info_rows) + 1
-        else:
-            header_row = 2
+            info_rows = info_rows + self._catalog_info_rows(catalog_summary)
+        for i, (label, value) in enumerate(info_rows):
+            r = 2 + i
+            ws.cell(row=r, column=1, value=label)
+            ws.cell(row=r, column=2, value=value)
+        header_row = 2 + len(info_rows) + 1 if info_rows else 2
 
         headers = ["Datum in ura", "List", "Vrstica", "Stolpec", "Napaka", "Opis napake"]
         for j, h in enumerate(headers, start=1):
@@ -283,17 +297,25 @@ class ReportWriter:
         issues: Sequence[Mapping[str, Any]],
         *,
         catalog_summary: Mapping[str, Any] | None = None,
+        source_files: Sequence[str | Path] | None = None,
     ) -> None:
         """Write validation issues to a text report.
 
         Args:
             report_path: Path to the output text file.
             issues: List of issue dictionaries.
+            catalog_summary: Optional metadata from catalog validation (Šifranti).
+            source_files: Optional list of validated files shown at the top.
         """
         resolved_path = Path(report_path)
         self._logger.info("Writing text report to %s", resolved_path)
 
         lines: list[str] = []
+        source_rows = self._source_info_rows(source_files)
+        if source_rows:
+            for label, value in source_rows:
+                lines.append(f"{label}: {value}")
+            lines.append("")
         if catalog_summary is not None:
             lines.append("=== Preverjanje šifrantov ===")
             for label, value in self._catalog_info_rows(catalog_summary):

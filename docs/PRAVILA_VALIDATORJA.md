@@ -83,14 +83,14 @@ Preverja, da je masa zapisana točno kot `masa`, ne kot oštevilčena različica
 
 ### 2.2.2 Tip podatka `posebnosti` / `posebnostimon`
 
-Preverja, da tip podatka za posebnosti ustreza temu, ali receptura uporablja zavihek.
+Preverja, da tip podatka za posebnosti ustreza stolpcu `Zavihek` v isti vrstici.
 
 | | |
 |---|---|
-| **Preverja** | Če na listu ni uporabnega zavihka (stolpec `Zavihek` prazen ali s presledkom), sme biti tip `posebnosti`. Če list ima zavihek, mora biti tip `posebnostimon`. |
-| **Napake** | `DATA_TYPE_POSEBNOSTI_REQUIRED` – receptura nima zavihka, `Tip podatka` pa je `posebnostimon` |
-| | `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – receptura ima zavihek, `Tip podatka` pa je `posebnosti` |
-| **Opomba** | Ostali tipi podatka se ne preverjajo. Presledek v `Zavihek` zavihka ne odpre. |
+| **Preverja** | Če je v isti vrstici v `Zavihek` vpisano `monolit1`, `monolit2`, …, mora biti tip `posebnostimon`. Sicer mora biti tip `posebnosti`. Velikost črk ni pomembna. |
+| **Napake** | `DATA_TYPE_POSEBNOSTI_REQUIRED` – v isti vrstici `Zavihek` ni `monolit1`, `monolit2`, …, `Tip podatka` pa je `posebnostimon` |
+| | `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – v isti vrstici je `Zavihek` `monolit1`, `monolit2`, …, `Tip podatka` pa je `posebnosti` |
+| **Opomba** | Ostali tipi podatka se ne preverjajo. Zavihek v drugi vrstici ne šteje. Formula, poljubno besedilo, `monolit` brez številke ali vrednost s presledkom niso koda monolita. |
 
 ---
 
@@ -197,6 +197,17 @@ Zaznava presledke v vrednostih celic.
 |---|---|
 | **Preverja** | Nobena vrednost (razen `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`) ne sme vsebovati presledkov. Presledek v `Zavihek` ne odpira novega zavihka (ostane samo ta napaka). |
 | **Napaka** | `PRESLEDEK_NEDOVOLJEN` |
+
+---
+
+### 2.10.1 Presledki pri razponu v Navodilu
+
+Preverja zapis razponov v stolpcu `Navodilo`.
+
+| | |
+|---|---|
+| **Preverja** | Pri razponu (število, pomišljaj `–` / `—` ali vezaj `-`, število) mora biti en presledek pred pomišljajem in en za njim: `4000 – 4400`. Ne velja za zapise, ki niso razpon (`7647-14-5`, `2026-01-01`, `SOP-123`). |
+| **Napaka** | `NAVODILO_RANGE_DASH_SPACING` – manjka (ali je odveč) presledek pred ali za pomišljajem pri razponu |
 
 ---
 
@@ -324,6 +335,7 @@ Preverja, da ima vsaka vrstica `kolicina` predhodno vrstico `repro` z enakim klj
 | **Preverja** | Vsaka vrstica `kolicina` mora imeti najbližjo predhodno vrstico `repro` na istem zavihku; ključ količine mora biti enak ključu tega repro |
 | **Napake** | `PAR_KOLICINA_BREZ_LASTNIKA` – kolicina nima predhodnega repro |
 | | `PAR_KOLICINA_NAPACEN_KLJUC` – ključ količine se ne ujema s ključem repro |
+| **Izjema** | Predhodni `monolit` (tudi `monolit1`, ...) s ključem `paketni` + `kolicina` s ključem `paketnimonolit` ni napaka |
 
 ---
 
@@ -337,6 +349,18 @@ Preverja, da so vse kontrole znane.
 |---|---|
 | **Preverja** | Vsaka nepraza vrednost v stolpcu Kontrola mora biti normalizirano ime znane kontrole (`ALLOWED_CONTROLS`) |
 | **Napaka** | `KONTROLA_NEZNAN` |
+
+---
+
+### 4.1a Rezervirani stolpec Kontrola 1
+
+Preverja, da je stolpec `Kontrola 1` namenjen samo kontrolama `zaklenipolja` in `aliobstajapogoj`.
+
+| | |
+|---|---|
+| **Pravilo** | `control_column_one_reserved_rule` |
+| **Preverja** | V stolpcu `Kontrola 1` sta dovoljeni samo `zaklenipolja` in `aliobstajapogoj` (tudi `aliobstajapogoj_ali`). Vse ostale kontrole morajo biti v `Kontrola 2` ali naprej. Kontrole `zaklenipolja` / `aliobstajapogoj` smejo biti tudi v drugih stolpcih. Neznane kontrole javi pravilo 4.1. |
+| **Napaka** | `CTRL_COL1_RESERVED` |
 
 ---
 
@@ -553,7 +577,7 @@ Param2 = (xpm + tpm) + eps
 | `90 ± 2` | `1` | `88` | `87` | `92` | `93` |
 | `90.0 ± 2` | `0.1` | `88.0` | `87.9` | `92.0` | `92.1` |
 
-Kanonski Param1/Param2 ostaneta priporočeni vrednosti. Dodatno je sprejet numerični pas okoli intervala `[xpm − tpm, xpm + tpm]`: od pol koraka minus eno fino mesto pod spodnjo mejo do pol koraka nad zgornjo mejo.
+Kanonski Param1/Param2 ostaneta priporočeni vrednosti in jih napiše sporočilo napake (npr. `24.0 ± 0.5` → `23.4` / `24.6`, ne `23.44` / `24.55`). Dodatno je sprejet numerični pas okoli intervala `[xpm − tpm, xpm + tpm]`: od pol koraka minus eno fino mesto pod spodnjo mejo do pol koraka nad zgornjo mejo.
 
 **Primer:** `6.50 ± 0.10` → interval `[6.40, 6.60]`, dovoljeni pas **`[6.34, 6.65]`**. `6.34` in `6.65` sta OK. `6.33` in `6.66` (ter `6.24` / `6.75`) ostaneta napaki. Kanonski `6.39` / `6.61` ostaneta veljavna.
 
@@ -570,9 +594,14 @@ Param2 = b + eps
 
 | Navodilo | eps | Param1 | Param2 |
 |---|---|---|---|
-| `5–10` | 1 | `4` | `11` |
+| `5–10` | 1 ali 0.1 | `4` ali `4.9` | `11` ali `10.1` |
+| `45–51` | 1 ali 0.1 | `44` ali `44.9` | `52` ali `51.1` |
 | `5.0–10.0` | 0.1 | `4.9` | `10.1` |
 | `5.00–10.00` | 0.01 | `4.99` | `10.01` |
+
+Če sta obe meji celi števili, sta pravilni obe branji: kot celo število (`45` → korak `1`) in kot ena decimalna mesta (`45.0` → korak `0.1`). Končna ničla se v navodilu včasih ne prikaže. Če je decimalna mesta zapisano (`5.0–10.0`, `47.5–52.5`), velja samo ta natančnost.
+
+Če je v Navodilu razpon v CV in v oklepaju volumen **na kolono** (`12 - 13 CV ... (48 - 52 mL/kolono)`), je razpon v mL (z enoto) absolutna meja kot pri vsakem drugem razponu: Param1 = `47` ali `47.9`, Param2 = `53` ali `52.1`. Vrednosti, preračunane na večjo kolono (npr. `239` / `261` za 20 mL), so napaka. Pri `1.0 - 1.1 CV (4 - 4.4 mL/kolono)` velja razpon `4 - 4.4 mL` z eno decimalko: Param1 `3.9`, Param2 `4.5`.
 
 Pri razponu ostaneta Param1/Param2 na **istih decimalkah** kot meji: `47.5–52.5` → `47.4` / `52.6`; `0.18–0.22` → `0.17` / `0.23` (ne `0.174`).
 
@@ -663,6 +692,23 @@ Preverja, da masa brez vrednosti nima kontrole mase.
 | **Preverja** | Vrstica `masa` s prazno `Vrednost` ne sme imeti kontrole `kontrolamase` |
 | **Napaka** | `KONTROLA_MASA_BREZ_VREDNOSTI` |
 
+---
+
+### 4.20 Kontroli kemikalije in raztopine (par + tip podatka)
+
+Preverja, da sta kontroli veljavnosti in ustreznosti kemikalije oz. raztopine v vrstici vedno obe in da stojita samo na pravem tipu podatka.
+
+| | |
+|---|---|
+| **Preverja** | Če je v vrstici `kontrolaVeljavnostiKemikalije` ali `kontrolaUstreznostiKemikalije`, morata biti prisotni obe, `Tip podatka` pa mora biti točno `kemikalija`. Enako za `kontrolaVeljavnostiRaztopine` / `kontrolaUstreznostiRaztopine` in `Tip podatka` = `raztopina`. |
+| **Napake** | `CTRL_KEMIKALIJA_VALIDITY_REQUIRED` / `CTRL_KEMIKALIJA_SUITABILITY_REQUIRED` – manjka ena od kontrol kemikalije |
+| | `CTRL_KEMIKALIJA_TYPE_REQUIRED` – kontroli kemikalije na tipu, ki ni `kemikalija` |
+| | `CTRL_RAZTOPINA_VALIDITY_REQUIRED` / `CTRL_RAZTOPINA_SUITABILITY_REQUIRED` – manjka ena od kontrol raztopine |
+| | `CTRL_RAZTOPINA_TYPE_REQUIRED` – kontroli raztopine na tipu, ki ni `raztopina` |
+| **Parametri** | Kemikalija: `Param1` in `Param2` pri obeh kontrolah morata biti prazna (`CTRL_KEMIKALIJA_PARAM1_NOT_EMPTY`, `CTRL_KEMIKALIJA_PARAM2_NOT_EMPTY`). Raztopina: `Param1` mora biti pri veljavnosti in ustreznosti enak (`CTRL_RAZTOPINA_PARAM1_MISMATCH`), `Param2` pa prazen (`CTRL_RAZTOPINA_PARAM2_NOT_EMPTY`). |
+| **Navodilo raztopine** | Stolpec `Navodilo` mora vsebovati točno oznako raztopine, kot je na nalepki: vrednost `Param1` pri `kontrolaUstreznostiRaztopine` (npr. `Koda 1M-NaOH-PL`). Primerja se natančno (velike/male črke); oznaka ne sme biti del daljše oznake (`1M-NaOH` v `1M-NaOH-PL`). Če je `Param1` prazen ali neizračunana formula, se ne preverja (`CTRL_RAZTOPINA_NAVODILO_LABEL`). |
+| **Opomba** | Če kontrol ni, pravilo ne javi ničesar (priporočilo za manjkajoče kontrole ostaja opozorilo v `expected_controls_rule`). Različice tipa (`kemikalija1`, `raztopina1`) niso veljavne. |
+
 ## Pregled po modulih
 
 | Modul | Št. pravil |
@@ -670,8 +716,8 @@ Preverja, da masa brez vrednosti nima kontrole mase.
 | `structural` | 2 |
 | `field` | 10 |
 | `relational` | 6 |
-| `control` | 20 |
-| **Skupaj** | **38** |
+| `control` | 21 |
+| **Skupaj** | **39** |
 
 ---
 

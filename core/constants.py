@@ -128,7 +128,7 @@ DATA_OBJECT_MAPPING: Dict[str, FrozenSet[str]] = {
     "formula": frozenset({"formula", "formula0", "formula1"}),
 }
 
-# Tip podatka za posebnosti: brez zavihka `posebnosti`, z zavihkom `posebnostimon`.
+# Tip podatka za posebnosti: v isti vrstici monolit1/monolit2/… → posebnostimon, sicer posebnosti.
 TIP_PODATKA_POSEBNOSTI: str = "posebnosti"
 TIP_PODATKA_POSEBNOSTIMON: str = "posebnostimon"
 
@@ -345,13 +345,14 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "STEP_GAPS": "Manjkajo vmesni koraki",
     "STEP_TAB_NOT_FROM_ONE": "Koraki v zavihku se ne začnejo s 1",
     "STEP_MISSING": "Manjka številka koraka v vrstici",
+    "STEP_OUT_OF_ORDER": "Koraki niso v naraščajočem vrstnem redu",
     # --- Field: object type ---
     "OBJECT_TYPE_EMPTY": "Tip objekta ni določen",
     "OBJECT_TYPE_UNKNOWN": "Neznan tip objekta",
     "OBJECT_TYPE_MISMATCH": "Tip objekta ne ustreza tipu podatka",
     "DATA_TYPE_MASA_INVALID": "Tip podatka mora biti 'masa' (npr. masa1 ni veljaven)",
-    "DATA_TYPE_POSEBNOSTI_REQUIRED": "Receptura nima zavihka, zato mora biti Tip podatka 'posebnosti'",
-    "DATA_TYPE_POSEBNOSTIMON_REQUIRED": "Receptura ima zavihek, zato mora biti Tip podatka 'posebnostimon'",
+    "DATA_TYPE_POSEBNOSTI_REQUIRED": "V isti vrstici Zavihek ni monolit1, monolit2, …, zato mora biti Tip podatka 'posebnosti'",
+    "DATA_TYPE_POSEBNOSTIMON_REQUIRED": "V isti vrstici je Zavihek monolit1, monolit2, …, zato mora biti Tip podatka 'posebnostimon'",
     # --- Field: label ---
     "LABEL_MUST_BE_KODA": "Labela mora biti 'koda'",
     "LABEL_MUST_BE_NAZIV_OPREME": "Labela mora biti 'naziv opreme'",
@@ -376,6 +377,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "SPUSTNISEZNAM_VREDNOST_EMPTY": "Pri spustnem seznamu mora biti stolpec Vrednost zapolnjen",
     "COMMA_NOT_ALLOWED": "Vrednost vsebuje nedovoljeno vejico v številu",
     "SPACE_NOT_ALLOWED": "Vrednost vsebuje nedovoljen presledek",
+    "NAVODILO_RANGE_DASH_SPACING": "Pri razponu v Navodilu mora biti presledek pred pomišljajem in za njim (npr. 4000 – 4400)",
     # --- Field: unit ---
     "UNIT_MISMATCH": "Enota v 'Labela' se ne ujema z 'Navodilo'",
     # --- Relational: duplicate keys ---
@@ -412,6 +414,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "CTRL_EMPTY_NOT_ALLOWED": "Tip objekta ne sme imeti kontrole prazno polje",
     "CTRL_EXPECTED_MISSING": "Manjka pričakovana kontrola",
     "CTRL_UNKNOWN": "Neznano ime kontrole",
+    "CTRL_COL1_RESERVED": "Stolpec 'Kontrola 1' je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'; ostale kontrole morajo biti v 'Kontrola 2' ali naprej",
     "CTRL_INVALID_CONTEXT": "Kontrola je v napačnem kontekstu",
     "EXCEL_ERROR_TOKEN": "Celica vsebuje Excelovo napako",
     # --- Control: interval ---
@@ -443,6 +446,17 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "CTRL_ALIPRAVAVLOGAKODA_REQUIRED": "Manjka kontrola 'aliPravavlogaKoda' pri tipu podatka 'zaposleni'",
     "CTRL_MONOLIT_VALIDITY_REQUIRED": "Manjka kontrola 'kontrolaVeljavnostiMonolita' pri tipu podatka 'monolit'",
     "CTRL_MONOLIT_SUITABILITY_REQUIRED": "Manjka kontrola 'kontrolaUstreznostiMonolita' pri tipu podatka 'monolit'",
+    "CTRL_KEMIKALIJA_VALIDITY_REQUIRED": "Manjka kontrola 'kontrolaVeljavnostiKemikalije' (obvezen par z 'kontrolaUstreznostiKemikalije')",
+    "CTRL_KEMIKALIJA_SUITABILITY_REQUIRED": "Manjka kontrola 'kontrolaUstreznostiKemikalije' (obvezen par z 'kontrolaVeljavnostiKemikalije')",
+    "CTRL_KEMIKALIJA_TYPE_REQUIRED": "Kontroli kemikalije sta dovoljeni samo pri tipu podatka 'kemikalija'",
+    "CTRL_RAZTOPINA_VALIDITY_REQUIRED": "Manjka kontrola 'kontrolaVeljavnostiRaztopine' (obvezen par z 'kontrolaUstreznostiRaztopine')",
+    "CTRL_RAZTOPINA_SUITABILITY_REQUIRED": "Manjka kontrola 'kontrolaUstreznostiRaztopine' (obvezen par z 'kontrolaVeljavnostiRaztopine')",
+    "CTRL_RAZTOPINA_TYPE_REQUIRED": "Kontroli raztopine sta dovoljeni samo pri tipu podatka 'raztopina'",
+    "CTRL_KEMIKALIJA_PARAM1_NOT_EMPTY": "Param1 pri kontrolah kemikalije mora biti prazen",
+    "CTRL_KEMIKALIJA_PARAM2_NOT_EMPTY": "Param2 pri kontrolah kemikalije mora biti prazen",
+    "CTRL_RAZTOPINA_PARAM1_MISMATCH": "Param1 pri kontrolah veljavnosti in ustreznosti raztopine mora biti enak",
+    "CTRL_RAZTOPINA_PARAM2_NOT_EMPTY": "Param2 pri kontrolah raztopine mora biti prazen",
+    "CTRL_RAZTOPINA_NAVODILO_LABEL": "Navodilo mora vsebovati točno oznako raztopine iz Param1 pri 'kontrolaUstreznostiRaztopine' (kot na nalepki)",
     # --- Control: role / condition ---
     "CTRL_ROLE_PARAM": "Manjka parameter vloge",
     "CTRL_CONDITION_P1": "Pogoj brez referenčnega ključa (Param1)",
@@ -509,6 +523,8 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "SOP_LOAD_ERROR": "Napaka pri nalaganju SOP dokumenta",
     # --- Catalog (šifranti raztopin/kemikalij/repro) ---
     "CATALOG_CODE_MISMATCH": "Šifra raztopine/kemikalije/repro materiala ni v šifrantu",
+    # --- Podatki ---
+    "PODATKI_COLUMN_UNUSED": "Stolpec iz zavihka Podatki ni uporabljen v nobeni INDEX/MATCH formuli",
 }
 
 

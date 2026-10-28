@@ -360,6 +360,38 @@ def test_report_writer_catalog_sheet(tmp_path):
     assert "napak šifer: 1" in line
 
 
+def test_report_writer_source_files_excel_and_text(tmp_path):
+    from openpyxl import load_workbook
+
+    out = tmp_path / "report.xlsx"
+    ReportWriter().write_excel_report(
+        out,
+        [],
+        catalog_summary={"enabled": False},
+        source_files=["C:/data/receptura1.xlsx"],
+    )
+    wb = load_workbook(out, read_only=True)
+    pov = wb["Povzetek"]
+    assert pov["A2"].value == "Validirana datoteka"
+    assert pov["B2"].value == "C:/data/receptura1.xlsx"
+    assert pov["A3"].value == "Preverjanje šifrantov"
+    assert pov["A5"].value == "Datum in ura"
+    wb.close()
+
+    out_multi = tmp_path / "multi.xlsx"
+    ReportWriter().write_excel_report(out_multi, [], source_files=["a.xlsx", "b.xlsx"])
+    wb = load_workbook(out_multi, read_only=True)
+    pov = wb["Povzetek"]
+    assert pov["A2"].value == "Validirane datoteke"
+    assert pov["B3"].value == "b.xlsx"
+    assert pov["A5"].value == "Datum in ura"
+    wb.close()
+
+    txt = tmp_path / "report.txt"
+    ReportWriter().write_text_report(txt, [], source_files=["a.xlsx"])
+    assert "Validirana datoteka: a.xlsx" in txt.read_text(encoding="utf-8")
+
+
 INDEX_P1 = "=INDEX(Podatki!$A:$BY,MATCH($D$2,Podatki!$A:$A,0),60)"
 INDEX_P1_SI = "=INDEX(Podatki!$A:$BY;MATCH($D$2;Podatki!$A:$A;0);60)"
 

@@ -393,6 +393,7 @@ def main(args: list[str] | None = None) -> int:
         import validator_oop.rules.builtin.relational
         import validator_oop.rules.builtin.control
         import validator_oop.rules.builtin.catalog_code_rule
+        import validator_oop.rules.builtin.podatki_usage_rule
         logger.info("Rule modules imported successfully")
     except ImportError as e:
         logger.error("CRITICAL: Failed to import rule modules: %s", e, exc_info=True)
@@ -550,6 +551,7 @@ def main(args: list[str] | None = None) -> int:
                     output_path,
                     issues,
                     catalog_summary=cat_summary if isinstance(cat_summary, dict) else None,
+                    source_files=[parsed.workbook],
                 )
                 logger.info("Report written to %s", output_path)
             elif parsed.format == "json":
@@ -562,6 +564,7 @@ def main(args: list[str] | None = None) -> int:
                     output_path,
                     issues,
                     catalog_summary=cat_summary if isinstance(cat_summary, dict) else None,
+                    source_files=[parsed.workbook],
                 )
                 logger.info("Report written to %s", output_path)
 

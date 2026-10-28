@@ -25,7 +25,7 @@ from validator_oop.core.constants import (
 )
 from validator_oop.core.error import Severity
 from validator_oop.core.shared_context import _is_usable_zavihek_name
-from validator_oop.rules import RowRule, RuleContext, SheetRule, register
+from validator_oop.rules import RowRule, RuleContext, register
 from validator_oop.utils import (
     coerce_str,
     extract_unit_token,
@@ -40,6 +40,8 @@ from validator_oop.utils import (
 FORMULA_OBJECT_TYPES: frozenset[str] = frozenset({"formula", "formula0", "formula1"})
 # masa1, masa_2, … niso veljavni tipi; številka sodi v Ključ preverjanja.
 _MASA_NUMBERED_TIP_RE = re.compile(r"^masa[\s_\-.]?\d+$")
+# Zavihek recepture: monolit1, monolit2, ... (brez presledkov, številka obvezna).
+_MONOLIT_ZAVIHEK_RE = re.compile(r"monolit\d+")
 # Pri crta mora biti zapolnjen št. Koraka (tudi okrajšava št. Kor.);
 # Tip podatka/Tip objekta sta identifikatorja vrstice.
 # Zavihek sme biti prazen ali koda monolita (monolit1, monolit2, ...).
@@ -162,61 +164,54 @@ class MasaTipPodatkaRule(RowRule):
             )
 
 
-def _sheet_has_zavihek(rows: Sequence[Mapping[str, object]]) -> bool:
-    """True, če katera koli vrstica odpre zavihek (neprazno ime brez presledka)."""
-    for row in rows:
-        if _is_usable_zavihek_name(coerce_str(row.get(ZAVIHEK_COLUMN, "")).strip()):
-            return True
-    return False
+def _is_monolit_zavihek_code(value: object) -> bool:
+    """True, če je vrednost točno koda zavihka monolita (monolit1, monolit2, ...)."""
+    text = coerce_str(value).strip()
+    if not _is_usable_zavihek_name(text):
+        return False
+    return _MONOLIT_ZAVIHEK_RE.fullmatch(norm_text(text)) is not None
 
 
 @register
-class PosebnostiTipPodatkaRule(SheetRule):
-    """Tip podatka posebnosti mora ustrezati temu, ali receptura ima zavihek."""
+class PosebnostiTipPodatkaRule(RowRule):
+    """Tip podatka posebnosti mora ustrezati zavihku v isti vrstici."""
 
     name = "posebnosti_tip_podatka_rule"
     description = (
-        "Brez zavihka mora biti Tip podatka 'posebnosti'; "
-        "z zavihkom mora biti 'posebnostimon'."
+        "Če je v isti vrstici v stolpcu Zavihek vpisano monolit1, monolit2, …, "
+        "mora biti Tip podatka 'posebnostimon'; sicer 'posebnosti'."
     )
 
-    def evaluate_sheet(
-        self,
-        rows: Sequence[Mapping[str, object]],
-        context: RuleContext,
-        *,
-        row_offset: int = 2,
-    ) -> Iterable:
-        has_zavihek = _sheet_has_zavihek(rows)
-        expected = TIP_PODATKA_POSEBNOSTIMON if has_zavihek else TIP_PODATKA_POSEBNOSTI
-        watched = {TIP_PODATKA_POSEBNOSTI, TIP_PODATKA_POSEBNOSTIMON}
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        tip_data_raw = coerce_str(row.get("Tip podatka", ""))
+        tip_data = norm_text(tip_data_raw)
+        if tip_data not in {TIP_PODATKA_POSEBNOSTI, TIP_PODATKA_POSEBNOSTIMON}:
+            return
 
-        for index, row in enumerate(rows):
-            tip_data_raw = coerce_str(row.get("Tip podatka", ""))
-            tip_data = norm_text(tip_data_raw)
-            if tip_data not in watched or tip_data == expected:
-                continue
-
-            excel_row = row_offset + index
-            if has_zavihek:
-                message = (
-                    "Receptura ima zavihek, zato mora biti Tip podatka "
-                    f"'{TIP_PODATKA_POSEBNOSTIMON}' (najdeno: '{tip_data_raw}')."
-                )
-                code = "DATA_TYPE_POSEBNOSTIMON_REQUIRED"
-            else:
-                message = (
-                    "Receptura nima zavihka, zato mora biti Tip podatka "
-                    f"'{TIP_PODATKA_POSEBNOSTI}' (najdeno: '{tip_data_raw}')."
-                )
-                code = "DATA_TYPE_POSEBNOSTI_REQUIRED"
-
+        zavihek_raw = coerce_str(row.get(ZAVIHEK_COLUMN, ""))
+        if _is_monolit_zavihek_code(zavihek_raw):
+            if tip_data == TIP_PODATKA_POSEBNOSTIMON:
+                return
             yield self.build_error(
-                message,
-                context=context.with_row(excel_row),
+                "V isti vrstici je v stolpcu 'Zavihek' vpisano "
+                f"'{zavihek_raw.strip()}', zato mora biti Tip podatka "
+                f"'{TIP_PODATKA_POSEBNOSTIMON}' (najdeno: '{tip_data_raw}').",
+                context=context,
                 column="Tip podatka",
-                code=code,
+                code="DATA_TYPE_POSEBNOSTIMON_REQUIRED",
             )
+            return
+
+        if tip_data == TIP_PODATKA_POSEBNOSTI:
+            return
+        yield self.build_error(
+            "V isti vrstici stolpec 'Zavihek' ni 'monolit1', 'monolit2', …, "
+            f"zato mora biti Tip podatka '{TIP_PODATKA_POSEBNOSTI}' "
+            f"(najdeno: '{tip_data_raw}').",
+            context=context,
+            column="Tip podatka",
+            code="DATA_TYPE_POSEBNOSTI_REQUIRED",
+        )
 
 
 @register
@@ -810,6 +805,70 @@ class NoSpacesRule(RowRule):
                     column=column,
                     code="SPACE_NOT_ALLOWED",
                 )
+
+
+_RANGE_DASH_RE = re.compile(r"(?P<before>[ \u00a0\t]*)(?P<dash>[–—-])(?P<after>[ \u00a0\t]*)")
+_RANGE_LEFT_DASH_RE = re.compile(r"\d[^\s\d–—-]{0,8}$")
+_RANGE_LEFT_HYPHEN_RE = re.compile(r"(?<![\w\-.,/])\d+(?:[.,]\d+)?$")
+_RANGE_RIGHT_RE = re.compile(r"\d")
+_RANGE_RIGHT_HYPHEN_RE = re.compile(r"\d+(?:[.,]\d+)?(?![\d\-/]|[.,]\d)")
+
+
+def find_range_dash_spacing_problems(text: str) -> list[str]:
+    """Vrni zapise razponov (npr. ``4000–4400``), ki nimajo presledka pred in za pomišljajem.
+
+    Razpon je: število, pomišljaj (``–``, ``—``) ali vezaj (``-``) in število.
+    Pri vezaju se upoštevajo samo samostojna števila (ne ``7647-14-5``, ``2026-01-01``
+    ali ``A-1-2``). Pravilen zapis je ``4000 – 4400`` (en presledek pred in za).
+    """
+    problems: list[str] = []
+    for match in _RANGE_DASH_RE.finditer(text):
+        dash = match.group("dash")
+        left = text[: match.start()]
+        right = text[match.end():]
+        if dash == "-":
+            if not _RANGE_LEFT_HYPHEN_RE.search(left) or not _RANGE_RIGHT_HYPHEN_RE.match(right):
+                continue
+        else:
+            if not _RANGE_LEFT_DASH_RE.search(left) or not _RANGE_RIGHT_RE.match(right):
+                continue
+        if len(match.group("before")) == 1 and len(match.group("after")) == 1:
+            continue
+        left_token = re.search(r"\S+$", left)
+        right_token = re.match(r"\S+", right)
+        problems.append(
+            f"{left_token.group(0) if left_token else ''}"
+            f"{match.group('before')}{dash}{match.group('after')}"
+            f"{right_token.group(0) if right_token else ''}"
+        )
+    return problems
+
+
+@register
+class NavodiloRangeDashSpacingRule(RowRule):
+    """Razpon v stolpcu Navodilo (npr. 4000 – 4400) mora imeti presledek pred in za pomišljajem."""
+
+    name = "navodilo_range_dash_spacing_rule"
+    description = (
+        "V stolpcu 'Navodilo' mora biti pri razponu (npr. 4000 – 4400) "
+        "presledek pred pomišljajem in za njim."
+    )
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        navodilo = row.get("Navodilo")
+        if not _cell_is_nonempty(navodilo):
+            return
+        problems = find_range_dash_spacing_problems(coerce_str(navodilo))
+        if not problems:
+            return
+        examples = ", ".join(f"'{p}'" for p in dict.fromkeys(problems))
+        yield self.build_error(
+            "V stolpcu 'Navodilo' mora biti pri razponu presledek pred pomišljajem in za njim "
+            f"(npr. 4000 – 4400). Najdeno: {examples}.",
+            context=context,
+            column="Navodilo",
+            code="NAVODILO_RANGE_DASH_SPACING",
+        )
 
 
 @register

@@ -46,6 +46,7 @@ RULES = [
     ("zakleni_param_rule", "Parametri za zaklenipolja: Param1 = koraki z aliObstajaPogoj; za checkbox obvezna kontrola praznega polja (ali obratno glede na konfiguracijo).", "Kontrolna pravila"),
     ("aliobstajapogoj_combo_rule", "Pravilna kombinacija aliObstajaPogoj (Param1 = ključi, Param2 = 0/1) in vrednost polja, ko je pogoj izpolnjen.", "Kontrolna pravila"),
     ("aliobstajapogoj_param1_rule", "Pri aliObstajaPogoj mora biti Param1 ključ sklopa zaklenipolja, ki ta korak zaklene (tudi parni ključ, npr. sst_4 namesto sst_3); isti Param1 ne sme biti uporabljen pri dveh različnih sklopih zaklepanja.", "Kontrolna pravila"),
+    ("control_column_one_reserved_rule", "Stolpec Kontrola 1 je rezerviran za zaklenipolja in aliObstajaPogoj; ostale kontrole morajo biti v Kontrola 2 ali naprej.", "Kontrolna pravila"),
     ("zaklenipolja_unique_key_rule", "Pri zaklenipolja ne sme biti podvojenega ključa preverjanja.", "Kontrolna pravila"),
     ("zakleni_inverse_rule", "Za korake iz Param1 pri zaklenipolja mora obstajati kontrola aliObstajaPogoj z ustreznimi Param1/Param2.", "Kontrolna pravila"),
     ("zakleni_checkbox_rule", "Pri checkboxu in zaklenipolja: dovoljena/zahtevana kontrola praznega polja glede na konfiguracijo.", "Kontrolna pravila"),

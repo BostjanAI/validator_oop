@@ -359,23 +359,23 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 
 ---
 
-#### `DATA_TYPE_POSEBNOSTI_REQUIRED` – Brez zavihka mora biti `posebnosti`
+#### `DATA_TYPE_POSEBNOSTI_REQUIRED` – Brez `monolitN` v isti vrstici mora biti `posebnosti`
 
-**Opis:** Receptura nima zavihka, v `Tip podatka` pa je `posebnostimon`.
+**Opis:** V isti vrstici stolpec `Zavihek` ni `monolit1`, `monolit2`, …, `Tip podatka` pa je `posebnostimon`.
 
-**Vzrok:** Tip za posebnosti je izbran, kot da receptura uporablja zavihke monolitov.
+**Vzrok:** `posebnostimon` je vpisano v vrstici, ki nima kode monolita v `Zavihek`. Zavihek v drugi vrstici ne šteje.
 
-**Rešitev:** Če stolpec `Zavihek` ni uporabljen, v `Tip podatka` vpišite `posebnosti`.
+**Rešitev:** V tej vrstici v `Tip podatka` vpišite `posebnosti`, ali v isti vrstici v `Zavihek` vpišite `monolit1`, `monolit2`, …
 
 ---
 
-#### `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – Z zavihkom mora biti `posebnostimon`
+#### `DATA_TYPE_POSEBNOSTIMON_REQUIRED` – Ob `monolitN` v isti vrstici mora biti `posebnostimon`
 
-**Opis:** Receptura ima zavihek, v `Tip podatka` pa je `posebnosti`.
+**Opis:** V isti vrstici je v `Zavihek` vpisano `monolit1`, `monolit2`, …, `Tip podatka` pa je `posebnosti`.
 
-**Vzrok:** Tip za posebnosti ne ustreza recepturi z zavihki.
+**Vzrok:** Ob kodi monolita v isti vrstici je zahtevan tip `posebnostimon`.
 
-**Rešitev:** Če je v stolpcu `Zavihek` koda zavihka (npr. `monolit1`), v `Tip podatka` vpišite `posebnostimon`.
+**Rešitev:** V `Tip podatka` te vrstice vpišite `posebnostimon`.
 
 ---
 
@@ -584,6 +584,16 @@ Te napake se nanašajo na vrednosti posameznih polj (stolpcev) v vrsticah recept
 **Rešitev:** Odstranite presledek iz vrednosti v navedenem stolpcu. Presledki so dovoljeni v stolpcih `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`.
 
 **Posebej – stolpec `Zavihek`:** Presledek v `Zavihek` **ne odpira novega zavihka**. Validator javi napako v tem stolpcu; pravil `zaklenipolja` in številčenja korakov zaradi tega ne razbije. Popravite celico v `Zavihek`.
+
+---
+
+#### `NAVODILO_RANGE_DASH_SPACING` – Presledki pri razponu v Navodilu
+
+**Opis:** Razpon v stolpcu `Navodilo` nima presledka pred pomišljajem in za njim (npr. `4000–4400` ali `4000-4400`).
+
+**Vzrok:** Razpon je zapisan strnjeno ali z neenakomernimi presledki.
+
+**Rešitev:** Zapišite razpon z enim presledkom pred pomišljajem in enim za njim: `4000 – 4400`. Pravilo ne velja za zapise, ki niso razpon (npr. `7647-14-5`, `2026-01-01`, `SOP-123`).
 
 ---
 
@@ -812,6 +822,16 @@ Te napake se nanašajo na pravilnost kontrol v stolpcih `Kontrola 1` do `Kontrol
 | `kontrolamase` | Masa mora biti pravilna |
 | `kontrolaembalaze` | Embalaža mora biti veljavna |
 | `kontrolarazlika` | Razlika med vrednostmi v mejah |
+
+---
+
+#### `CTRL_COL1_RESERVED` – Kontrola v rezerviranem stolpcu `Kontrola 1`
+
+**Opis:** Stolpec `Kontrola 1` je rezerviran samo za kontroli `zaklenipolja` in `aliobstajapogoj`.
+
+**Vzrok:** V stolpcu `Kontrola 1` je druga kontrola (npr. `kontrolapraznopolje`, `kontrolainterval`).
+
+**Rešitev:** Premaknite kontrolo (skupaj z njenima `par 1` / `par 2`) v `Kontrola 2` ali naprej.
 
 ---
 
@@ -1054,6 +1074,16 @@ Kontrola 3: kontrolapraznopolje
 
 ---
 
+#### `CTRL_RAZTOPINA_NAVODILO_LABEL` – Navodilo ne vsebuje točne oznake raztopine
+
+**Opis:** V stolpcu `Navodilo` pri vrstici z `kontrolaustreznostiraztopine` ni točne oznake raztopine, kot jo ima raztopina na nalepki.
+
+**Vzrok:** Oznaka raztopine v `Navodilo` je drugačna od `Param1` pri `kontrolaustreznostiraztopine` (drugačno besedilo, velike/male črke, krajša ali daljša oznaka) ali pa je `Navodilo` prazno. Poljubno besedilo vodi do napak pri delu.
+
+**Rešitev:** V `Navodilo` vpišite natančno oznako iz `Param1` (npr. `Koda 1M-NaOH-PL`).
+
+---
+
 ## 5. Odgovornosti
 
 | Vloga | Odgovornost |
@@ -1104,6 +1134,7 @@ Kontrola 3: kontrolapraznopolje
 | `NASLOV_NAVODILO_EMPTY` | Naslov brez besedila | V `Navodilo` vpišite naslov razdelka |
 | `COMMA_NOT_ALLOWED` | Vejica kot decimalno ločilo | Zamenjajte vejico s piko v numeričnih vrednostih |
 | `SPACE_NOT_ALLOWED` | Presledek v vrednosti stolpca | Odstranite presledek (dovoljeno v `Navodilo`, `Labela`, `Vrednost` in `Ključ preverjanja`) |
+| `NAVODILO_RANGE_DASH_SPACING` | Razpon v `Navodilo` brez presledkov ob pomišljaju (`4000–4400`) | Zapišite `4000 – 4400` (presledek pred in za pomišljajem) |
 | `FORMULA_INVALID_REFERENCE` | Formula kaže na izbrisan korak | Preverite `$N` reference v formulah |
 | `STEP_DUPLICATE` | Kopirana vrstica brez popravka | Preverite formule v stolpcu `št. Koraka` |
 | `STEP_GAPS` | Izbrisana vrstica ali `crta` brez koraka | Zagotovite neprekinjeno zaporedje; `crta` mora imeti korak |

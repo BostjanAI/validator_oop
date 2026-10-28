@@ -68,6 +68,31 @@ class TestDuplicateKeyRule:
         error_codes = [e.code for e in errors]
         assert "KEY_DUP_CHEM" in error_codes
 
+    def test_duplicate_kemikalija_key_grouped_across_tabs(self, rule: DuplicateKeyRule) -> None:
+        """Isti podvojen ključ v več zavihkih je ena napaka, ki našteje zavihke."""
+        rows = [
+            {"Zavihek": "monolit1", "Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Zavihek": "monolit1", "Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Zavihek": "monolit2", "Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Zavihek": "monolit2", "Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Zavihek": "monolit3", "Ključ preverjanja": "razt_5", "Tip podatka": "raztopina"},
+            {"Zavihek": "monolit3", "Ključ preverjanja": "razt_5", "Tip podatka": "raztopina"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Zavihek", "Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        chem = [e for e in errors if e.code == "KEY_DUP_CHEM"]
+        sol = [e for e in errors if e.code == "KEY_DUP_SOL"]
+        assert len(chem) == 1
+        assert "v zavihkih 'monolit1', 'monolit2'" in chem[0].message
+        assert len(sol) == 1
+        assert "v zavihku 'monolit3'" in sol[0].message
+
     def test_duplicate_raztopina_key(self, rule: DuplicateKeyRule) -> None:
         """Test that duplicate raztopina keys raise errors."""
         rows = [
@@ -136,6 +161,29 @@ class TestDuplicateKeyRule:
 
         error_codes = [e.code for e in errors]
         assert "KEY_DUP_MASS_SECTION" in error_codes
+
+    def test_masa_same_key_in_sections_grouped_across_tabs(self, rule: DuplicateKeyRule) -> None:
+        """Isti ključ mase v več razdelkih na več zavihkih je ena napaka."""
+        rows = [
+            {"Zavihek": "monolit1", "Tip objekta": "naslov", "Tip podatka": "", "Ključ preverjanja": ""},
+            {"Zavihek": "", "Tip objekta": "", "Tip podatka": "masa", "Ključ preverjanja": "razt_8"},
+            {"Zavihek": "", "Tip objekta": "naslov", "Tip podatka": "", "Ključ preverjanja": ""},
+            {"Zavihek": "", "Tip objekta": "", "Tip podatka": "masa", "Ključ preverjanja": "razt_8"},
+            {"Zavihek": "monolit2", "Tip objekta": "naslov", "Tip podatka": "", "Ključ preverjanja": ""},
+            {"Zavihek": "", "Tip objekta": "", "Tip podatka": "masa", "Ključ preverjanja": "razt_8"},
+            {"Zavihek": "", "Tip objekta": "naslov", "Tip podatka": "", "Ključ preverjanja": ""},
+            {"Zavihek": "", "Tip objekta": "", "Tip podatka": "masa", "Ključ preverjanja": "razt_8"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Zavihek", "Tip objekta", "Tip podatka", "Ključ preverjanja"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        section_errors = [e for e in errors if e.code == "KEY_DUP_MASS_SECTION"]
+        assert len(section_errors) == 1
+        assert "v zavihkih 'monolit1', 'monolit2'" in section_errors[0].message
 
     def test_masa_same_key_same_section_allowed(self, rule: DuplicateKeyRule) -> None:
         """Same masa key multiple times in the same section is allowed (no KEY_DUP_MASA_SECTIONS)."""
@@ -416,6 +464,26 @@ class TestReproKolicinaOwnerRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         assert "PAIR_KOLICINA_WITHOUT_OWNER" in [e.code for e in errors]
 
+    def test_paketni_monolit_with_kolicina_paketnimonolit_passes(
+        self, rule: ReproKolicinaOwnerRule
+    ) -> None:
+        rows = [
+            {"Ključ preverjanja": "paketni", "Tip podatka": "monolit"},
+            {"Ključ preverjanja": "paketnimonolit", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert [e.code for e in errors] == []
+
+    def test_kolicina_paketnimonolit_without_paketni_monolit_raises_error(
+        self, rule: ReproKolicinaOwnerRule
+    ) -> None:
+        rows = [
+            {"Ključ preverjanja": "drugi", "Tip podatka": "monolit"},
+            {"Ključ preverjanja": "paketnimonolit", "Tip podatka": "kolicina"},
+        ]
+        errors = self._run(rule, rows)
+        assert "PAIR_KOLICINA_WITHOUT_OWNER" in [e.code for e in errors]
+
 
 class TestTimePairRule:
     """Tests for TimePairRule."""
@@ -495,6 +563,29 @@ class TestTimePairRule:
 
         error_codes = [e.code for e in errors]
         assert "KEY_DUP_TIME_PAIR" in error_codes
+
+    def test_duplicate_time_key_grouped_across_tabs(self, rule: TimePairRule) -> None:
+        """Isti ponovljen časovni ključ v več zavihkih je ena napaka."""
+        rows = [
+            {"Zavihek": "monolit1", "Ključ preverjanja": "crpanje", "Tip podatka": "datumcaszacetek"},
+            {"Zavihek": "", "Ključ preverjanja": "crpanje", "Tip podatka": "datumcaskonec"},
+            {"Zavihek": "monolit4", "Ključ preverjanja": "crpanje_3", "Tip podatka": "datumcaszacetek"},
+            {"Zavihek": "", "Ključ preverjanja": "crpanje_3", "Tip podatka": "datumcaszacetek"},
+            {"Zavihek": "monolit7", "Ključ preverjanja": "crpanje_3", "Tip podatka": "datumcaszacetek"},
+            {"Zavihek": "", "Ključ preverjanja": "crpanje_3", "Tip podatka": "datumcaszacetek"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Zavihek", "Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        dup = [e for e in errors if e.code == "KEY_DUP_TIME_PAIR"]
+        assert len(dup) == 1
+        assert "v zavihkih 'monolit4', 'monolit7'" in dup[0].message
+        assert "monolit1" not in dup[0].message
 
     def test_duplicate_start_key_without_end_still_raises_duplicate_error(self, rule: TimePairRule) -> None:
         """Repeated start key should be duplicate even when matching end is missing."""

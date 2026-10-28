@@ -7,7 +7,11 @@ from dataclasses import dataclass
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from typing import Any, Iterable, Mapping, Sequence
 
-from validator_oop.core.constants import ALLOWED_CONTROLS_NORMALIZED, EXCEL_ERROR_TOKENS, NUMERIC_TOKEN_RE
+from validator_oop.core.constants import (
+    ALLOWED_CONTROLS_NORMALIZED,
+    EXCEL_ERROR_TOKENS,
+    NUMERIC_TOKEN_RE,
+)
 from validator_oop.core.error import Severity
 from validator_oop.rules import RowRule, RuleContext, SheetRule, register
 from validator_oop.utils import (
@@ -38,9 +42,9 @@ ALLOWED_CONTROLS_NS = ALLOWED_CONTROLS_NORMALIZED
 # Subset of controls that have a simple, fixed data-type context.
 # More complex context rules (monolit, raztopina, oprema, ...) are implemented
 # explicitly in ControlContextRule to mirror MES_validator.py.
+# Kontrole kemikalije in raztopine so pokrite z ChemicalSolutionControlsRule
+# (obvezen par kontrol + točen tip podatka).
 SPECIFIC_TYPE_CONTROLS = {
-    "kontrolaveljavnostikemikalije": {"kemikalija"},
-    "kontrolaustreznostikemikalije": {"kemikalija"},
     "kontrolamase": {"masa"},
     "kontrolaembalaze": {"embalaza"},
     "kontrolaprazneembalaze": {"embalaza"},
@@ -73,6 +77,9 @@ EXPECTED_CONTROLS = {
 ZAKLENI_CONTROL = "zaklenipolja"
 ALIOB_CONTROL = "aliobstajapogoj"
 INTERVAL_CONTROL_NAMES = ("kontrolainterval", "kontrolaintervala")
+# Stolpec 'Kontrola 1' je rezerviran samo za te kontrole; ostale gredo v Kontrola 2+.
+RESERVED_CONTROL_COLUMN_NUMBER = 1
+RESERVED_FIRST_COLUMN_CONTROLS = frozenset({ZAKLENI_CONTROL, ALIOB_CONTROL, "aliobstajapogoj_ali"})
 # Labela za checkbox: samo kljukica → zahteva aliObkljukan; kljukica/prazno → aliObkljukan ne sme biti
 LABELA_DA_KLJUKICA = "da (kljukica)"
 LABELA_DA_NE = "da (kljukica)/ne (prazno)"
@@ -250,6 +257,17 @@ def _range_param_band(lower: Decimal, upper: Decimal, d_round: int) -> tuple[Dec
     lo_r = _round_half_up(lower, d_round)
     hi_r = _round_half_up(upper, d_round)
     return lo_r - (step / 2) - fine, hi_r + (step / 2)
+
+
+def _integer_range_one_decimal_match(raw: str, bound: float, *, is_lower: bool) -> bool:
+    """Celo število v razponu beremo tudi kot N.0 (korak 0.1).
+
+    Zapis ``45 - 51`` je zato veljaven kot ``45`` (Param1 ``44``) in kot ``45.0``
+    (Param1 ``44.9``). Končne ničle se v navodilu včasih ne prikažejo.
+    """
+    whole = Decimal(int(round(bound)))
+    target = whole - Decimal("0.1") if is_lower else whole + Decimal("0.1")
+    return _decimal_eq(raw, float(target), 1)
 
 
 def _range_param_matches(
@@ -432,6 +450,42 @@ class UnknownControlsRule(RowRule):
                         code="CTRL_UNKNOWN",
                     )
                 )
+        return errors
+
+
+@register
+class ControlColumnOneReservedRule(RowRule):
+    """Kontrola 1 je rezervirana za 'zaklenipolja' in 'aliObstajaPogoj'."""
+
+    name = "control_column_one_reserved_rule"
+    description = (
+        "Stolpec 'Kontrola 1' je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'; "
+        "vse ostale kontrole morajo biti v 'Kontrola 2' ali naprej."
+    )
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+        errors = []
+        for control in _get_present_controls(row, shared):
+            if control.ctrl_number != RESERVED_CONTROL_COLUMN_NUMBER:
+                continue
+            if control.name_ns in RESERVED_FIRST_COLUMN_CONTROLS:
+                continue
+            if control.name_ns not in ALLOWED_CONTROLS_NS:
+                # Neznano ime že javi UnknownControlsRule (CTRL_UNKNOWN).
+                continue
+            errors.append(
+                self.build_error(
+                    f"Kontrola '{control.raw_name}' ne sme biti v stolpcu 'Kontrola 1' – "
+                    "ta je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'. "
+                    "Premaknite jo v 'Kontrola 2' ali naprej.",
+                    context=context,
+                    column=control.column,
+                    code="CTRL_COL1_RESERVED",
+                )
+            )
         return errors
 
 
@@ -640,12 +694,9 @@ class ControlContextRule(RowRule):
     ):
         if control.name_ns not in self.KEMIKALIJA_CONTROLS:
             return None
-        if not state.tip_data.startswith("kemikalija"):
-            return self._build_invalid_context_error(
-                f"Kontrola '{control.raw_name}' je na polju, ki ni 'kemikalija'.",
-                context=context,
-                column=control.column,
-            )
+        # Tip podatka preverja ChemicalSolutionControlsRule.
+        if state.tip_data != "kemikalija":
+            return None
         if state.label_value == "koda":
             return None
         return self._build_invalid_context_error(
@@ -680,12 +731,9 @@ class ControlContextRule(RowRule):
     ):
         if control.name_ns not in self.RAZTOPINA_CONTROLS:
             return None
-        if not state.tip_data.startswith("raztopina"):
-            return self._build_invalid_context_error(
-                f"Kontrola '{control.raw_name}' je na polju, ki ni 'raztopina'.",
-                context=context,
-                column=control.column,
-            )
+        # Tip podatka preverja ChemicalSolutionControlsRule.
+        if state.tip_data != "raztopina":
+            return None
         if state.label_value != "koda":
             return self._build_invalid_context_error(
                 (
@@ -1950,14 +1998,9 @@ class KontrolaIntervalAdvancedRule(RowRule):
                 param2_required = right_req + eps_pm
 
                 d_fmt = max_decimals(left_req, right_req, param1_required, param2_required, p1_val, p2_val)
-                d_hint = d_fmt
-                p1_msg_target = f"{param1_required:.{d_fmt}f}"
-                p2_msg_target = f"{param2_required:.{d_fmt}f}"
-                if left_dec is not None and right_dec is not None and d_round is not None:
-                    band_lo, band_hi = _pm_rounding_band(left_dec, right_dec, d_round)
-                    d_hint = max(d_round + 1, d_fmt, 0)
-                    p1_msg_target = f"{band_lo:.{d_hint}f}"
-                    p2_msg_target = f"{band_hi:.{d_hint}f}"
+                # Sporočilo kaže kanonski Param (npr. 24.0 ± 0.5 → 23.4 / 24.6), ne roba pasu (23.44 / 24.55).
+                p1_msg_target = f"{param1_required:.{d_tol}f}"
+                p2_msg_target = f"{param2_required:.{d_tol}f}"
 
                 if not _pm_param_matches(
                     p1_raw, p1_is_num, param1_required, d_tol, left_dec, right_dec, d_round
@@ -2030,6 +2073,22 @@ class KontrolaIntervalAdvancedRule(RowRule):
                     p2_ok = p2_is_num and _decimal_eq(p2_raw, upper, d_exact)
                     p1_msg_target = f"{lower:.{d_exact}f}"
                     p2_msg_target = f"{upper:.{d_exact}f}"
+                    # Cela števila: 45 in 45.0 sta isti zapis (ničla se včasih ne prikaže).
+                    if d_exact == 0:
+                        if p1_is_num and _integer_range_one_decimal_match(
+                            p1_raw, a, is_lower=True
+                        ):
+                            p1_ok = True
+                        if p2_is_num and _integer_range_one_decimal_match(
+                            p2_raw, b, is_lower=False
+                        ):
+                            p2_ok = True
+                        if not p1_ok:
+                            alt_p1 = Decimal(int(round(a))) - Decimal("0.1")
+                            p1_msg_target = f"{p1_msg_target} ali {alt_p1:.1f}"
+                        if not p2_ok:
+                            alt_p2 = Decimal(int(round(b))) + Decimal("0.1")
+                            p2_msg_target = f"{p2_msg_target} ali {alt_p2:.1f}"
 
                 if not p1_ok:
                     errors.append(
@@ -2425,6 +2484,223 @@ class MonolitControlsRequiredRule(RowRule):
                 )
             )
         return errors
+
+
+@dataclass(frozen=True, slots=True)
+class _ControlPairSpec:
+    """Par kontrol (veljavnost + ustreznost), ki velja samo za en tip podatka."""
+
+    tip_podatka: str
+    validity: str
+    validity_label: str
+    validity_code: str
+    suitability: str
+    suitability_label: str
+    suitability_code: str
+    type_code: str
+    param1_code: str
+    param2_code: str
+    # True: Param1 mora biti prazen; False: Param1 mora biti pri obeh kontrolah enak.
+    param1_must_be_empty: bool
+
+
+_CONTROL_PAIR_SPECS: tuple[_ControlPairSpec, ...] = (
+    _ControlPairSpec(
+        tip_podatka="kemikalija",
+        validity="kontrolaveljavnostikemikalije",
+        validity_label="kontrolaVeljavnostiKemikalije",
+        validity_code="CTRL_KEMIKALIJA_VALIDITY_REQUIRED",
+        suitability="kontrolaustreznostikemikalije",
+        suitability_label="kontrolaUstreznostiKemikalije",
+        suitability_code="CTRL_KEMIKALIJA_SUITABILITY_REQUIRED",
+        type_code="CTRL_KEMIKALIJA_TYPE_REQUIRED",
+        param1_code="CTRL_KEMIKALIJA_PARAM1_NOT_EMPTY",
+        param2_code="CTRL_KEMIKALIJA_PARAM2_NOT_EMPTY",
+        param1_must_be_empty=True,
+    ),
+    _ControlPairSpec(
+        tip_podatka="raztopina",
+        validity="kontrolaveljavnostiraztopine",
+        validity_label="kontrolaVeljavnostiRaztopine",
+        validity_code="CTRL_RAZTOPINA_VALIDITY_REQUIRED",
+        suitability="kontrolaustreznostiraztopine",
+        suitability_label="kontrolaUstreznostiRaztopine",
+        suitability_code="CTRL_RAZTOPINA_SUITABILITY_REQUIRED",
+        type_code="CTRL_RAZTOPINA_TYPE_REQUIRED",
+        param1_code="CTRL_RAZTOPINA_PARAM1_MISMATCH",
+        param2_code="CTRL_RAZTOPINA_PARAM2_NOT_EMPTY",
+        param1_must_be_empty=False,
+    ),
+)
+
+
+@register
+class ChemicalSolutionControlsRule(RowRule):
+    """Kemikalija/raztopina: kontroli veljavnosti in ustreznosti sta obvezni skupaj, tip podatka je točen."""
+
+    name = "chemical_solution_controls_rule"
+    description = (
+        "Če je v vrstici kontrola 'kontrolaVeljavnostiKemikalije' ali 'kontrolaUstreznostiKemikalije', "
+        "morata biti prisotni obe, tip podatka pa mora biti 'kemikalija'. "
+        "Enako velja za 'kontrolaVeljavnostiRaztopine' in 'kontrolaUstreznostiRaztopine' ter tip 'raztopina'."
+    )
+
+    def evaluate(self, row: Mapping[str, object], context: RuleContext) -> Iterable:
+        shared = context.shared
+        if not shared:
+            return []
+
+        tip_data_raw = coerce_str(row.get("Tip podatka", ""))
+        tip_data = norm_text(tip_data_raw)
+        controls = _get_present_controls(row, shared)
+
+        errors = []
+        for spec in _CONTROL_PAIR_SPECS:
+            validity = _get_control(controls, spec.validity)
+            suitability = _get_control(controls, spec.suitability)
+            present = validity + suitability
+            if not present:
+                continue
+
+            if not validity:
+                errors.append(
+                    self.build_error(
+                        f"Manjka kontrola '{spec.validity_label}': kontroli '{spec.validity_label}' in "
+                        f"'{spec.suitability_label}' morata biti v vrstici obe.",
+                        context=context,
+                        column="(Kontrole)",
+                        code=spec.validity_code,
+                    )
+                )
+            if not suitability:
+                errors.append(
+                    self.build_error(
+                        f"Manjka kontrola '{spec.suitability_label}': kontroli '{spec.validity_label}' in "
+                        f"'{spec.suitability_label}' morata biti v vrstici obe.",
+                        context=context,
+                        column="(Kontrole)",
+                        code=spec.suitability_code,
+                    )
+                )
+
+            if tip_data != spec.tip_podatka:
+                shown = tip_data_raw.strip() or "(prazno)"
+                errors.append(
+                    self.build_error(
+                        f"Kontroli '{spec.validity_label}' in '{spec.suitability_label}' sta dovoljeni samo "
+                        f"pri tipu podatka '{spec.tip_podatka}'. Trenutno: Tip podatka='{shown}'.",
+                        context=context,
+                        column=present[0].column,
+                        code=spec.type_code,
+                    )
+                )
+
+            errors.extend(self._check_params(row, spec, validity, suitability, context))
+        return errors
+
+    def _check_params(
+        self,
+        row: Mapping[str, object],
+        spec: _ControlPairSpec,
+        validity: Sequence[ControlInstance],
+        suitability: Sequence[ControlInstance],
+        context: RuleContext,
+    ) -> list:
+        errors = []
+        present = list(validity) + list(suitability)
+
+        # Param2 mora biti pri obeh kontrolah vedno prazen.
+        for control in present:
+            if not control.param2_column:
+                continue
+            value = coerce_str(row.get(control.param2_column, "")).strip()
+            if value:
+                errors.append(
+                    self.build_error(
+                        f"Param2 pri kontroli '{control.raw_name}' mora biti prazen. Trenutno: '{value}'.",
+                        context=context,
+                        column=control.param2_column,
+                        code=spec.param2_code,
+                    )
+                )
+
+        if spec.param1_must_be_empty:
+            for control in present:
+                if not control.param1_column:
+                    continue
+                value = coerce_str(row.get(control.param1_column, "")).strip()
+                if value:
+                    errors.append(
+                        self.build_error(
+                            f"Param1 pri kontroli '{control.raw_name}' mora biti prazen. Trenutno: '{value}'.",
+                            context=context,
+                            column=control.param1_column,
+                            code=spec.param1_code,
+                        )
+                    )
+            return errors
+
+        # Raztopina: Param1 mora biti pri veljavnosti in ustreznosti enak.
+        if validity and suitability:
+            v_ctrl, s_ctrl = validity[0], suitability[0]
+            v_val = coerce_str(row.get(v_ctrl.param1_column or "", "")).strip()
+            s_val = coerce_str(row.get(s_ctrl.param1_column or "", "")).strip()
+            if v_val != s_val:
+                errors.append(
+                    self.build_error(
+                        f"Param1 pri '{v_ctrl.raw_name}' ('{v_val}') in '{s_ctrl.raw_name}' "
+                        f"('{s_val}') mora biti enak.",
+                        context=context,
+                        column=s_ctrl.param1_column or s_ctrl.column,
+                        code=spec.param1_code,
+                    )
+                )
+
+        errors.extend(self._check_navodilo_label(row, suitability, context))
+        return errors
+
+    def _check_navodilo_label(
+        self,
+        row: Mapping[str, object],
+        suitability: Sequence[ControlInstance],
+        context: RuleContext,
+    ) -> list:
+        """Navodilo mora vsebovati točno oznako raztopine (Param1 pri kontrolaUstreznostiRaztopine)."""
+        for control in suitability:
+            if not control.param1_column:
+                continue
+            label = coerce_str(row.get(control.param1_column, "")).strip()
+            # Prazen Param1 ali neizračunana formula: oznake ni mogoče primerjati.
+            if not label or label.startswith("="):
+                continue
+            navodilo = coerce_str(row.get("Navodilo", "")).strip()
+            if navodilo.startswith("="):
+                continue
+            if _navodilo_has_label(navodilo, label):
+                continue
+            shown = navodilo or "(prazno)"
+            return [
+                self.build_error(
+                    f"Navodilo mora vsebovati točno oznako raztopine '{label}' (kot na nalepki; "
+                    f"Param1 pri '{control.raw_name}'). Trenutno: '{shown}'.",
+                    context=context,
+                    column="Navodilo",
+                    code="CTRL_RAZTOPINA_NAVODILO_LABEL",
+                )
+            ]
+        return []
+
+
+def _navodilo_has_label(navodilo: str, label: str) -> bool:
+    """True, če Navodilo vsebuje oznako natančno (razlikuje velike/male črke) kot samostojen niz.
+
+    Oznaka ne sme biti del daljše oznake (npr. ``1M-NaOH`` v ``1M-NaOH-PL``)
+    ali zapisa števila (``5M-NaOH`` v ``0.5M-NaOH``).
+    """
+    if not navodilo or not label:
+        return False
+    pattern = rf"(?<![\w\-.]){re.escape(label)}(?![\w\-]|\.\d)"
+    return re.search(pattern, navodilo) is not None
 
 
 @register

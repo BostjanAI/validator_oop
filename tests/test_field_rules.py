@@ -23,6 +23,7 @@ from validator_oop.rules.builtin.field import (
     LabelRequirementsRule,
     MasaTipPodatkaRule,
     NaslovEmptyColumnsRule,
+    NavodiloRangeDashSpacingRule,
     PosebnostiTipPodatkaRule,
     NoSpacesRule,
     ObjectTypeRule,
@@ -143,28 +144,51 @@ class TestPosebnostiTipPodatkaRule:
         assert all(e.column == "Tip podatka" for e in errors)
         assert "posebnosti" in errors[0].message
 
-    def test_with_zavihek_posebnostimon_is_valid(self, rule: PosebnostiTipPodatkaRule) -> None:
+    def test_monolit_on_other_row_does_not_require_posebnostimon(
+        self, rule: PosebnostiTipPodatkaRule
+    ) -> None:
+        rows = [
+            {"Zavihek": "monolit1", "Tip podatka": "naslov"},
+            {"Zavihek": "", "Tip podatka": "posebnosti"},
+            {"Zavihek": "", "Tip podatka": "masa"},
+        ]
+        assert self._run(rule, rows) == []
+
+    def test_posebnostimon_on_other_row_than_monolit_is_error(
+        self, rule: PosebnostiTipPodatkaRule
+    ) -> None:
         rows = [
             {"Zavihek": "monolit1", "Tip podatka": "naslov"},
             {"Zavihek": "", "Tip podatka": "posebnostimon"},
-            {"Zavihek": "", "Tip podatka": "masa"},
         ]
         errors = self._run(rule, rows)
-        assert errors == []
-
-    def test_with_zavihek_posebnosti_is_error(self, rule: PosebnostiTipPodatkaRule) -> None:
-        rows = [
-            {"Zavihek": "monolit1", "Tip podatka": "naslov"},
-            {"Zavihek": "=B2", "Tip podatka": "posebnosti"},
-        ]
-        errors = self._run(rule, rows)
-        assert [e.code for e in errors] == ["DATA_TYPE_POSEBNOSTIMON_REQUIRED"]
+        assert [e.code for e in errors] == ["DATA_TYPE_POSEBNOSTI_REQUIRED"]
         assert errors[0].row_index == 3
 
-    def test_space_in_zavihek_does_not_count_as_tab(self, rule: PosebnostiTipPodatkaRule) -> None:
-        rows = [{"Zavihek": "mono lit1", "Tip podatka": "posebnosti"}]
+    @pytest.mark.parametrize("zavihek", ["monolit2", "Monolit3", " monolit10 "])
+    def test_monolit_code_on_same_row_requires_posebnostimon(
+        self, rule: PosebnostiTipPodatkaRule, zavihek: str
+    ) -> None:
+        rows = [{"Zavihek": zavihek, "Tip podatka": "posebnostimon"}]
+        assert self._run(rule, rows) == []
+
+        rows = [{"Zavihek": zavihek, "Tip podatka": "posebnosti"}]
         errors = self._run(rule, rows)
-        assert errors == []
+        assert [e.code for e in errors] == ["DATA_TYPE_POSEBNOSTIMON_REQUIRED"]
+        assert errors[0].row_index == 2
+
+    @pytest.mark.parametrize(
+        "zavihek", ["=B2", "mono lit1", " ", "monolit", "monolit_1", "monolitx", "zavihek1", "abc"]
+    )
+    def test_other_zavihek_values_require_posebnosti(
+        self, rule: PosebnostiTipPodatkaRule, zavihek: str
+    ) -> None:
+        rows = [{"Zavihek": zavihek, "Tip podatka": "posebnosti"}]
+        assert self._run(rule, rows) == []
+
+        rows = [{"Zavihek": zavihek, "Tip podatka": "posebnostimon"}]
+        errors = self._run(rule, rows)
+        assert [e.code for e in errors] == ["DATA_TYPE_POSEBNOSTI_REQUIRED"]
 
 
 class TestCrtaEmptyColumnsRule:
@@ -1019,6 +1043,68 @@ class TestCommaNumberRule:
 
         error_codes = [e.code for e in errors]
         assert "COMMA_NOT_ALLOWED" in error_codes
+
+
+class TestNavodiloRangeDashSpacingRule:
+    """Tests for NavodiloRangeDashSpacingRule."""
+
+    @pytest.fixture
+    def rule(self) -> NavodiloRangeDashSpacingRule:
+        return NavodiloRangeDashSpacingRule()
+
+    @staticmethod
+    def _codes(rule: NavodiloRangeDashSpacingRule, navodilo: object) -> list[str]:
+        rows = [{"Navodilo": navodilo, "Tip objekta": "edit", "št. Koraka": "1"}]
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        return [e.code for e in errors]
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "Pretok 4000 – 4400 mL/min",
+            "Pretok 4000 - 4400 mL/min",
+            "Temperatura 20 – 25 °C (pH 6.5 – 7.0)",
+            "Mešaj 4000 – 4400",
+            "Brez razpona",
+            "CAS 7647-14-5",
+            "Datum 2026-01-01",
+            "Oznaka SOP-123",
+            "Korak A–B",
+            "Priprava – glej navodilo",
+            "",
+            None,
+        ],
+    )
+    def test_valid(self, rule: NavodiloRangeDashSpacingRule, navodilo: object) -> None:
+        assert self._codes(rule, navodilo) == []
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "Pretok 4000–4400 mL/min",
+            "Pretok 4000 –4400 mL/min",
+            "Pretok 4000– 4400 mL/min",
+            "Pretok 4000  –  4400 mL/min",
+            "Pretok 4000—4400",
+            "Pretok 4000-4400 mL/min",
+            "Pretok 4000 -4400 mL/min",
+            "Pretok 4000- 4400 mL/min",
+            "pH 6.5–7.0",
+            "Masa 4000g–4400g",
+            "Temperatura 20-25 °C",
+        ],
+    )
+    def test_invalid(self, rule: NavodiloRangeDashSpacingRule, navodilo: object) -> None:
+        assert self._codes(rule, navodilo) == ["NAVODILO_RANGE_DASH_SPACING"]
+
+    def test_single_error_per_cell_names_all_ranges(
+        self, rule: NavodiloRangeDashSpacingRule
+    ) -> None:
+        rows = [{"Navodilo": "1–2 in 30-40", "Tip objekta": "edit"}]
+        errors = list(rule.run(rows, sheet_name="Sheet1", row_offset=2))
+        assert len(errors) == 1
+        assert "1–2" in errors[0].message and "30-40" in errors[0].message
+        assert errors[0].column == "Navodilo"
 
 
 class TestNoSpacesRule:

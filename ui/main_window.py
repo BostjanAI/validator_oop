@@ -23,7 +23,6 @@ from validator_oop.core.rule_engine import RuleEngine
 from validator_oop.core.validator_engine import ValidatorEngine
 from validator_oop.excel.excel_loader import ExcelLoader
 from validator_oop.excel.report_writer import ReportWriter, WorkbookFixer
-from validator_oop.excel.sop_loader import SOPData
 from validator_oop.rules.rule_registry import default_registry
 from validator_oop.rules.builtin import register_all
 from validator_oop.ui.catalog_ui import (
@@ -79,6 +78,7 @@ class ValidatorApp(tk.Tk):
             import validator_oop.rules.builtin.relational
             import validator_oop.rules.builtin.control
             import validator_oop.rules.builtin.catalog_code_rule
+            import validator_oop.rules.builtin.podatki_usage_rule
         except ImportError as e:
             self._logger.error("CRITICAL: Failed to import rule modules: %s", e, exc_info=True)
             import traceback
@@ -103,7 +103,6 @@ class ValidatorApp(tk.Tk):
         # Tkinter variables
         self.input_var = tk.StringVar()
         self.report_var = tk.StringVar()
-        self.sop_var = tk.StringVar()
         self.catalog_razt_var = tk.StringVar()
         self.catalog_kem_var = tk.StringVar()
         self.catalog_repro_var = tk.StringVar()
@@ -152,15 +151,6 @@ class ValidatorApp(tk.Tk):
             row=3, column=2, sticky="e"
         )
 
-        # SOP file selection
-        ttk.Label(frm, text="SOP datoteka (Word .docx):").grid(row=4, column=0, sticky="w")
-        ttk.Entry(frm, textvariable=self.sop_var).grid(
-            row=5, column=0, columnspan=2, sticky="we"
-        )
-        ttk.Button(frm, text="Izberi...", command=self._pick_sop).grid(
-            row=5, column=2, sticky="e"
-        )
-
         ttk.Label(frm, text="Šifrant raztopin (Excel):").grid(row=6, column=0, sticky="w")
         ttk.Entry(frm, textvariable=self.catalog_razt_var).grid(
             row=7, column=0, columnspan=2, sticky="we"
@@ -204,9 +194,6 @@ class ValidatorApp(tk.Tk):
         ttk.Button(frm, text="Zaženi validacijo", command=self._run_validation).grid(
             row=14, column=0, sticky="w", pady=12
         )
-        ttk.Button(
-            frm, text="Zaženi validacijo s SOP", command=self._run_validation_with_sop
-        ).grid(row=14, column=1, sticky="w", pady=12)
         ttk.Button(
             frm, text="Primerjaj razdelke med listi", command=self._run_section_compare
         ).grid(row=14, column=2, sticky="w", pady=12)
@@ -325,19 +312,6 @@ class ValidatorApp(tk.Tk):
             self.log(
                 f"V {source_label} ni najdenih Excel receptur (noben stolpec recepture)."
             )
-
-    def _pick_sop(self) -> None:
-        """Open file dialog to select SOP Word document."""
-        path = filedialog.askopenfilename(
-            title="Izberi SOP datoteko (Word)",
-            filetypes=[
-                ("Word documents", "*.docx"),
-                ("All files", "*.*"),
-            ],
-        )
-        if path:
-            self.sop_var.set(path)
-            self.log(f"SOP datoteka: {path}")
 
     def _pick_catalog_razt(self) -> None:
         path = filedialog.askopenfilename(
@@ -488,41 +462,11 @@ class ValidatorApp(tk.Tk):
         return Path(out_raw), mode
 
     def _run_validation(self) -> None:
-        """Run validation on selected input files (without SOP)."""
-        self._run_validation_impl(sop_data=None)
+        """Run validation on selected input files."""
+        self._run_validation_impl()
 
-    def _run_validation_with_sop(self) -> None:
-        """Run validation with SOP compliance checking."""
-        sop_path_str = self.sop_var.get().strip()
-        if not sop_path_str:
-            messagebox.showerror(
-                "Napaka",
-                "Za validacijo s SOP izberi najprej SOP datoteko (Word .docx).",
-            )
-            self.log("NAPAKA: Manjka izbira SOP datoteke.")
-            return
-        sop_path = Path(sop_path_str)
-        if not sop_path.exists():
-            messagebox.showerror("Napaka", f"SOP datoteka ne obstaja:\n{sop_path}")
-            self.log(f"NAPAKA: SOP datoteka ne obstaja: {sop_path}")
-            return
-        try:
-            sop_data = SOPData.from_word(sop_path, logger=self._logger)
-            self.log(f"SOP naložen: {sop_data.sop_id or 'N/A'}, verzija {sop_data.version or 'N/A'}")
-        except Exception as e:
-            messagebox.showerror(
-                "Napaka nalaganja SOP",
-                f"Ne morem naložiti SOP datoteke:\n{sop_path}\n\n{e}",
-            )
-            self.log(f"NAPAKA nalaganja SOP: {e}")
-            return
-        self._run_validation_impl(sop_data=sop_data)
-
-    def _run_validation_impl(
-        self,
-        sop_data: SOPData | None = None,
-    ) -> None:
-        """Run validation on selected input files, optionally with SOP data."""
+    def _run_validation_impl(self) -> None:
+        """Run validation on selected input files."""
         in_paths = self._parse_input_paths()
         if in_paths is None:
             return
@@ -573,7 +517,6 @@ class ValidatorApp(tk.Tk):
                 issues, cat_meta = self._validate_single_file(
                     in_path,
                     sheet_name,
-                    sop_data=sop_data,
                     catalog_data=catalog_data,
                     catalog_paths=catalog_paths,
                 )
@@ -584,7 +527,12 @@ class ValidatorApp(tk.Tk):
 
             self._last_catalog_summary = merge_catalog_summaries(catalog_summaries)
             log_catalog_summary_from_report(self._last_catalog_summary, self.log)
-            self._write_report(out_path, all_issues, self._last_catalog_summary)
+            self._write_report(
+                out_path,
+                all_issues,
+                self._last_catalog_summary,
+                source_files=list(in_paths),
+            )
 
         else:
             # Per-file reports
@@ -601,7 +549,6 @@ class ValidatorApp(tk.Tk):
                 issues, cat_meta = self._validate_single_file(
                     in_path,
                     sheet_name,
-                    sop_data=sop_data,
                     catalog_data=catalog_data,
                     catalog_paths=catalog_paths,
                 )
@@ -612,7 +559,7 @@ class ValidatorApp(tk.Tk):
 
                 out_file = out_path / f"por_{in_path.stem}.xlsx"
                 file_summary = cat_meta or merge_catalog_summaries(catalog_summaries)
-                self._write_report(out_file, issues, file_summary)
+                self._write_report(out_file, issues, file_summary, source_files=[in_path])
             self._last_catalog_summary = merge_catalog_summaries(catalog_summaries)
             log_catalog_summary_from_report(self._last_catalog_summary, self.log)
 
@@ -624,7 +571,6 @@ class ValidatorApp(tk.Tk):
         in_path: Path,
         sheet_name: str = "",
         *,
-        sop_data: SOPData | None = None,
         catalog_data=None,
         catalog_paths: dict[str, str] | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
@@ -633,7 +579,6 @@ class ValidatorApp(tk.Tk):
         Args:
             in_path: Path to the input Excel file.
             sheet_name: Optional specific sheet to validate.
-            sop_data: Optional SOP data for compliance validation.
 
         Returns:
             List of issue dictionaries.
@@ -656,7 +601,6 @@ class ValidatorApp(tk.Tk):
                 excel_loader=self._loader,
                 logger=self._logger,
                 include_formulas=True,  # Required for INDEX MATCH formula parsing
-                sop_data=sop_data,
                 catalog_data=catalog_data,
                 catalog_paths=catalog_paths,
             )
@@ -669,17 +613,7 @@ class ValidatorApp(tk.Tk):
             self.log(f"Excel uspešno prebran: {in_path}")
             
             # Log validation summary
-            if sop_data:
-                sop_errors = [e for e in report.errors if e.code.startswith("SOP_")]
-                self.log(f"Validacija končana. Skupaj napak: {len(report.errors)}, SOP napak: {len(sop_errors)}")
-                if sop_errors:
-                    self.log(f"SOP validacija - najdene napake:")
-                    for error in sop_errors:
-                        self.log(f"  - {error.message} (vrstica {error.row_index}, stolpec {error.column or 'N/A'})")
-                else:
-                    self.log(f"SOP validacija: Vsi podatki iz zavihka 'Podatki' so skladni s SOP-om")
-            else:
-                self.log(f"Validacija končana. Najdenih napak: {len(report.errors)}")
+            self.log(f"Validacija končana. Najdenih napak: {len(report.errors)}")
 
             # Convert ValidationReport to issue dictionaries
             issues: list[dict[str, Any]] = []
@@ -742,6 +676,7 @@ class ValidatorApp(tk.Tk):
         out_path: Path,
         issues: list[dict[str, Any]],
         catalog_summary: dict[str, Any] | None = None,
+        source_files: list[Path] | None = None,
     ) -> None:
         """Write validation report to file.
 
@@ -749,15 +684,22 @@ class ValidatorApp(tk.Tk):
             out_path: Path to the output file.
             issues: List of issue dictionaries.
             catalog_summary: Optional catalog validation metadata for report.
+            source_files: Validated input files shown in the report.
         """
         try:
             if out_path.suffix.lower() == ".xlsx":
                 self._report_writer.write_excel_report(
-                    out_path, issues, catalog_summary=catalog_summary
+                    out_path,
+                    issues,
+                    catalog_summary=catalog_summary,
+                    source_files=source_files,
                 )
             else:
                 self._report_writer.write_text_report(
-                    out_path, issues, catalog_summary=catalog_summary
+                    out_path,
+                    issues,
+                    catalog_summary=catalog_summary,
+                    source_files=source_files,
                 )
             self.log(f"Poročilo zapisano: {out_path}")
         except Exception as e:

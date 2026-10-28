@@ -1,4 +1,4 @@
-"""Tests for control validation rules.
+﻿"""Tests for control validation rules.
 
 This module tests control-related rules like UnknownControlsRule,
 ControlContextRule, ZakleniParamRule, and others.
@@ -17,6 +17,8 @@ from validator_oop.rules.builtin.control import (
     AliObstajaPogojCombinationRule,
     AliObstajaPogojParam1Rule,
     CheckboxAliObkljukanRequiredRule,
+    ChemicalSolutionControlsRule,
+    ControlColumnOneReservedRule,
     ControlContextRule,
     DatumCasKonecKontrolaCasaRequiredRule,
     ExcelErrorTokenRule,
@@ -94,6 +96,42 @@ class TestUnknownControlsRule:
 
         unknown_errors = [e for e in errors if e.code == "CTRL_UNKNOWN"]
         assert len(unknown_errors) == 0
+
+
+class TestControlColumnOneReservedRule:
+    """Kontrola 1 je rezervirana za zaklenipolja in aliObstajaPogoj."""
+
+    @staticmethod
+    def _run(rows: list[dict[str, Any]], columns: list[str]):
+        rule = ControlColumnOneReservedRule()
+        ctx = SharedContextBuilder(row_offset=2).build(rows, columns)
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    def test_reserved_controls_in_column_one_ok(self) -> None:
+        rows = [
+            {"Kontrola 1": "zaklenipolja", "Kontrola 2": ""},
+            {"Kontrola 1": "aliObstajaPogoj", "Kontrola 2": "kontrolaPraznoPolje"},
+            {"Kontrola 1": "", "Kontrola 2": "kontrolaIntervala"},
+        ]
+        errors = self._run(rows, ["Kontrola 1", "Kontrola 2"])
+        assert [e for e in errors if e.code == "CTRL_COL1_RESERVED"] == []
+
+    def test_other_control_in_column_one_error(self) -> None:
+        rows = [{"Kontrola 1": "kontrolaPraznoPolje", "Kontrola 2": "zaklenipolja"}]
+        errors = self._run(rows, ["Kontrola 1", "Kontrola 2"])
+        assert [e.code for e in errors] == ["CTRL_COL1_RESERVED"]
+        assert errors[0].column == "Kontrola 1"
+
+    def test_reserved_control_in_other_column_ok(self) -> None:
+        rows = [{"Kontrola 1": "aliObstajaPogoj", "Kontrola 2": "zaklenipolja"}]
+        errors = self._run(rows, ["Kontrola 1", "Kontrola 2"])
+        assert errors == []
+
+    def test_unknown_control_not_reported_here(self) -> None:
+        rows = [{"Kontrola 1": "neznanaKontrola", "Kontrola 2": ""}]
+        errors = self._run(rows, ["Kontrola 1", "Kontrola 2"])
+        assert errors == []
 
 
 class TestControlContextRule:
@@ -1784,7 +1822,8 @@ class TestKontrolaIntervalAdvancedRule:
         p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
         assert len(p1_errors) == 1
         assert "10.0 ± 0.1" in p1_errors[0].message or "10.00 ± 0.10" in p1_errors[0].message
-        assert "9.84" in p1_errors[0].message
+        assert "Param1 mora biti 9.8" in p1_errors[0].message
+        assert "9.84" not in p1_errors[0].message
 
     def test_pm_tolerance_14_01_014_param2_accepts_14160(self, rule: KontrolaIntervalAdvancedRule) -> None:
         """For 14.01 +/- 0.14, Param2=14.160 must be valid."""
@@ -1862,22 +1901,36 @@ class TestKontrolaIntervalAdvancedRule:
         assert "CTRL_INTERVAL_PM_P1" not in [e.code for e in errors]
         assert "CTRL_INTERVAL_PM_P2" not in [e.code for e in errors]
 
-    def test_pm_error_message_p1_shows_band_floor(self, rule: KontrolaIntervalAdvancedRule) -> None:
-        """Param1=6.33 must say 'mora biti 6.34', not canonical 6.30/6.39 or the band hint."""
+    def test_pm_error_message_p1_shows_canonical(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param1=6.33 must say canonical 6.39, not the band floor 6.34."""
         errors = self._run_pm(rule, "6.50 ± 0.10", "6.33", "6.61")
         p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
         assert len(p1_errors) == 1
         assert p1_errors[0].message == (
-            "Param1 mora biti 6.34 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.33"
+            "Param1 mora biti 6.39 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.33"
         )
 
-    def test_pm_error_message_p2_shows_band_ceiling(self, rule: KontrolaIntervalAdvancedRule) -> None:
-        """Param2=6.66 must say 'mora biti 6.65', without the old 'naslednja vrednost' text."""
+    def test_pm_error_message_p2_shows_canonical(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """Param2=6.66 must say canonical 6.61, not the band ceiling 6.65."""
         errors = self._run_pm(rule, "6.50 ± 0.10", "6.39", "6.66")
         p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P2"]
         assert len(p2_errors) == 1
         assert p2_errors[0].message == (
-            "Param2 mora biti 6.65 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.66"
+            "Param2 mora biti 6.61 – iz 6.50 ± 0.10. Trenutno v recepturi: 6.66"
+        )
+
+    def test_pm_error_message_one_decimal_tolerance(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """24.0 ± 0.5 suggests Param1=23.4 and Param2=24.6, not the band edges 23.44 / 24.55."""
+        errors = self._run_pm(rule, "24.0 ± 0.5", "48.9", "51.1")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P1"]
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_PM_P2"]
+        assert len(p1_errors) == 1
+        assert len(p2_errors) == 1
+        assert p1_errors[0].message == (
+            "Param1 mora biti 23.4 – iz 24.0 ± 0.5. Trenutno v recepturi: 48.9"
+        )
+        assert p2_errors[0].message == (
+            "Param2 mora biti 24.6 – iz 24.0 ± 0.5. Trenutno v recepturi: 51.1"
         )
 
     def test_pm_rounding_band_rejects_633(self, rule: KontrolaIntervalAdvancedRule) -> None:
@@ -1962,6 +2015,93 @@ class TestKontrolaIntervalAdvancedRule:
             "Param2 mora biti 0.305 – iz navodila t0 (0.01 - 0.30 min). "
             "Trenutno v recepturi: 0.306"
         )
+
+    def test_integer_range_accepts_one_decimal_reading(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """45 - 51 beremo tudi kot 45.0 - 51.0: Param1=44.9, Param2=51.1."""
+        errors = self._run_pm(
+            rule,
+            "Vr = tPM x φdej(PM) – t1 x φdej(1) (45 - 51 mL)",
+            "44.9",
+            "51.1",
+        )
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_integer_range_still_accepts_whole_step(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """45 - 51 kot celi števili: Param1=44, Param2=52 ostaneta veljavna."""
+        errors = self._run_pm(
+            rule,
+            "Vr = tPM x φdej(PM) – t1 x φdej(1) (45 - 51 mL)",
+            "44",
+            "52",
+        )
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_integer_range_5_10_accepts_both_readings(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """5 - 10: veljavna sta 4/11 in 4.9/10.1."""
+        whole = self._run_pm(rule, "5 - 10", "4", "11")
+        decimal = self._run_pm(rule, "5 - 10", "4.9", "10.1")
+        assert [e for e in whole if e.code.startswith("CTRL_INTERVAL_")] == []
+        assert [e for e in decimal if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_integer_range_rejects_value_between_readings(self, rule: KontrolaIntervalAdvancedRule) -> None:
+        """45 - 51: 44.8 ni ne 44 ne 44.9."""
+        errors = self._run_pm(
+            rule,
+            "Vr = tPM x φdej(PM) – t1 x φdej(1) (45 - 51 mL)",
+            "44.8",
+            "51.2",
+        )
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert len(p1_errors) == 1
+        assert len(p2_errors) == 1
+        assert "44 ali 44.9" in p1_errors[0].message
+        assert "52 ali 51.1" in p2_errors[0].message
+
+    def test_range_ml_per_kolono_is_absolute_bound(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """12–13 CV (48–52 mL/kolono): razpon v mL je absolutna meja (47/53 in 47.9/52.1)."""
+        navodilo = "V posodo dodano 12 - 13 CV nalagalnega pufra (48 - 52 mL/kolono)"
+        whole = self._run_pm(rule, navodilo, "47", "53")
+        decimal = self._run_pm(rule, navodilo, "47.9", "52.1")
+        assert [e for e in whole if e.code.startswith("CTRL_INTERVAL_")] == []
+        assert [e for e in decimal if e.code.startswith("CTRL_INTERVAL_")] == []
+
+    def test_range_ml_per_kolono_rejects_scaled_column_volume(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """Param2 261 (13×20 mL + 1) ni veljaven: mora biti 53 ali 52.1."""
+        navodilo = "V posodo dodano 12 - 13 CV nalagalnega pufra (48 - 52 mL/kolono)"
+        errors = self._run_pm(rule, navodilo, "47", "261")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert p1_errors == []
+        assert len(p2_errors) == 1
+        assert "Param2 mora biti 53 ali 52.1" in p2_errors[0].message
+        assert "Trenutno v recepturi: 261" in p2_errors[0].message
+
+    def test_range_ml_per_kolono_rejects_scaled_param1(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """Param1 239 (12×20 mL − 1) ni veljaven: mora biti 47 ali 47.9."""
+        navodilo = "V posodo dodano 12 - 13 CV nalagalnega pufra (48 - 52 mL/kolono)"
+        errors = self._run_pm(rule, navodilo, "239", "53")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        assert len(p1_errors) == 1
+        assert "Param1 mora biti 47 ali 47.9" in p1_errors[0].message
+
+    def test_range_ml_per_kolono_one_decimal_cv_requires_ml_bound(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """1.0 - 1.1 CV (4 - 4.4 mL/kolono): Param2 22.1 je napaka, mora biti 4.5."""
+        navodilo = "Volumen nal. pufra za krožno črpanje 1.0 - 1.1  CV (4 - 4.4 mL/kolono)"
+        errors = self._run_pm(rule, navodilo, "3.9", "22.1")
+        p1_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P1_BOUND"]
+        p2_errors = [e for e in errors if e.code == "CTRL_INTERVAL_P2_BOUND"]
+        assert p1_errors == []
+        assert len(p2_errors) == 1
+        assert "Param2 mora biti 4.5" in p2_errors[0].message
 
     def test_range_one_decimal_accepts_canonical_474_526(self, rule: KontrolaIntervalAdvancedRule) -> None:
         """For 47.5–52.5 (1 decimal), Param1=47.4 and Param2=52.6 are a−eps / b+eps."""
@@ -2605,3 +2745,204 @@ class TestMonolitControlsRequiredRule:
         assert "CTRL_MONOLIT_VALIDITY_REQUIRED" not in codes
         assert "CTRL_MONOLIT_SUITABILITY_REQUIRED" not in codes
 
+
+class TestChemicalSolutionControlsRule:
+    """Tests for ChemicalSolutionControlsRule (par kontrol + točen tip podatka)."""
+
+    @pytest.fixture
+    def rule(self) -> ChemicalSolutionControlsRule:
+        return ChemicalSolutionControlsRule()
+
+    @staticmethod
+    def _codes(rule: ChemicalSolutionControlsRule, tip: str, c1: str, c2: str = "") -> list[str]:
+        rows = [{"Tip podatka": tip, "Kontrola-1": c1, "Kontrola-2": c2}]
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, ["Tip podatka", "Kontrola-1", "Kontrola-2"])
+        rule.set_shared_context(ctx)
+        return [e.code for e in rule.run(rows, sheet_name="Sheet1", row_offset=2)]
+
+    @pytest.mark.parametrize(
+        "tip, veljavnost, ustreznost",
+        [
+            ("kemikalija", "kontrolaVeljavnostiKemikalije", "kontrolaUstreznostiKemikalije"),
+            ("raztopina", "kontrolaVeljavnostiRaztopine", "kontrolaUstreznostiRaztopine"),
+        ],
+    )
+    def test_both_controls_and_correct_type_no_error(
+        self, rule: ChemicalSolutionControlsRule, tip: str, veljavnost: str, ustreznost: str
+    ) -> None:
+        assert self._codes(rule, tip, veljavnost, ustreznost) == []
+
+    def test_no_controls_no_error(self, rule: ChemicalSolutionControlsRule) -> None:
+        assert self._codes(rule, "kemikalija", "", "") == []
+        assert self._codes(rule, "masa", "kontrolaMase", "") == []
+
+    def test_kemikalija_only_validity_requires_suitability(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        codes = self._codes(rule, "kemikalija", "kontrolaVeljavnostiKemikalije")
+        assert codes == ["CTRL_KEMIKALIJA_SUITABILITY_REQUIRED"]
+
+    def test_kemikalija_only_suitability_requires_validity(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        codes = self._codes(rule, "kemikalija", "", "kontrolaUstreznostiKemikalije")
+        assert codes == ["CTRL_KEMIKALIJA_VALIDITY_REQUIRED"]
+
+    def test_raztopina_only_validity_requires_suitability(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        codes = self._codes(rule, "raztopina", "kontrolaVeljavnostiRaztopine")
+        assert codes == ["CTRL_RAZTOPINA_SUITABILITY_REQUIRED"]
+
+    def test_raztopina_only_suitability_requires_validity(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        codes = self._codes(rule, "raztopina", "kontrolaUstreznostiRaztopine")
+        assert codes == ["CTRL_RAZTOPINA_VALIDITY_REQUIRED"]
+
+    @pytest.mark.parametrize("tip", ["masa", "raztopina", "kemikalija1", ""])
+    def test_kemikalija_controls_on_wrong_type(
+        self, rule: ChemicalSolutionControlsRule, tip: str
+    ) -> None:
+        codes = self._codes(
+            rule, tip, "kontrolaVeljavnostiKemikalije", "kontrolaUstreznostiKemikalije"
+        )
+        assert codes == ["CTRL_KEMIKALIJA_TYPE_REQUIRED"]
+
+    @pytest.mark.parametrize("tip", ["masa", "kemikalija", "raztopina1", ""])
+    def test_raztopina_controls_on_wrong_type(
+        self, rule: ChemicalSolutionControlsRule, tip: str
+    ) -> None:
+        codes = self._codes(
+            rule, tip, "kontrolaVeljavnostiRaztopine", "kontrolaUstreznostiRaztopine"
+        )
+        assert codes == ["CTRL_RAZTOPINA_TYPE_REQUIRED"]
+
+    def test_missing_pair_and_wrong_type_report_both(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        codes = self._codes(rule, "masa", "kontrolaVeljavnostiKemikalije")
+        assert set(codes) == {"CTRL_KEMIKALIJA_SUITABILITY_REQUIRED", "CTRL_KEMIKALIJA_TYPE_REQUIRED"}
+
+class TestChemicalSolutionControlsRuleParams:
+    """Param1/Param2 pri kontrolah kemikalije in raztopine."""
+
+    @pytest.fixture
+    def rule(self) -> ChemicalSolutionControlsRule:
+        return ChemicalSolutionControlsRule()
+
+    @staticmethod
+    def _errors(
+        rule: ChemicalSolutionControlsRule,
+        tip: str,
+        c1: str,
+        c2: str,
+        p1a="",
+        p2a="",
+        p1b="",
+        p2b="",
+        navodilo="",
+    ):
+        cols = [
+            "Tip podatka",
+            "Navodilo",
+            "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2",
+            "Kontrola-2", "Kontrola-2: Par 1", "Kontrola-2: Par 2",
+        ]
+        rows = [{
+            "Tip podatka": tip,
+            "Navodilo": navodilo,
+            "Kontrola-1": c1, "Kontrola-1: Par 1": p1a, "Kontrola-1: Par 2": p2a,
+            "Kontrola-2": c2, "Kontrola-2: Par 1": p1b, "Kontrola-2: Par 2": p2b,
+        }]
+        ctx = SharedContextBuilder(row_offset=2).build(rows, cols)
+        rule.set_shared_context(ctx)
+        return rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+    KEM = ("kemikalija", "kontrolaVeljavnostiKemikalije", "kontrolaUstreznostiKemikalije")
+    RAZ = ("raztopina", "kontrolaVeljavnostiRaztopine", "kontrolaUstreznostiRaztopine")
+
+    def test_kemikalija_empty_params_ok(self, rule: ChemicalSolutionControlsRule) -> None:
+        assert self._errors(rule, *self.KEM) == []
+
+    def test_kemikalija_param1_not_empty(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(rule, *self.KEM, p1a="x", p1b="y")
+        assert [e.code for e in errors] == ["CTRL_KEMIKALIJA_PARAM1_NOT_EMPTY"] * 2
+
+    def test_kemikalija_param2_not_empty(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(rule, *self.KEM, p2b="1")
+        assert [e.code for e in errors] == ["CTRL_KEMIKALIJA_PARAM2_NOT_EMPTY"]
+
+    def test_raztopina_equal_param1_empty_param2_ok(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(
+            rule, *self.RAZ, p1a="20v-EtOH-RR", p1b="20v-EtOH-RR", navodilo="Koda 20v-EtOH-RR"
+        )
+        assert errors == []
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "Koda 20v-EtOH-RR",
+            "20v-EtOH-RR",
+            "Koda: 20v-EtOH-RR.",
+            "Raztopina (20v-EtOH-RR) iz zaloge",
+        ],
+    )
+    def test_raztopina_navodilo_contains_label_ok(
+        self, rule: ChemicalSolutionControlsRule, navodilo: str
+    ) -> None:
+        errors = self._errors(
+            rule, *self.RAZ, p1a="20v-EtOH-RR", p1b="20v-EtOH-RR", navodilo=navodilo
+        )
+        assert errors == []
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "",
+            "Koda etanol",
+            "Koda 20v-etoh-rr",
+            "Koda 20v-EtOH-RR-2",
+            "Koda 120v-EtOH-RR",
+            "Koda 20v-EtOH",
+        ],
+    )
+    def test_raztopina_navodilo_without_exact_label(
+        self, rule: ChemicalSolutionControlsRule, navodilo: str
+    ) -> None:
+        errors = self._errors(
+            rule, *self.RAZ, p1a="20v-EtOH-RR", p1b="20v-EtOH-RR", navodilo=navodilo
+        )
+        assert [e.code for e in errors] == ["CTRL_RAZTOPINA_NAVODILO_LABEL"]
+        assert errors[0].column == "Navodilo"
+        assert "20v-EtOH-RR" in errors[0].message
+
+    def test_raztopina_label_not_part_of_decimal_number(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        errors = self._errors(
+            rule, *self.RAZ, p1a="5M-NaOH-PL", p1b="5M-NaOH-PL", navodilo="Koda 0.5M-NaOH-PL"
+        )
+        assert [e.code for e in errors] == ["CTRL_RAZTOPINA_NAVODILO_LABEL"]
+
+    def test_raztopina_navodilo_skipped_without_param1(
+        self, rule: ChemicalSolutionControlsRule
+    ) -> None:
+        errors = self._errors(rule, *self.RAZ, navodilo="Koda karkoli")
+        assert [e.code for e in errors] == []
+
+    def test_kemikalija_navodilo_not_checked(self, rule: ChemicalSolutionControlsRule) -> None:
+        assert self._errors(rule, *self.KEM, navodilo="Koda karkoli") == []
+
+    def test_raztopina_param1_mismatch(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(rule, *self.RAZ, p1a="A", p1b="B", navodilo="Koda B")
+        assert [e.code for e in errors] == ["CTRL_RAZTOPINA_PARAM1_MISMATCH"]
+
+    def test_raztopina_param1_one_empty_is_mismatch(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(rule, *self.RAZ, p1a="A", p1b="", navodilo="Koda A")
+        assert [e.code for e in errors] == ["CTRL_RAZTOPINA_PARAM1_MISMATCH"]
+
+    def test_raztopina_param2_not_empty(self, rule: ChemicalSolutionControlsRule) -> None:
+        errors = self._errors(rule, *self.RAZ, p1a="A", p1b="A", p2a="1", navodilo="Koda A")
+        assert [e.code for e in errors] == ["CTRL_RAZTOPINA_PARAM2_NOT_EMPTY"]
