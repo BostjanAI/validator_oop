@@ -9,6 +9,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
 ### Added
+- **docs/** `Predstavitev_projekta_Validator.docx` - Predstavitveni Word dokument projekta za vodstvo *(11. 11. 2026, ~45 min)*
 - **rules/** `podatki_usage_rule` - Nova napaka `PODATKI_COLUMN_UNUSED`: javi zapolnjene stolpce zavihka `Podatki`, ki se ne uporabljajo v nobeni formuli (`INDEX/MATCH` s številko stolpca, `VLOOKUP`, neposreden sklic) v nobenem drugem zavihku; prazen neuporabljen stolpec (tudi s samo naslovom) ni napaka; potrebuje naložene formule (`include_formulas`), sicer se preskoči *(27. 10. 2026, ~1 h)*
 - **field/** `navodilo_range_dash_spacing_rule` - V stolpcu `Navodilo` mora imeti razpon (npr. `4000 – 4400`) en presledek pred pomišljajem (`–`, `—`) ali vezajem (`-`) in en za njim; sicer napaka `NAVODILO_RANGE_DASH_SPACING` (zapisi kot `7647-14-5`, `2026-01-01`, `SOP-123` niso razpon) *(26. 10. 2026, ~1 h)*
 - **control/** `control_column_one_reserved_rule` - Stolpec `Kontrola 1` je rezerviran za `zaklenipolja` in `aliObstajaPogoj`; druga kontrola v njem javi `CTRL_COL1_RESERVED` (ostale kontrole morajo biti v `Kontrola 2` ali naprej) *(26. 10. 2026, ~1 h)*
@@ -146,6 +147,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **rules/** `main.py` - CLI `--catalog-raztopine` / `--catalog-kemikalije`; uvoz `catalog_code_rule` za PyInstaller *(26. 5. 2026, ~15 min)*
 
 ### Removed
+- **docs/** `samples`, `scripts` - Odstranjeni zastareli vzorci poročil, stara dokumentacija in pomožni skripti *(11. 11. 2026, ~30 min)*
 - **ui/** `main_window`, `main_window_themed`, `main_window_qt` - Iz desktop GUI odstranjeno SOP preverjanje: polje za izbiro SOP datoteke (Word), gumb »Zaženi validacijo s SOP«, `_pick_sop`, `_run_validation_with_sop` ter vsi parametri `sop_data`; SOP pravilo ostane v jedru (CLI, splet) *(15. 10. 2026, ~30 min)*
 - **field/** `water_not_masa_rule` - Odstranjeno opozorilo `MASS_WATER_SHOULD_BE_VOLUME` (ključ dH2O s tipom `masa` ni več napaka) *(22. 9. 2026, ~15 min)*
 - **control/** `zaklenipolja_param1_odvecni_koraki_rule` - Odstranjeno preverjanje odvečnih korakov v Param1 pri `zaklenipolja` (koda `LOCK_P1_EXTRA_STEPS`) *(26. 8. 2026, ~20 min)*
