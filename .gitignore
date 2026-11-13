@@ -19,6 +19,11 @@ analytics_out_test/
 build/
 dist/
 
-# Lokalni Wordovi dokumenti
-/docs/Navodila_Validator/NAV-157 v1.docx
-/docs/Predstavitev_projekta_Validator.docx
+# Wordovi dokumenti in začasne Office datoteke (~$...)
+*.doc
+*.docx
+*.docm
+*.dot
+*.dotx
+*.dotm
+~$*
