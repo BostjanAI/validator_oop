@@ -15,6 +15,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **control/** `control_column_one_reserved_rule` - Stolpec `Kontrola 1` je rezerviran za `zaklenipolja` in `aliObstajaPogoj`; druga kontrola v njem javi `CTRL_COL1_RESERVED` (ostale kontrole morajo biti v `Kontrola 2` ali naprej) *(26. 10. 2026, ~1 h)*
 
 ### Changed
+- **relational/** `mass_owner_rule` - Ključi `razt1`, `razt2`, `razt_6` se pri iskanju lastnika mase ne krajšajo na `razt`; primerja se celoten ključ s številko. `EtOH1` se še naprej ujema po bazi `EtOH` *(13. 11. 2026, ~45 min)*
 - **control/** `chemical_solution_controls_rule` - Pri vrstici z `kontrolaUstreznostiRaztopine` mora `Navodilo` vsebovati točno oznako raztopine iz Param1 (kot na nalepki; razlikuje velike/male črke, oznaka ne sme biti del daljše oznake); sicer napaka `CTRL_RAZTOPINA_NAVODILO_LABEL` *(26. 10. 2026, ~1 h)*
 - **field/** `posebnosti_tip_podatka_rule` - `posebnostimon` je zahtevan samo, če je v isti vrstici v `Zavihek` vpisano `monolit1`, `monolit2`, …; zavihek v drugi vrstici ne šteje *(21. 10. 2026, ~45 min)*
 - **field/** `posebnosti_tip_podatka_rule` - Zavihek v stolpcu `Zavihek` pomeni samo `monolit1`, `monolit2`, …; formula, poljubno besedilo ali `monolit` brez številke ne pomenijo, da ima receptura zavihke (zato ni več `DATA_TYPE_POSEBNOSTIMON_REQUIRED`) *(16. 10. 2026, ~45 min)*
@@ -76,6 +77,7 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **control/** `zakleni_param_rule` - Preverba `LOCK_P1_WITHOUT_CONDITION` je zdaj privzeto vklopljena: korak v Param1 pri `zaklenipolja` mora imeti `aliObstajaPogoj`, razen če gre za drug checkbox korak z `zaklenipolja`; privzeta vrednost `bypass_zakleni_require_pogoj_for_param1_steps` je `False` *(3. 8. 2026, ~45 min)*
 
 ### Fixed
+- **rules/** `podatki_usage_rule` - Stolpec v `Podatki` ni več `PODATKI_COLUMN_UNUSED`, če ga prebere formula uporabljenega stolpca (tudi po verigi); npr. `Pretok 1` (AP) z vrednostjo v `Min`/`Max` (`=AP3*0.95-0.1`), ko sta `Min` in `Max` v INDEX/MATCH, sam `Pretok 1` pa ne. Sklic na drug zavihek se ne šteje *(13. 11. 2026, ~1 h)*
 - **control/** `kontrola_interval_advanced_rule` - Razpon `mL/kolono` (npr. `12 - 13 CV (48 - 52 mL/kolono)`) je spet absolutna meja: Param2 `53` (ne `261`), pri `1.0 - 1.1 CV (4 - 4.4 mL/kolono)` Param2 `4.5`; odstranjeno preračunavanje na volumen kolone (`primer.xlsx`: 8 vrstic zdaj javi napako kot vzorčna koda); popravljeni testi in `PRAVILA_VALIDATORJA.md` *(15. 10. 2026, ~1 h)*
 - **core/** `constants` - Dodan slovenski prevod kode `STEP_OUT_OF_ORDER` (koraki niso v naraščajočem vrstnem redu) *(13. 10. 2026, ~10 min)*
 

@@ -400,6 +400,18 @@ def _get_interval_controls(controls: Sequence[ControlInstance]) -> list[ControlI
     return interval_controls
 
 
+# Oznaka v Navodilu: meje iz navodila se ne primerjajo s Param1/Param2.
+# Obveznost kontrole in preverjanje, da sta parametra številki v pravem vrstnem redu, ostaneta.
+_INFO_NAVODILO_RE = re.compile(r"\(\s*info\b", re.IGNORECASE)
+
+
+def _navodilo_is_info(navodilo: str) -> bool:
+    """True, če Navodilo vsebuje oklepaj, ki se začne z info: (info), (info.) ali (info 3.0 - 5.5)."""
+    if not navodilo:
+        return False
+    return _INFO_NAVODILO_RE.search(navodilo) is not None
+
+
 def _navodilo_has_numeric_interval(navodilo: str) -> bool:
     """Return True if Navodilo contains a numeric range/±/inequality expression."""
     if not navodilo:
@@ -1829,12 +1841,16 @@ class KontrolaIntervalAdvancedRule(RowRule):
         if not shared:
             return []
 
+        navodilo_raw = coerce_str(row.get("Navodilo", ""))
+        if _navodilo_is_info(navodilo_raw):
+            return []
+
         controls = _get_present_controls(row, shared)
         interval_controls = _get_interval_controls(controls)
         if not interval_controls:
             return []
 
-        navodilo_parse = _parse_numeric_navodilo(coerce_str(row.get("Navodilo", "")))
+        navodilo_parse = _parse_numeric_navodilo(navodilo_raw)
         navodilo = navodilo_parse.raw
         errors = []
 

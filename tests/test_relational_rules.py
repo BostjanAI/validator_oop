@@ -299,6 +299,44 @@ class TestMassOwnerRule:
         error_codes = [e.code for e in errors]
         assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
 
+    def test_razt_numbered_keys_are_compared_in_full(self, rule: MassOwnerRule) -> None:
+        """razt6 and razt7 stay distinct; a later razt7 must not claim the razt6 mass."""
+        rows = [
+            {"Ključ preverjanja": "razt6", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "razt7", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "razt7", "Tip podatka": "masa"},
+            {"Ključ preverjanja": "razt6", "Tip podatka": "masa"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        codes = [e.code for e in errors]
+        assert "PAIR_MASS_SECTION_MISMATCH" not in codes
+        assert "PAIR_MASS_WITHOUT_OWNER" not in codes
+
+    def test_other_keys_still_match_on_base_without_trailing_number(
+        self, rule: MassOwnerRule
+    ) -> None:
+        """EtOH1 / EtOH2 still share a base, so the mass must copy the nearest owner key."""
+        rows = [
+            {"Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": "EtOH2", "Tip podatka": "masa"},
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        mismatch = [e for e in errors if e.code == "PAIR_MASS_SECTION_MISMATCH"]
+        assert len(mismatch) == 1
+        assert "EtOH1" in mismatch[0].message
+
 
 class TestOwnerMassPairRule:
     """Tests for OwnerMassPairRule."""

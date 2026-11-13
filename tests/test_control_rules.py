@@ -659,6 +659,35 @@ class TestKontrolaIntervalParamRule:
         interval_errors = [e for e in errors if e.code.startswith("CTRL_INTERVAL")]
         assert interval_errors == []
 
+    def test_info_navodilo_still_checks_interval_params(
+        self, rule: KontrolaIntervalParamRule
+    ) -> None:
+        """Pri (info) ostaneta preverjanje številk in vrstnega reda parametrov."""
+        rows = [
+            {
+                "Navodilo": "T (EA) (1.30 - 2.10) (info.)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "abc",
+                "Kontrola-1: Par 2": "10",
+            },
+            {
+                "Navodilo": "T (EA) (1.30 - 2.10) (info.)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "10",
+                "Kontrola-1: Par 2": "1",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        error_codes = [e.code for e in errors]
+        assert "CTRL_INTERVAL_NOT_NUMBER" in error_codes
+        assert "CTRL_INTERVAL_RANGE" in error_codes
+
 
 class TestZakleniParamRule:
     """Tests for ZakleniParamRule."""
@@ -1704,7 +1733,7 @@ class TestKontrolaIntervalAdvancedRule:
         """For '<= 2 .0', Param2 should be 2.1 (not 3.0)."""
         rows = [
             {
-                "Navodilo": "T (NB) (≤ 2 .0) (info)",
+                "Navodilo": "T (NB) (≤ 2 .0)",
                 "Kontrola-1": "kontrolaIntervala",
                 "Kontrola-1: Par 1": "1.9",
                 "Kontrola-1: Par 2": "2.3",
@@ -1721,6 +1750,36 @@ class TestKontrolaIntervalAdvancedRule:
         assert len(target_p2_errors) == 1
         assert "Param2 mora biti 2.1" in target_p2_errors[0].message
         assert "Param2 mora biti 3.0" not in target_p2_errors[0].message
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "T (EA) (1.30 - 2.10) (info.)",
+            "T (EA) (1.30 - 2.10) (info)",
+            "T (NB) (≤ 2 .0) (INFO)",
+            "Distribucijski koeficient D = φ * (tEA - tUR) / Vn (info 3.0 - 5.5)",
+        ],
+    )
+    def test_info_navodilo_skips_interval_bounds(
+        self, rule: KontrolaIntervalAdvancedRule, navodilo: str
+    ) -> None:
+        """Pri (info) se Param1 in Param2 ne primerjata z mejami iz Navodila."""
+        rows = [
+            {
+                "Navodilo": navodilo,
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "1.07",
+                "Kontrola-1: Par 2": "9",
+            }
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
 
     def test_pm_tolerance_high_resolution_param2_accepts_3213(self, rule: KontrolaIntervalAdvancedRule) -> None:
         """For 3.180 ± 0.032, Param2=3.213 must be valid."""
@@ -2400,6 +2459,34 @@ class TestNavodiloIntervalKontrolaIntervalRequiredRule:
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
         error_codes = [e.code for e in errors]
         assert "CTRL_INTERVAL_REQUIRED" in error_codes
+
+    @pytest.mark.parametrize(
+        "navodilo",
+        [
+            "T (EA) (1.30 - 2.10) (info.)",
+            "T (NB) (≤ 2 .0) (info)",
+            "Distribucijski koeficient D = φ * (tEA - tUR) / Vn (info 3.0 - 5.5)",
+        ],
+    )
+    def test_info_navodilo_still_requires_kontrolainterval(
+        self, rule: NavodiloIntervalKontrolaIntervalRequiredRule, navodilo: str
+    ) -> None:
+        """Pri (info) kontrolaInterval ostane obvezna, če Navodilo vsebuje interval."""
+        rows = [
+            {
+                "Navodilo": navodilo,
+                "Tip objekta": "edit",
+                "Kontrola-1": "",
+            },
+        ]
+
+        builder = SharedContextBuilder(row_offset=2)
+        columns = ["Navodilo", "Tip objekta", "Kontrola-1"]
+        ctx = builder.build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert "CTRL_INTERVAL_REQUIRED" in [e.code for e in errors]
 
     def test_navodilo_with_interval_tip_objekta_not_edit_no_error(
         self, rule: NavodiloIntervalKontrolaIntervalRequiredRule

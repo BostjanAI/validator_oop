@@ -137,7 +137,9 @@ def test_navodilo_interval_requirement_is_satisfied_by_any_control_slot(
     "navodilo",
     [
         ">= 4 h",
-        "T (NB) (≤ 2 .0) (info)",
+        "T (NB) (≤ 2 .0)",
+        "T (EA) (1.30 - 2.10) (info.)",
+        "Distribucijski koeficient D = φ * (tEA - tUR) / Vn (info 3.0 - 5.5)",
         "14.01 +/- 0.14",
     ],
 )

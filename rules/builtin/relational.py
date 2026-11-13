@@ -42,9 +42,20 @@ def _normalize_leading_decimal_token(key: str) -> str:
     return f"{normalized_num}{rest}"
 
 
+# razt1, razt2, razt_6: številka je identiteta raztopine, ne instanca istega ključa.
+_RAZT_NUMBERED_KEY = re.compile(r"^razt_?\d+$", re.IGNORECASE)
+
+
 def _owner_match_base(key: str) -> str:
-    """Build key base used only for owner lookup matching."""
-    return _normalize_leading_decimal_token(base_key_no_trailing_number(key))
+    """Build key base used only for owner lookup matching.
+
+    Ključi ``razt1``, ``razt2``, ``razt_6`` ostanejo celi. Pri ostalih ključih
+    se končna številka instance še naprej odreže (npr. ``EtOH1`` -> ``EtOH``).
+    """
+    stripped = key.strip()
+    if _RAZT_NUMBERED_KEY.fullmatch(stripped):
+        return _normalize_leading_decimal_token(stripped)
+    return _normalize_leading_decimal_token(base_key_no_trailing_number(stripped))
 
 
 def _tabs_message_suffix(tabs: Sequence[str]) -> str:

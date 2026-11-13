@@ -524,7 +524,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     # --- Catalog (šifranti raztopin/kemikalij/repro) ---
     "CATALOG_CODE_MISMATCH": "Šifra raztopine/kemikalije/repro materiala ni v šifrantu",
     # --- Podatki ---
-    "PODATKI_COLUMN_UNUSED": "Stolpec iz zavihka Podatki ni uporabljen v nobeni INDEX/MATCH formuli",
+    "PODATKI_COLUMN_UNUSED": "Stolpec iz zavihka Podatki ni uporabljen v formuli recepture niti v formuli uporabljenega stolpca",
 }
 
 
