@@ -1,0 +1,7 @@
+[
+  {
+    "target": "lock",
+    "values": ["2, 3"],
+    "required_findings": [["LOCK_P1_FORMAT", 2, "Kontrola 1 - par 1"]]
+  }
+]
