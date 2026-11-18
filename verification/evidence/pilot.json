@@ -1,0 +1,700 @@
+{
+  "schema": 1,
+  "timestamp_utc": "2026-11-18T09:17:34.156962+00:00",
+  "candidate": {
+    "requested": "5a3d0f4d92218d554b368483f45683737ad670ad",
+    "commit": "5a3d0f4d92218d554b368483f45683737ad670ad",
+    "app_version": "1.1.0",
+    "build": 125
+  },
+  "reference": {
+    "requested": "f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+    "commit": "f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+    "app_version": "1.1.0",
+    "build": 125
+  },
+  "harness_commit": "5a3d0f4d92218d554b368483f45683737ad670ad",
+  "harness_files_sha256": {
+    "__init__.py": "a45f221eab394a469f5fce5fa230af7ce96747e1bbb87b5be5c36e37d0d2ed0e",
+    "__main__.py": "174e5a90826cb15a9b407fe7999c6d560dfbeecb4631c0aeb7f6f4f13f29a8c9",
+    "cases.py": "95ccc9cdaa71bf068e8c5bce67a4f155b3b832dc1f182660914616c5a945488b",
+    "contracts.py": "44954db6e24e29d969f9152c18e5e899b5d5a254c2db05cf49fa07173bcf91d3",
+    "interval_guard.py": "4219b011f745143e4563968f78a7ec11652f7d9c32d4047b0ebf0b175b91f055",
+    "revisions.py": "4e9e8fc492f9113ad4b3132cbc2908906dad04f26a956376adcc20afb6937990",
+    "sync_contract.py": "6473ae44ede3994071b6e8e8ac6a72783c0072f652e2712463690eea6bc12fa1",
+    "worker.py": "23f2c40685bdfec661e6368fda3a33a90b56bdc0f05a1781239257c27d8cc99a"
+  },
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "tools": {
+    "CPython": "3.12.14",
+    "z3-solver": "4.15.3.0",
+    "z3_runtime": "4.15.3",
+    "openpyxl": "3.1.5",
+    "git": "git version 2.52.0"
+  },
+  "scope": "full pilot",
+  "status_values_present": [
+    "FAIL",
+    "NOT VERIFIED",
+    "PASS"
+  ],
+  "requirement_documents": {
+    "revision": "f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+    "paths": [
+      "docs/Navodila_Validator/NAV-158_Navodila_Validator.md",
+      "docs/NAVODILA_PRIPRAVA_RECEPTURE.md"
+    ],
+    "approval": "Controlled-copy confirmation pending"
+  },
+  "selected_case_parameters": {
+    "interval/00": [
+      "-1",
+      "-1"
+    ],
+    "interval/01": [
+      "-1",
+      "-0.5"
+    ],
+    "interval/02": [
+      "-1",
+      "0"
+    ],
+    "interval/03": [
+      "-1",
+      "0.5"
+    ],
+    "interval/04": [
+      "-1",
+      "1"
+    ],
+    "interval/05": [
+      "-1",
+      ""
+    ],
+    "interval/06": [
+      "-1",
+      "#REF!"
+    ],
+    "interval/07": [
+      "-0.5",
+      "-1"
+    ],
+    "interval/08": [
+      "-0.5",
+      "-0.5"
+    ],
+    "interval/09": [
+      "-0.5",
+      "0"
+    ],
+    "interval/10": [
+      "-0.5",
+      "0.5"
+    ],
+    "interval/11": [
+      "-0.5",
+      "1"
+    ],
+    "interval/12": [
+      "-0.5",
+      ""
+    ],
+    "interval/13": [
+      "-0.5",
+      "#REF!"
+    ],
+    "interval/14": [
+      "0",
+      "-1"
+    ],
+    "interval/15": [
+      "0",
+      "-0.5"
+    ],
+    "interval/16": [
+      "0",
+      "0"
+    ],
+    "interval/17": [
+      "0",
+      "0.5"
+    ],
+    "interval/18": [
+      "0",
+      "1"
+    ],
+    "interval/19": [
+      "0",
+      ""
+    ],
+    "interval/20": [
+      "0",
+      "#REF!"
+    ],
+    "interval/21": [
+      "0.5",
+      "-1"
+    ],
+    "interval/22": [
+      "0.5",
+      "-0.5"
+    ],
+    "interval/23": [
+      "0.5",
+      "0"
+    ],
+    "interval/24": [
+      "0.5",
+      "0.5"
+    ],
+    "interval/25": [
+      "0.5",
+      "1"
+    ],
+    "interval/26": [
+      "0.5",
+      ""
+    ],
+    "interval/27": [
+      "0.5",
+      "#REF!"
+    ],
+    "interval/28": [
+      "1",
+      "-1"
+    ],
+    "interval/29": [
+      "1",
+      "-0.5"
+    ],
+    "interval/30": [
+      "1",
+      "0"
+    ],
+    "interval/31": [
+      "1",
+      "0.5"
+    ],
+    "interval/32": [
+      "1",
+      "1"
+    ],
+    "interval/33": [
+      "1",
+      ""
+    ],
+    "interval/34": [
+      "1",
+      "#REF!"
+    ],
+    "interval/35": [
+      "",
+      "-1"
+    ],
+    "interval/36": [
+      "",
+      "-0.5"
+    ],
+    "interval/37": [
+      "",
+      "0"
+    ],
+    "interval/38": [
+      "",
+      "0.5"
+    ],
+    "interval/39": [
+      "",
+      "1"
+    ],
+    "interval/40": [
+      "",
+      ""
+    ],
+    "interval/41": [
+      "#REF!",
+      "-1"
+    ],
+    "interval/42": [
+      "#REF!",
+      "-0.5"
+    ],
+    "interval/43": [
+      "#REF!",
+      "0"
+    ],
+    "interval/44": [
+      "#REF!",
+      "0.5"
+    ],
+    "interval/45": [
+      "#REF!",
+      "1"
+    ],
+    "interval/46": [
+      "#REF!",
+      "#REF!"
+    ],
+    "owner/00": [
+      "kemikalija",
+      "K",
+      "absent",
+      "absent"
+    ],
+    "owner/01": [
+      "kemikalija",
+      "K",
+      "absent",
+      "same"
+    ],
+    "owner/02": [
+      "kemikalija",
+      "K",
+      "absent",
+      "other"
+    ],
+    "owner/03": [
+      "kemikalija",
+      "K",
+      "same",
+      "absent"
+    ],
+    "owner/04": [
+      "kemikalija",
+      "K",
+      "same",
+      "same"
+    ],
+    "owner/05": [
+      "kemikalija",
+      "K",
+      "same",
+      "other"
+    ],
+    "owner/06": [
+      "kemikalija",
+      "K",
+      "other",
+      "absent"
+    ],
+    "owner/07": [
+      "kemikalija",
+      "K",
+      "other",
+      "same"
+    ],
+    "owner/08": [
+      "kemikalija",
+      "K",
+      "other",
+      "other"
+    ],
+    "owner/09": [
+      "kemikalija",
+      "dH2O",
+      "absent",
+      "absent"
+    ],
+    "owner/10": [
+      "kemikalija",
+      "dH2O",
+      "absent",
+      "same"
+    ],
+    "owner/11": [
+      "kemikalija",
+      "dH2O",
+      "absent",
+      "other"
+    ],
+    "owner/12": [
+      "kemikalija",
+      "dH2O",
+      "same",
+      "absent"
+    ],
+    "owner/13": [
+      "kemikalija",
+      "dH2O",
+      "same",
+      "other"
+    ],
+    "owner/14": [
+      "kemikalija",
+      "dH2O",
+      "other",
+      "absent"
+    ],
+    "owner/15": [
+      "kemikalija",
+      "dH2O",
+      "other",
+      "same"
+    ],
+    "owner/16": [
+      "kemikalija",
+      "dH2O",
+      "other",
+      "other"
+    ],
+    "owner/17": [
+      "raztopina",
+      "K",
+      "absent",
+      "absent"
+    ],
+    "owner/18": [
+      "raztopina",
+      "K",
+      "absent",
+      "same"
+    ],
+    "owner/19": [
+      "raztopina",
+      "K",
+      "absent",
+      "other"
+    ],
+    "owner/20": [
+      "raztopina",
+      "K",
+      "same",
+      "absent"
+    ],
+    "owner/21": [
+      "raztopina",
+      "K",
+      "same",
+      "same"
+    ],
+    "owner/22": [
+      "raztopina",
+      "K",
+      "same",
+      "other"
+    ],
+    "owner/23": [
+      "raztopina",
+      "K",
+      "other",
+      "absent"
+    ],
+    "owner/24": [
+      "raztopina",
+      "K",
+      "other",
+      "same"
+    ],
+    "owner/25": [
+      "raztopina",
+      "K",
+      "other",
+      "other"
+    ],
+    "owner/26": [
+      "raztopina",
+      "dH2O",
+      "absent",
+      "absent"
+    ],
+    "owner/27": [
+      "raztopina",
+      "dH2O",
+      "absent",
+      "same"
+    ],
+    "owner/28": [
+      "raztopina",
+      "dH2O",
+      "absent",
+      "other"
+    ],
+    "owner/29": [
+      "raztopina",
+      "dH2O",
+      "same",
+      "absent"
+    ],
+    "owner/30": [
+      "raztopina",
+      "dH2O",
+      "same",
+      "other"
+    ],
+    "owner/31": [
+      "raztopina",
+      "dH2O",
+      "other",
+      "absent"
+    ],
+    "owner/32": [
+      "raztopina",
+      "dH2O",
+      "other",
+      "same"
+    ],
+    "owner/33": [
+      "raztopina",
+      "dH2O",
+      "other",
+      "other"
+    ],
+    "lock/00": [
+      "2"
+    ],
+    "lock/01": [
+      "3"
+    ],
+    "lock/02": [
+      "4"
+    ],
+    "lock/03": [
+      "5"
+    ],
+    "lock/04": [
+      "2,3"
+    ],
+    "lock/05": [
+      "3,2"
+    ],
+    "lock/06": [
+      "2,4"
+    ],
+    "lock/07": [
+      "3,5"
+    ],
+    "lock/08": [
+      "2, 3"
+    ],
+    "lock/09": [
+      "2,"
+    ],
+    "lock/10": [
+      "2.5"
+    ],
+    "lock/11": [
+      "x"
+    ]
+  },
+  "assumptions": [
+    "Committed trees only. Trusted deterministic rule code, one fresh rule and context per case.",
+    "Row offset 2, workbook synthetic.xlsx, sheet Pilot; reference data are synthetic.",
+    "Requirements transcribed from repository documents; controlled-copy approval pending."
+  ],
+  "result": "FAIL",
+  "checks": [
+    {
+      "function": "rules.builtin.control.KontrolaIntervalParamRule.evaluate",
+      "requirements": [
+        "CTRL_INTERVAL_PARAMS",
+        "CTRL_INTERVAL_NOT_NUMBER",
+        "CTRL_INTERVAL_RANGE"
+      ],
+      "domain": "One interval control, every ordered pair of literal strings in BOUNDS, except mixed missing/malformed pairs (diagnostic precedence unspecified).",
+      "cases_requested": 47,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Exhaustive differential execution",
+      "tool": "CPython",
+      "requirement_id": "EQ-interval",
+      "cases_checked": 47,
+      "counterexamples": [],
+      "limitations": "Finite fixtures; ordered findings, exceptions, state mutations and captured logs/streams.",
+      "result": "PASS"
+    },
+    {
+      "function": "rules.builtin.control.KontrolaIntervalParamRule.evaluate",
+      "requirements": [
+        "CTRL_INTERVAL_PARAMS",
+        "CTRL_INTERVAL_NOT_NUMBER",
+        "CTRL_INTERVAL_RANGE"
+      ],
+      "domain": "One interval control, every ordered pair of literal strings in BOUNDS, except mixed missing/malformed pairs (diagnostic precedence unspecified).",
+      "cases_requested": 47,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Bounded SMT specification check on observed Python relation",
+      "tool": "z3-solver",
+      "requirement_id": "SPEC-interval",
+      "cases_checked": 47,
+      "counterexamples": [],
+      "limitations": "Only enumerated inputs and specified diagnostic projection.",
+      "result": "PASS"
+    },
+    {
+      "function": "rules.builtin.relational.OwnerMassPairRule.evaluate_sheet",
+      "requirements": [
+        "PAIR_CHEM_WITHOUT_MASS",
+        "PAIR_SOL_WITHOUT_MASS",
+        "PAIR_WATER_WITHOUT_VOLUME",
+        "PAIR_VOLUME_NOT_ALLOWED"
+      ],
+      "domain": "One tab, one owner (kemikalija/raztopina, K/dH2O), one mass slot and one volume slot, independently absent/same/other. Water with both matches excluded.",
+      "cases_requested": 34,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Exhaustive differential execution",
+      "tool": "CPython",
+      "requirement_id": "EQ-owner",
+      "cases_checked": 34,
+      "counterexamples": [],
+      "limitations": "Finite fixtures; ordered findings, exceptions, state mutations and captured logs/streams.",
+      "result": "PASS"
+    },
+    {
+      "function": "rules.builtin.relational.OwnerMassPairRule.evaluate_sheet",
+      "requirements": [
+        "PAIR_CHEM_WITHOUT_MASS",
+        "PAIR_SOL_WITHOUT_MASS",
+        "PAIR_WATER_WITHOUT_VOLUME",
+        "PAIR_VOLUME_NOT_ALLOWED"
+      ],
+      "domain": "One tab, one owner (kemikalija/raztopina, K/dH2O), one mass slot and one volume slot, independently absent/same/other. Water with both matches excluded.",
+      "cases_requested": 34,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Bounded SMT specification check on observed Python relation",
+      "tool": "z3-solver",
+      "requirement_id": "SPEC-owner",
+      "cases_checked": 34,
+      "counterexamples": [],
+      "limitations": "Only enumerated inputs and specified diagnostic projection.",
+      "result": "PASS"
+    },
+    {
+      "function": "rules.builtin.control.ZakleniParamRule.evaluate",
+      "requirements": [
+        "LOCK_P1_FORMAT",
+        "LOCK_P1_STEP_MISSING",
+        "LOCK_P1_WITHOUT_CONDITION"
+      ],
+      "domain": "One locking checkbox. Steps 2 and 3 conditional, 4 unconditional, 5 missing. Exactly the nonempty literal strings in LOCK_LISTS.",
+      "cases_requested": 12,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Exhaustive differential execution",
+      "tool": "CPython",
+      "requirement_id": "EQ-lock",
+      "cases_checked": 12,
+      "counterexamples": [],
+      "limitations": "Finite fixtures; ordered findings, exceptions, state mutations and captured logs/streams.",
+      "result": "PASS"
+    },
+    {
+      "function": "rules.builtin.control.ZakleniParamRule.evaluate",
+      "requirements": [
+        "LOCK_P1_FORMAT",
+        "LOCK_P1_STEP_MISSING",
+        "LOCK_P1_WITHOUT_CONDITION"
+      ],
+      "domain": "One locking checkbox. Steps 2 and 3 conditional, 4 unconditional, 5 missing. Exactly the nonempty literal strings in LOCK_LISTS.",
+      "cases_requested": 12,
+      "requirements_source": "NAV-158 v5 @ f5fefb8733087923b9c141db10cbfbcf9bb3a743",
+      "method": "Bounded SMT specification check on observed Python relation",
+      "tool": "z3-solver",
+      "requirement_id": "SPEC-lock",
+      "cases_checked": 12,
+      "counterexamples": [
+        {
+          "function": "rules.builtin.control.ZakleniParamRule.evaluate",
+          "case": "lock/08",
+          "inputs": {
+            "parameters": [
+              "2, 3"
+            ],
+            "rows": [
+              {
+                "št. Koraka": "1",
+                "Tip objekta": "checkbox",
+                "Ključ preverjanja": "K",
+                "Kontrola 1": "zaklenipolja",
+                "Kontrola 1 - par 1": "2, 3"
+              },
+              {
+                "št. Koraka": "2",
+                "Kontrola 1": "aliObstajaPogoj",
+                "Kontrola 1 - par 1": "K",
+                "Kontrola 1 - par 2": "1"
+              },
+              {
+                "št. Koraka": "3",
+                "Kontrola 1": "aliObstajaPogoj",
+                "Kontrola 1 - par 1": "K",
+                "Kontrola 1 - par 2": "1"
+              },
+              {
+                "št. Koraka": "4"
+              }
+            ]
+          },
+          "violated_requirement": [
+            "LOCK_P1_FORMAT"
+          ],
+          "expected": {
+            "required_findings": [
+              [
+                "LOCK_P1_FORMAT",
+                2,
+                "Kontrola 1 - par 1"
+              ]
+            ],
+            "severity": "error",
+            "exception": null,
+            "input_mutations": false
+          },
+          "actual": {
+            "findings": [],
+            "exception": null,
+            "effects": {}
+          },
+          "classification": "Documented requirement discrepancy; review requirement, fixture and implementation.",
+          "reproduce": "python -m verification --candidate 5a3d0f4d92218d554b368483f45683737ad670ad --case lock/08",
+          "regression_case": {
+            "target": "lock",
+            "values": [
+              "2, 3"
+            ],
+            "required_findings": [
+              [
+                "LOCK_P1_FORMAT",
+                2,
+                "Kontrola 1 - par 1"
+              ]
+            ]
+          }
+        }
+      ],
+      "limitations": "Only enumerated inputs and specified diagnostic projection.",
+      "result": "FAIL"
+    },
+    {
+      "function": "rules.builtin.control.KontrolaIntervalParamRule.evaluate",
+      "requirement_id": "CTRL_INTERVAL_RANGE",
+      "method": "SMT check of extracted Python predicate (IEEE 754 binary64)",
+      "tool": "z3-solver",
+      "domain": "All pairs of finite binary64 numbers, including signed zeros.",
+      "assumptions": "Execution reaches this guard. p1_val and p2_val are the parsed minimum and maximum.",
+      "limitations": "Parser, paths reaching the guard, diagnostic construction and Excel I/O are outside this proof.",
+      "counterexamples": [],
+      "predicate": "p1_val is not None and p2_val is not None and (p2_val <= p1_val)",
+      "source_sha256": "1e8ff5e549adcb7599d8794ef5c68d26b26bd7bb724456ad61f936f9ed3e5744",
+      "result": "PASS"
+    },
+    {
+      "function": "abstract guarded single-cell update",
+      "requirement_id": "SYNC-FRAME",
+      "domain": "All integer addresses and values, symbolic authorization/formula/commit flags.",
+      "method": "SMT proof of a frame property in array theory",
+      "tool": "z3-solver",
+      "result": "PASS",
+      "assumptions": "The model performs exactly the specified guarded Store; flags are trusted inputs.",
+      "limitations": "Only this mathematical transition. No file, receipt or storage system is modeled.",
+      "counterexamples": []
+    },
+    {
+      "function": "future Recipe Sync adapter",
+      "requirement_id": "SYNC-XLSX",
+      "domain": "Real xlsx/xlsm files and publication failures",
+      "method": "integration qualification",
+      "tool": "none",
+      "result": "NOT VERIFIED",
+      "counterexamples": [],
+      "limitations": "No Recipe Sync publisher or qualified Excel snapshot adapter in this revision."
+    }
+  ]
+}
