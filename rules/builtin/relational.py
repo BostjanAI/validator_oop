@@ -328,28 +328,32 @@ class MassOwnerRule(SheetRule):
             
             masa_tab = tab_by_row.get(row_idx, "")
             masa_base = _owner_match_base(masa_key)
-            
-            # Poiščimo najbližjega lastnika (kemikalija/raztopina/monomerna*) pred maso z isto bazo ključa
-            first_owner_row = None
-            first_owner_key = None
-            first_owner_type = None
-            
-            # Iteriramo nazaj od najbližje vrstice (od row_idx - 1 do row_offset)
+
+            # razt6 in razt7 imata isto bazo, a sta različni raztopini: vsaka ima svojo maso
+            # z enakim ključem. Točen ključ lastnika (tudi če je višje, za drugo oštevilčeno
+            # raztopino) je veljaven. Neujemanje javimo le, če točnega lastnika ni, obstaja pa
+            # bližji lastnik z isto bazo in drugačnim ključem (npr. masa 'razt8' pri razt7).
+            exact_owner = False
+            nearest_base_owner: tuple[int, str, str] | None = None
+
             for prev_idx in range(row_idx - 1, row_offset - 1, -1):
                 prev_row = rows[prev_idx - row_offset]
                 prev_tip = norm_text(coerce_str(prev_row.get("Tip podatka", "")))
                 prev_key = coerce_str(prev_row.get("Ključ preverjanja", "")).strip()
                 prev_tab = tab_by_row.get(prev_idx, "")
-                
-                if is_mass_owner_tip(prev_tip) and prev_key and prev_tab == masa_tab:
-                    prev_base = _owner_match_base(prev_key)
-                    if prev_base == masa_base:
-                        first_owner_row = prev_idx
-                        first_owner_key = prev_key
-                        first_owner_type = prev_tip
-                        break
-            
-            if first_owner_key is None:
+
+                if not (is_mass_owner_tip(prev_tip) and prev_key and prev_tab == masa_tab):
+                    continue
+                if prev_key == masa_key:
+                    exact_owner = True
+                    break
+                if nearest_base_owner is None and _owner_match_base(prev_key) == masa_base:
+                    nearest_base_owner = (prev_idx, prev_key, prev_tip)
+
+            if exact_owner:
+                continue
+
+            if nearest_base_owner is None:
                 errors.append(
                     self.build_error(
                         f"Za maso s ključem '{masa_key}' ne obstaja ustrezna 'kemikalija', 'raztopina' ali 'monomerna' pred tem korakom.",
@@ -358,8 +362,8 @@ class MassOwnerRule(SheetRule):
                         code="PAIR_MASS_WITHOUT_OWNER",
                     )
                 )
-            elif masa_key != first_owner_key:
-                # Ključa se ne ujemata - masa mora imeti enak ključ kot najbližji lastnik
+            else:
+                first_owner_row, first_owner_key, first_owner_type = nearest_base_owner
                 errors.append(
                     self.build_error(
                         f"Vrstica {row_idx} mora imeti ključ preverjanja '{first_owner_key}' (kot vrstica {first_owner_row}, {first_owner_type}).",

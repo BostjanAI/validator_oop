@@ -354,12 +354,12 @@ Preverja, da so vse kontrole znane.
 
 ### 4.1a Rezervirani stolpec Kontrola 1
 
-Preverja, da je stolpec `Kontrola 1` namenjen samo kontrolama `zaklenipolja` in `aliobstajapogoj`.
+Preverja, da je stolpec `Kontrola 1` namenjen kontrolam `zaklenipolja`, `aliobstajapogoj`, `alipravavlogakoda`, `kontrolaustreznostimonolita` in `kontrolaveljavnostimonolita`.
 
 | | |
 |---|---|
 | **Pravilo** | `control_column_one_reserved_rule` |
-| **Preverja** | V stolpcu `Kontrola 1` sta dovoljeni samo `zaklenipolja` in `aliobstajapogoj` (tudi `aliobstajapogoj_ali`). Vse ostale kontrole morajo biti v `Kontrola 2` ali naprej. Kontrole `zaklenipolja` / `aliobstajapogoj` smejo biti tudi v drugih stolpcih. Neznane kontrole javi pravilo 4.1. |
+| **Preverja** | V stolpcu `Kontrola 1` so dovoljene `zaklenipolja`, `aliobstajapogoj` (tudi `aliobstajapogoj_ali`), `alipravavlogakoda`, `kontrolaustreznostimonolita` in `kontrolaveljavnostimonolita`. Vse ostale kontrole morajo biti v `Kontrola 2` ali naprej. Te kontrole smejo biti tudi v drugih stolpcih. Neznane kontrole javi pravilo 4.1. |
 | **Napaka** | `CTRL_COL1_RESERVED` |
 
 ---
@@ -501,7 +501,7 @@ Preverja osnovno veljavnost parametrov pri `kontrolainterval` / `kontrolainterva
 
 ### 4.12 Napredna validacija intervalnih parametrov
 
-Preverja, da se parametri kontrole `kontrolainterval` / `kontrolaintervala` (Param1 = spodnja meja, Param2 = zgornja meja) ujemajo z vrednostjo ali intervalom, zapisanim v stolpcu `Navodilo`. Pravilo prepozna tri oblike zapisa v Navodilu in za vsako določi drugačna pravila za izračun zahtevanih vrednosti Param1 in Param2.
+Preverja, da se parametri kontrole `kontrolainterval` / `kontrolaintervala` (Param1 = spodnja meja, Param2 = zgornja meja) ujemajo z vrednostjo ali intervalom, zapisanim v stolpcu `Navodilo`. Pravilo prepozna tri oblike zapisa v Navodilu in za vsako določi drugačna pravila za izračun zahtevanih vrednosti Param1 in Param2. Navodilo z oklepajem, ki se začne z `info` (`(info)`, `(info.)`, `(info 3.0 - 5.5)`), se ne preverja.
 
 | | |
 |---|---|
@@ -644,7 +644,7 @@ Preverja, da je intervalna kontrola prisotna, kadar jo Navodilo nakazuje.
 
 | | |
 |---|---|
-| **Preverja** | Kadar `Navodilo` vsebuje numeričen interval (razpon / ± / neenačba), `Tip objekta` je `edit`/formula tip, ni `datumcaskonec`, ni checkbox in `Labela` ≠ `koda` → mora biti prisotna `kontrolainterval`, `kontrolaintervala` ali `kontrolarazlika` |
+| **Preverja** | Kadar `Navodilo` vsebuje numeričen interval (razpon / ± / neenačba), `Tip objekta` je `edit`/formula tip, ni `datumcaskonec`, ni checkbox in `Labela` ≠ `koda` → mora biti prisotna `kontrolainterval`, `kontrolaintervala` ali `kontrolarazlika`. Oklepaj, ki se začne z `info` (`(info)`, `(info 3.0 - 5.5)`), zahteve ne sproži. |
 | **Napaka** | `KONTROLA_INTERVAL_ZAHTEVANA` |
 
 ---

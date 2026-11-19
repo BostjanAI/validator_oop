@@ -79,7 +79,18 @@ ALIOB_CONTROL = "aliobstajapogoj"
 INTERVAL_CONTROL_NAMES = ("kontrolainterval", "kontrolaintervala")
 # Stolpec 'Kontrola 1' je rezerviran samo za te kontrole; ostale gredo v Kontrola 2+.
 RESERVED_CONTROL_COLUMN_NUMBER = 1
-RESERVED_FIRST_COLUMN_CONTROLS = frozenset({ZAKLENI_CONTROL, ALIOB_CONTROL, "aliobstajapogoj_ali"})
+RESERVED_FIRST_COLUMN_CONTROLS = frozenset({
+    ZAKLENI_CONTROL,
+    ALIOB_CONTROL,
+    "aliobstajapogoj_ali",
+    "alipravavlogakoda",
+    "kontrolaustreznostimonolita",
+    "kontrolaveljavnostimonolita",
+})
+RESERVED_FIRST_COLUMN_CONTROLS_LABEL = (
+    "'zaklenipolja', 'aliObstajaPogoj', 'aliPravaVlogaKoda', "
+    "'kontrolaUstreznostiMonolita' in 'kontrolaVeljavnostiMonolita'"
+)
 # Labela za checkbox: samo kljukica → zahteva aliObkljukan; kljukica/prazno → aliObkljukan ne sme biti
 LABELA_DA_KLJUKICA = "da (kljukica)"
 LABELA_DA_NE = "da (kljukica)/ne (prazno)"
@@ -150,6 +161,15 @@ class ControlContextState:
 
 def _normalize_navodilo_text(navodilo: str) -> str:
     return navodilo.replace("â‰¤", "≤").replace("â‰¥", "≥")
+
+
+# (info), (info.), ( info) in (info 3.0 - 5.5) — ne (informacija)
+_INFO_MARK_RE = re.compile(r"\(\s*info\b[^)]*\)", re.IGNORECASE)
+
+
+def _navodilo_is_info(navodilo: str) -> bool:
+    """Informativno navodilo: oklepaj, ki se začne z 'info'."""
+    return _INFO_MARK_RE.search(coerce_str(navodilo)) is not None
 
 
 def _parse_number(value: str) -> float | None:
@@ -455,11 +475,11 @@ class UnknownControlsRule(RowRule):
 
 @register
 class ControlColumnOneReservedRule(RowRule):
-    """Kontrola 1 je rezervirana za 'zaklenipolja' in 'aliObstajaPogoj'."""
+    """Kontrola 1 je rezervirana za zaklepanje, vlogo in monolita."""
 
     name = "control_column_one_reserved_rule"
     description = (
-        "Stolpec 'Kontrola 1' je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'; "
+        f"Stolpec 'Kontrola 1' je rezerviran za {RESERVED_FIRST_COLUMN_CONTROLS_LABEL}; "
         "vse ostale kontrole morajo biti v 'Kontrola 2' ali naprej."
     )
 
@@ -479,7 +499,7 @@ class ControlColumnOneReservedRule(RowRule):
             errors.append(
                 self.build_error(
                     f"Kontrola '{control.raw_name}' ne sme biti v stolpcu 'Kontrola 1' – "
-                    "ta je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'. "
+                    f"ta je rezerviran za {RESERVED_FIRST_COLUMN_CONTROLS_LABEL}. "
                     "Premaknite jo v 'Kontrola 2' ali naprej.",
                     context=context,
                     column=control.column,
@@ -1834,7 +1854,11 @@ class KontrolaIntervalAdvancedRule(RowRule):
         if not interval_controls:
             return []
 
-        navodilo_parse = _parse_numeric_navodilo(coerce_str(row.get("Navodilo", "")))
+        navodilo_text = coerce_str(row.get("Navodilo", ""))
+        if _navodilo_is_info(navodilo_text):
+            return []
+
+        navodilo_parse = _parse_numeric_navodilo(navodilo_text)
         navodilo = navodilo_parse.raw
         errors = []
 
@@ -2339,7 +2363,7 @@ class NavodiloIntervalKontrolaIntervalRequiredRule(RowRule):
             return []
 
         navodilo = coerce_str(row.get("Navodilo", ""))
-        if not _navodilo_has_numeric_interval(navodilo):
+        if _navodilo_is_info(navodilo) or not _navodilo_has_numeric_interval(navodilo):
             return []
 
         # Pri datumcaskonec je časovni interval pokrit s kontrolacasa, kontrolainterval ni obvezen

@@ -827,7 +827,7 @@ Te napake se nanašajo na pravilnost kontrol v stolpcih `Kontrola 1` do `Kontrol
 
 #### `CTRL_COL1_RESERVED` – Kontrola v rezerviranem stolpcu `Kontrola 1`
 
-**Opis:** Stolpec `Kontrola 1` je rezerviran samo za kontroli `zaklenipolja` in `aliobstajapogoj`.
+**Opis:** Stolpec `Kontrola 1` je rezerviran za `zaklenipolja`, `aliobstajapogoj`, `alipravavlogakoda`, `kontrolaustreznostimonolita` in `kontrolaveljavnostimonolita`.
 
 **Vzrok:** V stolpcu `Kontrola 1` je druga kontrola (npr. `kontrolapraznopolje`, `kontrolainterval`).
 

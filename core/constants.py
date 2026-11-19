@@ -414,7 +414,7 @@ CODE_TRANSLATIONS: Dict[str, str] = {
     "CTRL_EMPTY_NOT_ALLOWED": "Tip objekta ne sme imeti kontrole prazno polje",
     "CTRL_EXPECTED_MISSING": "Manjka pričakovana kontrola",
     "CTRL_UNKNOWN": "Neznano ime kontrole",
-    "CTRL_COL1_RESERVED": "Stolpec 'Kontrola 1' je rezerviran za 'zaklenipolja' in 'aliObstajaPogoj'; ostale kontrole morajo biti v 'Kontrola 2' ali naprej",
+    "CTRL_COL1_RESERVED": "Stolpec 'Kontrola 1' je rezerviran za 'zaklenipolja', 'aliObstajaPogoj', 'aliPravaVlogaKoda', 'kontrolaUstreznostiMonolita' in 'kontrolaVeljavnostiMonolita'; ostale kontrole morajo biti v 'Kontrola 2' ali naprej",
     "CTRL_INVALID_CONTEXT": "Kontrola je v napačnem kontekstu",
     "EXCEL_ERROR_TOKEN": "Celica vsebuje Excelovo napako",
     # --- Control: interval ---

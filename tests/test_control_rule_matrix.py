@@ -137,7 +137,7 @@ def test_navodilo_interval_requirement_is_satisfied_by_any_control_slot(
     "navodilo",
     [
         ">= 4 h",
-        "T (NB) (≤ 2 .0) (info)",
+        "T (NB) (≤ 2 .0)",
         "14.01 +/- 0.14",
     ],
 )
@@ -153,6 +153,29 @@ def test_navodilo_interval_requirement_detects_supported_numeric_forms(navodilo:
         ["Tip objekta", "Navodilo", "Kontrola-1"],
     )
     assert "CTRL_INTERVAL_REQUIRED" in [error.code for error in errors]
+
+
+@pytest.mark.parametrize(
+    "navodilo",
+    [
+        "T (EA) (1.30 - 2.10) (info.)",
+        "T (NB) (≤ 2 .0) ( info)",
+        "R (UR-EA) (≥ 1.5) (info)",
+        "Distribucijski koeficient D = φ * (tEA - tUR) / Vn (info 3.0 - 5.5)",
+    ],
+)
+def test_info_navodilo_does_not_require_interval_control(navodilo: str) -> None:
+    row = {
+        "Tip objekta": "edit",
+        "Navodilo": navodilo,
+        "Kontrola-1": "",
+    }
+    errors = _run_rule(
+        NavodiloIntervalKontrolaIntervalRequiredRule(),
+        [row],
+        ["Tip objekta", "Navodilo", "Kontrola-1"],
+    )
+    assert "CTRL_INTERVAL_REQUIRED" not in [error.code for error in errors]
 
 
 @pytest.mark.parametrize("slot", CONTROL_SLOTS)

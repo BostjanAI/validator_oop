@@ -299,6 +299,40 @@ class TestMassOwnerRule:
         error_codes = [e.code for e in errors]
         assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
 
+    def test_numbered_solutions_each_keep_own_mass(self, rule: MassOwnerRule) -> None:
+        """razt6 in razt7 imata vsak svojo maso z istim ključem, tudi če je druga raztopina bližje."""
+        rows = [
+            {"Ključ preverjanja": "razt6", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "razt7", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "razt7", "Tip podatka": "masa"},
+            {"Ključ preverjanja": "razt6", "Tip podatka": "masa"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka"])
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        assert [e.code for e in errors] == []
+
+    def test_masa_key_must_match_nearest_owner_when_exact_owner_missing(
+        self, rule: MassOwnerRule
+    ) -> None:
+        """Masa brez lastnika z istim ključem še vedno prevzame ključ najbližje raztopine iste baze."""
+        rows = [
+            {"Ključ preverjanja": "razt7", "Tip podatka": "raztopina"},
+            {"Ključ preverjanja": "razt6", "Tip podatka": "masa"},
+        ]
+        builder = SharedContextBuilder(row_offset=2)
+        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka"])
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+
+        mismatch = [e for e in errors if e.code == "PAIR_MASS_SECTION_MISMATCH"]
+        assert len(mismatch) == 1
+        assert "razt7" in mismatch[0].message
+
 
 class TestOwnerMassPairRule:
     """Tests for OwnerMassPairRule."""

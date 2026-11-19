@@ -99,7 +99,7 @@ class TestUnknownControlsRule:
 
 
 class TestControlColumnOneReservedRule:
-    """Kontrola 1 je rezervirana za zaklenipolja in aliObstajaPogoj."""
+    """Kontrola 1 je rezervirana za zaklepanje, vlogo in kontrole monolita."""
 
     @staticmethod
     def _run(rows: list[dict[str, Any]], columns: list[str]):
@@ -112,6 +112,9 @@ class TestControlColumnOneReservedRule:
         rows = [
             {"Kontrola 1": "zaklenipolja", "Kontrola 2": ""},
             {"Kontrola 1": "aliObstajaPogoj", "Kontrola 2": "kontrolaPraznoPolje"},
+            {"Kontrola 1": "aliPravaVlogaKoda", "Kontrola 2": ""},
+            {"Kontrola 1": "kontrolaUstreznostiMonolita", "Kontrola 2": ""},
+            {"Kontrola 1": "kontrolaVeljavnostiMonolita", "Kontrola 2": ""},
             {"Kontrola 1": "", "Kontrola 2": "kontrolaIntervala"},
         ]
         errors = self._run(rows, ["Kontrola 1", "Kontrola 2"])
@@ -1704,7 +1707,7 @@ class TestKontrolaIntervalAdvancedRule:
         """For '<= 2 .0', Param2 should be 2.1 (not 3.0)."""
         rows = [
             {
-                "Navodilo": "T (NB) (≤ 2 .0) (info)",
+                "Navodilo": "T (NB) (≤ 2 .0)",
                 "Kontrola-1": "kontrolaIntervala",
                 "Kontrola-1: Par 1": "1.9",
                 "Kontrola-1: Par 2": "2.3",
@@ -1721,6 +1724,43 @@ class TestKontrolaIntervalAdvancedRule:
         assert len(target_p2_errors) == 1
         assert "Param2 mora biti 2.1" in target_p2_errors[0].message
         assert "Param2 mora biti 3.0" not in target_p2_errors[0].message
+
+    def test_info_navodilo_skips_interval_check(
+        self, rule: KontrolaIntervalAdvancedRule
+    ) -> None:
+        """'(info)' / '(info.)' is informational: do not compare kontrolaInterval."""
+        rows = [
+            {
+                "Navodilo": "T (EA) (1.30 - 2.10) (info.)",
+                "Kontrola-1": "kontrolaInterval",
+                "Kontrola-1: Par 1": "1.07",
+                "Kontrola-1: Par 2": "9.99",
+            },
+            {
+                "Navodilo": "T (NB) (≤ 2 .0) ( info)",
+                "Kontrola-1": "kontrolaIntervala",
+                "Kontrola-1: Par 1": "0.1",
+                "Kontrola-1: Par 2": "9",
+            },
+            {
+                "Navodilo": "R (UR-EA) (≥ 1.5) (info)",
+                "Kontrola-1": "kontrolaInterval",
+                "Kontrola-1: Par 1": "0.1",
+                "Kontrola-1: Par 2": "9",
+            },
+            {
+                "Navodilo": "Distribucijski koeficient D = φ * (tEA - tUR) / Vn (info 3.0 - 5.5)",
+                "Kontrola-1": "kontrolaInterval",
+                "Kontrola-1: Par 1": "2.60",
+                "Kontrola-1: Par 2": "9",
+            },
+        ]
+        columns = ["Navodilo", "Kontrola-1", "Kontrola-1: Par 1", "Kontrola-1: Par 2"]
+        ctx = SharedContextBuilder(row_offset=2).build(rows, columns)
+        rule.set_shared_context(ctx)
+
+        errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        assert [e for e in errors if e.code.startswith("CTRL_INTERVAL_")] == []
 
     def test_pm_tolerance_high_resolution_param2_accepts_3213(self, rule: KontrolaIntervalAdvancedRule) -> None:
         """For 3.180 ± 0.032, Param2=3.213 must be valid."""

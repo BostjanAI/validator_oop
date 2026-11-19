@@ -14,6 +14,8 @@ Format temelji na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **control/** `control_column_one_reserved_rule` - Stolpec `Kontrola 1` je rezerviran za `zaklenipolja` in `aliObstajaPogoj`; druga kontrola v njem javi `CTRL_COL1_RESERVED` (ostale kontrole morajo biti v `Kontrola 2` ali naprej) *(26. 10. 2026, ~1 h)*
 
 ### Changed
+- **control/** `kontrola_interval_advanced_rule`, `navodilo_interval_kontrolainterval_required_rule` - Navodilo z oklepajem, ki se začne z `info` (`(info)`, `(info.)`, `(info 3.0 - 5.5)`), se pri `kontrolainterval` ne preverja in kontrole ne zahteva *(19. 11. 2026, ~30 min)*
+- **control/** `control_column_one_reserved_rule` - V stolpcu `Kontrola 1` so poleg `zaklenipolja` in `aliObstajaPogoj` dovoljene tudi `aliPravaVlogaKoda`, `kontrolaUstreznostiMonolita` in `kontrolaVeljavnostiMonolita` *(19. 11. 2026, ~15 min)*
 - **control/** `chemical_solution_controls_rule` - Pri vrstici z `kontrolaUstreznostiRaztopine` mora `Navodilo` vsebovati točno oznako raztopine iz Param1 (kot na nalepki; razlikuje velike/male črke, oznaka ne sme biti del daljše oznake); sicer napaka `CTRL_RAZTOPINA_NAVODILO_LABEL` *(26. 10. 2026, ~1 h)*
 - **field/** `posebnosti_tip_podatka_rule` - `posebnostimon` je zahtevan samo, če je v isti vrstici v `Zavihek` vpisano `monolit1`, `monolit2`, …; zavihek v drugi vrstici ne šteje *(21. 10. 2026, ~45 min)*
 - **field/** `posebnosti_tip_podatka_rule` - Zavihek v stolpcu `Zavihek` pomeni samo `monolit1`, `monolit2`, …; formula, poljubno besedilo ali `monolit` brez številke ne pomenijo, da ima receptura zavihke (zato ni več `DATA_TYPE_POSEBNOSTIMON_REQUIRED`) *(16. 10. 2026, ~45 min)*
