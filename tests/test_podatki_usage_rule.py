@@ -9,6 +9,7 @@ from validator_oop.rules.builtin.podatki_usage_rule import (
     PodatkiUsage,
     collect_podatki_columns,
     number_to_letters,
+    referenced_columns_in_podatki_formula,
 )
 
 
@@ -84,10 +85,13 @@ def _row(n: int = 6, **cells: str) -> dict[str, str]:
     return row
 
 
-def _run(formulas, podatki_rows, headers=None):
+def _run(formulas, podatki_rows, headers=None, podatki_formulas=None):
     rule = PodatkiColumnUsageRule()
     shared = SharedContext()
-    shared.extra["parsed_formulas"] = {"List1": [{"Vrednost": f} for f in formulas]}
+    parsed = {"List1": [{"Vrednost": f} for f in formulas]}
+    if podatki_formulas is not None:
+        parsed["Podatki"] = podatki_formulas
+    shared.extra["parsed_formulas"] = parsed
     shared.extra["all_workbook_data"] = {"List1": [], "Podatki": podatki_rows}
     shared.extra["all_workbook_headers"] = {"Podatki": headers or _headers()}
     rule.set_shared_context(shared)
@@ -124,6 +128,93 @@ def test_skipped_without_formulas_or_references():
     rows = [_row(c1="Receptura", c2="Ključ 1")]
     assert _run([], rows) == []
     assert _run(["=SUM(A1:A3)"], rows) == []
+
+
+def test_local_formula_reads_cell_not_decimals_or_names():
+    assert referenced_columns_in_podatki_formula("=AP3*0.95-0.1")[0] == {42}
+    assert referenced_columns_in_podatki_formula("=$AP$3*1.05+0.1")[0] == {42}
+    assert referenced_columns_in_podatki_formula("=SUM($B$3:C3)")[0] == {2, 3}
+    assert referenced_columns_in_podatki_formula("='Podatki'!$C$3")[0] == {3}
+    assert referenced_columns_in_podatki_formula("=Other!C3")[0] == set()
+    assert referenced_columns_in_podatki_formula('="AP3"&C3')[0] == {3}
+    assert referenced_columns_in_podatki_formula("=Pretok1")[0] == set()
+    assert referenced_columns_in_podatki_formula("=LOG10(AP3)")[0] == {42}
+    columns, all_columns = referenced_columns_in_podatki_formula("=INDEX($A:$F,2,3)")
+    assert columns == {3}
+    assert not all_columns
+
+
+def test_pretok_column_used_only_through_min_max_formulas_is_ok():
+    """AP (Pretok 1) ni v INDEX/MATCH; AQ/AR (Min/Max) sta in bereta AP."""
+    n = 44
+    headers = _headers(n)
+    label = _row(n, c1="Receptura", c42="Pretok 1", c43="Min", c44="Max")
+    data = _row(n, c1="OH_0.45M-NaCl-GK", c42="10", c43="9.4", c44="10.6")
+    blank = {header: None for header in headers}
+    formulas = [
+        dict(blank),
+        {**blank, "43": "=AP3*0.95-0.1", "44": "=AP3*1.05+0.1"},
+    ]
+    errors = _run(
+        [_f(43, "$A:$AR"), _f(44, "$A:$AR")],
+        [label, data],
+        headers=headers,
+        podatki_formulas=formulas,
+    )
+    assert errors == []
+    assert number_to_letters(42) == "AP"
+
+
+def test_dependency_chain_marks_upstream_columns_used():
+    rows = [
+        _row(c1="Receptura", c2="Vir", c3="Vmesni", c4="Min"),
+        _row(c1="R-A", c2="10", c3="11", c4="12"),
+    ]
+    errors = _run(
+        [_f(4, "$A:$D")],
+        rows,
+        podatki_formulas=[{"3": "=B2+1", "4": "=C2+1"}],
+    )
+    assert errors == []
+
+
+def test_formula_in_unused_column_does_not_rescue_its_source():
+    rows = [
+        _row(c1="Receptura", c2="Ključ", c3="Pretok 1", c4="Min"),
+        _row(c1="R-A", c2="a", c3="10", c4="9.4"),
+    ]
+    errors = _run(
+        [_f(2, "$A:$D")],
+        rows,
+        podatki_formulas=[{"4": "=C2*0.95-0.1"}],
+    )
+    assert [e.column for e in errors] == ["C", "D"]
+
+
+def test_other_sheet_reference_inside_podatki_does_not_count():
+    rows = [
+        _row(c1="Receptura", c2="Ključ", c3="Pretok 1", c4="Min"),
+        _row(c1="R-A", c2="a", c3="10", c4="9.4"),
+    ]
+    errors = _run(
+        [_f(2, "$A:$D"), _f(4, "$A:$D")],
+        rows,
+        podatki_formulas=[{"4": "=Other!C3*0.95-0.1"}],
+    )
+    assert [e.column for e in errors] == ["C"]
+
+
+def test_index_inside_used_column_marks_only_literal_column():
+    rows = [
+        _row(c1="Receptura", c2="Ključ", c3="Pretok 1", c4="Min"),
+        _row(c1="R-A", c2="a", c3="10", c4="9.4"),
+    ]
+    errors = _run(
+        [_f(4, "$A:$D")],
+        rows,
+        podatki_formulas=[{"4": "=INDEX($A:$D;2;3)"}],
+    )
+    assert [e.column for e in errors] == ["B"]
 
 
 def test_skipped_without_podatki_sheet():

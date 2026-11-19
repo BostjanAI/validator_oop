@@ -2,7 +2,9 @@
 
 Javi stolpce iz zavihka ``Podatki``, ki se ne uporabljajo v nobeni formuli
 (npr. ``=INDEX(Podatki!$A:$BY,MATCH($D$2,Podatki!$A:$A,0),60)``) v nobenem
-drugem zavihku.
+drugem zavihku in jih ne potrebuje formula nobenega tako uporabljenega
+stolpca (npr. ``Min`` z ``=AP3*0.95-0.1``, ko je ``Min`` v INDEX/MATCH,
+``Pretok 1`` pa ne).
 
 Pravilo potrebuje besedilo formul (``parsed_formulas``). Če formule niso
 naložene (``include_formulas=False``), se tiho preskoči, ker bi sicer vsi
@@ -32,6 +34,23 @@ _PODATKI_REF_RE = re.compile(
     re.IGNORECASE,
 )
 _FIRST_ARG_REF_RE = re.compile(r"^\s*'?Podatki'?\s*!\s*(?P<ref>[^\s]+)\s*$", re.IGNORECASE)
+# Razpon v formuli na zavihku Podatki: $A:$BY, Podatki!$A:$BY, 'Podatki'!$AP:$AR.
+# Razpon z drugim zavihkom (npr. Other!$A:$B) se ne ujema.
+_LOCAL_RANGE_ARG_RE = re.compile(
+    r"^\s*(?:'?Podatki'?\s*!\s*)?"
+    r"(?P<ref>\$?[A-Z]{1,3}(?:\$?\d+)?(?::\$?[A-Z]{1,3}(?:\$?\d+)?)?)\s*$",
+    re.IGNORECASE,
+)
+# Sklic na celico ali razpon v formuli istega zavihka. Ime lista, ki ni Podatki, se preskoči.
+_LOCAL_CELL_REF_RE = re.compile(
+    r"(?<![A-Za-z0-9_$.])"
+    r"(?:(?:'(?P<qsheet>[^']+)'|(?P<usheet>[A-Za-z_][\w.]*))\s*!\s*)?"
+    r"\$?(?P<c1>[A-Z]{1,3})(?:\$?(?P<r1>\d+))?"
+    r"(?:\s*:\s*\$?(?P<c2>[A-Z]{1,3})(?:\$?(?P<r2>\d+))?)?"
+    r"(?![A-Za-z0-9_(])",
+    re.IGNORECASE,
+)
+_QUOTED_STRING_RE = re.compile(r'"(?:[^"]|"")*"')
 _REF_PARTS_RE = re.compile(
     r"^\$?(?P<c1>[A-Z]{1,3})?\$?(?P<r1>\d+)?(?::\$?(?P<c2>[A-Z]{1,3})?\$?(?P<r2>\d+)?)?$",
     re.IGNORECASE,
@@ -119,6 +138,115 @@ def _call_args(text: str, start: int) -> list[tuple[int, int]] | None:
     return None
 
 
+def _span_from_groups(c1: str | None, c2: str | None, r1: str | None) -> tuple[int, int] | None:
+    """Stolpci iz skupin sklica. Brez vrstice in brez drugega stolpca ni sklic."""
+    if not c1 or (r1 is None and not c2):
+        return None
+    low = _letters_to_number(c1)
+    high = _letters_to_number(c2) if c2 else low
+    if high < low:
+        low, high = high, low
+    if high - low > _MAX_SPAN:
+        return None
+    return low, high
+
+
+def _blank_spans(text: str, spans: Sequence[tuple[int, int]]) -> str:
+    if not spans:
+        return text
+    chars = list(text)
+    for start, end in spans:
+        for index in range(max(start, 0), min(end, len(chars))):
+            chars[index] = " "
+    return "".join(chars)
+
+
+def referenced_columns_in_podatki_formula(formula: object) -> tuple[set[int], bool]:
+    """Stolpci zavihka Podatki, na katere kaže formula v celici tega zavihka.
+
+    Sklici na druge zavihke (``=Other!AP3``) se ne štejejo. Pri ``INDEX``/``VLOOKUP``
+    z dobesedno številko stolpca se šteje samo ta stolpec, ne cel razpon.
+    Vrne ``(stolpci, vsi_stolpci)``.
+    """
+    if not isinstance(formula, str) or not formula.lstrip().startswith("="):
+        return set(), False
+
+    text = _QUOTED_STRING_RE.sub(lambda match: " " * len(match.group(0)), formula)
+    columns: set[int] = set()
+    all_columns = False
+    masked: list[tuple[int, int]] = []
+
+    for call in _LOOKUP_FUNCTIONS_RE.finditer(text):
+        args = _call_args(text, call.end())
+        if not args:
+            continue
+        is_index = call.group(1).upper() == "INDEX"
+        range_arg = args[0] if is_index else (args[1] if len(args) > 1 else None)
+        col_arg = args[2] if len(args) > 2 else None
+        if range_arg is None or col_arg is None:
+            continue
+        ref_match = _LOCAL_RANGE_ARG_RE.match(text[range_arg[0]:range_arg[1]])
+        if not ref_match:
+            continue
+        literal = _LITERAL_INT_RE.match(text[col_arg[0]:col_arg[1]])
+        span = _ref_columns(ref_match.group("ref"))
+        if not literal or span is None:
+            continue
+        columns.add(span[0] + int(literal.group(1)) - 1)
+        masked.append(range_arg)
+
+    scan = _blank_spans(text, masked)
+    for ref in _LOCAL_CELL_REF_RE.finditer(scan):
+        sheet = ref.group("qsheet") or ref.group("usheet")
+        if sheet and sheet.casefold().strip() != _PODATKI_NAME:
+            continue
+        span = _span_from_groups(ref.group("c1"), ref.group("c2"), ref.group("r1"))
+        if span is None:
+            if ref.group("c1") and ref.group("c2"):
+                all_columns = True
+            continue
+        columns.update(range(span[0], span[1] + 1))
+
+    return columns, all_columns
+
+
+def expand_usage_with_podatki_formulas(
+    usage: PodatkiUsage,
+    formula_rows: Sequence[Mapping[str, Any]] | None,
+    headers: Sequence[str],
+) -> None:
+    """Doda stolpce, ki jih formule uporabljenih stolpcev preberejo (tudi veriga)."""
+    if usage.all_columns or not formula_rows:
+        return
+
+    header_list = [str(header) for header in headers]
+    deps: dict[int, set[int]] = {}
+    reads_everything: set[int] = set()
+    for row in formula_rows:
+        if not isinstance(row, Mapping):
+            continue
+        for column_num, header in enumerate(header_list, start=1):
+            referenced, all_columns = referenced_columns_in_podatki_formula(row.get(header))
+            if all_columns:
+                reads_everything.add(column_num)
+            if referenced:
+                deps.setdefault(column_num, set()).update(referenced)
+
+    pending = list(usage.columns)
+    seen = set(usage.columns)
+    while pending:
+        column_num = pending.pop()
+        if column_num in reads_everything:
+            usage.all_columns = True
+            return
+        for dependency in deps.get(column_num, ()):
+            if dependency in seen:
+                continue
+            seen.add(dependency)
+            usage.columns.add(dependency)
+            pending.append(dependency)
+
+
 def collect_podatki_columns(formula: str, usage: PodatkiUsage) -> bool:
     """Doda stolpce zavihka Podatki, uporabljene v formuli. Vrne True, če formula sega v Podatki."""
     if not formula or not formula.lstrip().startswith("="):
@@ -200,7 +328,8 @@ class PodatkiColumnUsageRule(WorkbookRule):
 
     name = "podatki_column_usage_rule"
     description = (
-        "Zapolnjen stolpec zavihka Podatki mora biti uporabljen v vsaj eni INDEX/MATCH formuli "
+        "Zapolnjen stolpec zavihka Podatki mora biti uporabljen v vsaj eni formuli drugega zavihka "
+        "(INDEX/MATCH, VLOOKUP, neposreden sklic) ali v formuli takega uporabljenega stolpca "
         "(prazen neuporabljen stolpec je v redu)."
     )
     code = "PODATKI_COLUMN_UNUSED"
@@ -241,6 +370,15 @@ class PodatkiColumnUsageRule(WorkbookRule):
         if not headers and rows:
             headers = [str(key) for key in rows[0].keys()]
 
+        # Formule znotraj Podatki (npr. Min = Pretok*0.95-0.1) štejejo, če je
+        # stolpec z formulo sam uporabljen v recepturi. Veriga se sledi do konca.
+        formula_sheet = _find_sheet(parsed_formulas.keys(), _PODATKI_NAME)
+        expand_usage_with_podatki_formulas(
+            usage,
+            parsed_formulas.get(formula_sheet) if formula_sheet else None,
+            headers,
+        )
+
         sheet_ctx = context.with_sheet(podatki_name)
         errors = []
         for column_num, header in enumerate(headers, start=1):
@@ -268,7 +406,8 @@ class PodatkiColumnUsageRule(WorkbookRule):
             errors.append(
                 self.build_error(
                     f"Stolpec {letters} (št. {column_num}{label_text}) v zavihku '{podatki_name}' "
-                    "ni uporabljen v nobeni INDEX/MATCH formuli.",
+                    "ni uporabljen v nobeni INDEX/MATCH formuli in nanj ne kaže formula "
+                    "nobenega uporabljenega stolpca.",
                     context=sheet_ctx,
                     column=letters,
                     payload={"column_number": column_num, "labels": labels},

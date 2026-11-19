@@ -299,39 +299,43 @@ class TestMassOwnerRule:
         error_codes = [e.code for e in errors]
         assert "PAIR_MASS_WITHOUT_OWNER" in error_codes
 
-    def test_numbered_solutions_each_keep_own_mass(self, rule: MassOwnerRule) -> None:
-        """razt6 in razt7 imata vsak svojo maso z istim ključem, tudi če je druga raztopina bližje."""
+    def test_razt_numbered_keys_are_compared_in_full(self, rule: MassOwnerRule) -> None:
+        """razt6 in razt7 ostaneta ločena; kasnejša razt7 ne prevzame mase razt6."""
         rows = [
             {"Ključ preverjanja": "razt6", "Tip podatka": "raztopina"},
             {"Ključ preverjanja": "razt7", "Tip podatka": "raztopina"},
             {"Ključ preverjanja": "razt7", "Tip podatka": "masa"},
             {"Ključ preverjanja": "razt6", "Tip podatka": "masa"},
         ]
+
         builder = SharedContextBuilder(row_offset=2)
-        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka"])
+        columns = ["Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
+        codes = [e.code for e in errors]
+        assert "PAIR_MASS_SECTION_MISMATCH" not in codes
+        assert "PAIR_MASS_WITHOUT_OWNER" not in codes
 
-        assert [e.code for e in errors] == []
-
-    def test_masa_key_must_match_nearest_owner_when_exact_owner_missing(
+    def test_other_keys_still_match_on_base_without_trailing_number(
         self, rule: MassOwnerRule
     ) -> None:
-        """Masa brez lastnika z istim ključem še vedno prevzame ključ najbližje raztopine iste baze."""
+        """EtOH1 / EtOH2 še vedno delita bazo, zato mora masa prevzeti ključ najbližjega lastnika."""
         rows = [
-            {"Ključ preverjanja": "razt7", "Tip podatka": "raztopina"},
-            {"Ključ preverjanja": "razt6", "Tip podatka": "masa"},
+            {"Ključ preverjanja": "EtOH1", "Tip podatka": "kemikalija"},
+            {"Ključ preverjanja": "EtOH2", "Tip podatka": "masa"},
         ]
+
         builder = SharedContextBuilder(row_offset=2)
-        ctx = builder.build(rows, ["Ključ preverjanja", "Tip podatka"])
+        columns = ["Ključ preverjanja", "Tip podatka"]
+        ctx = builder.build(rows, columns)
         rule.set_shared_context(ctx)
 
         errors = rule.run(rows, sheet_name="Sheet1", row_offset=2)
-
         mismatch = [e for e in errors if e.code == "PAIR_MASS_SECTION_MISMATCH"]
         assert len(mismatch) == 1
-        assert "razt7" in mismatch[0].message
+        assert "EtOH1" in mismatch[0].message
 
 
 class TestOwnerMassPairRule:

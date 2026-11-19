@@ -18,3 +18,12 @@ analytics_out_test/
 
 build/
 dist/
+
+# Wordovi dokumenti in začasne Office datoteke (~$...)
+*.doc
+*.docx
+*.docm
+*.dot
+*.dotx
+*.dotm
+~$*
